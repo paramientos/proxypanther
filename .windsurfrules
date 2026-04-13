@@ -1,0 +1,45 @@
+Şöyle hayal et: Bir sunucun var, içinde PingPanther veya başka projeler Docker ile çalışıyor. Normalde yeni bir özellik eklediğinde ne yaparsın? SSH ile bağlanır, git pull yapar veya docker compose pull yapıp restart edersin. Ya da çok karmaşık GitHub Actions scriptleri yazarsın.
+
+DeployPanther bu aradaki "hantal" süreci ortadan kaldırır. İşte çalışma mantığı:
+
+1. Senaryo (Akış)
+Kod Yazımı: Sen bilgisayarında kodunu yazdın ve GitHub'a pushladın.
+Build: GitHub Actions (veya GitLab) imajı oluşturur ve Docker Hub/GHCR'a yükler.
+Tetikleme (Webhook): Docker Hub, imaj yüklendiği anda DeployPanther'e bir "Hey, yeni sürüm geldi!" sinyali (Webhook) gönderir.
+Otomatik Deployment: Sunucunda çalışan küçük DeployPanther agent'ı bu sinyali alır:
+Gelen token'ı doğrular (güvenlik).
+docker compose pull komutunu çalıştırır.
+docker compose up -d ile servisi günceller.
+
+# RTK - Rust Token Killer (Windsurf)
+
+**Usage**: Token-optimized CLI proxy for shell commands.
+
+## Rule
+
+Always prefix shell commands with `rtk` to minimize token consumption.
+
+Examples:
+
+```bash
+rtk git status
+rtk cargo test
+rtk ls src/
+rtk grep "pattern" src/
+rtk find "*.rs" .
+rtk docker ps
+rtk gh pr list
+```
+
+## Meta Commands
+
+```bash
+rtk gain              # Show token savings
+rtk gain --history    # Command history with savings
+rtk discover          # Find missed RTK opportunities
+rtk proxy <cmd>       # Run raw (no filtering, for debugging)
+```
+
+## Why
+
+RTK filters and compresses command output before it reaches the LLM context, saving 60-90% tokens on common operations. Always use `rtk <cmd>` instead of raw commands.

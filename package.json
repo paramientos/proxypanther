@@ -13,5 +13,12 @@
         "laravel-vite-plugin": "^3.0.0",
         "tailwindcss": "^4.0.0",
         "vite": "^8.0.0"
+    },
+    "dependencies": {
+        "@chakra-ui/react": "^3.34.0",
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "framer-motion": "^12.38.0",
+        "lucide-react": "^1.8.0"
     }
 }
