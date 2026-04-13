@@ -43,12 +43,38 @@ import {
   Textarea,
   Code,
 } from '@chakra-ui/react';
-import { Plus, Shield, Globe, Activity, ExternalLink, AlertTriangle, TrendingUp } from 'lucide-react';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Plus, Shield, Globe, Activity, ExternalLink, AlertTriangle, TrendingUp, RefreshCcw } from 'lucide-react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 
-export default function Dashboard({ auth, sites, bannedIps, analytics, recentEvents }) {
+export default function Dashboard({ auth, sites: initialSites, bannedIps, analytics, recentEvents }) {
+  const [sites, setSites] = React.useState(initialSites);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  
+  React.useEffect(() => {
+    if (!window.Echo) {
+      console.warn('Echo is not initialized. Real-time updates will not work.');
+      return;
+    }
+    
+    const channel = window.Echo.channel('health-checks');
+    
+    channel.listen('BackendHealthUpdated', (e) => {
+      setSites(currentSites => currentSites.map(site => 
+        site.id === e.id ? { ...site, is_online: e.is_online, last_check_at: e.last_check_at, last_error: e.last_error } : site
+      ));
+    });
+
+    return () => {
+      if (window.Echo) {
+        window.Echo.leaveChannel('health-checks');
+      }
+    };
+  }, []);
+
+  const handleManualCheck = (siteId) => {
+    router.post(route('sites.check-health', siteId), {}, { preserveScroll: true });
+  };
   
   const chartOptions = {
     backgroundColor: 'transparent',
@@ -156,9 +182,9 @@ export default function Dashboard({ auth, sites, bannedIps, analytics, recentEve
           </StatNumber>
         </Stat>
         <Stat px={4} py={5} bg={useColorModeValue('white', 'gray.800')} shadow={'base'} rounded={'lg'}>
-          <StatLabel fontWeight={'medium'}>Banned IPs</StatLabel>
-          <StatNumber fontSize={'2xl'} fontWeight={'medium'} color="orange.500">
-            {bannedIps.length}
+          <StatLabel fontWeight={'medium'}>System Health</StatLabel>
+          <StatNumber fontSize={'2xl'} fontWeight={'medium'} color={sites.every(s => s.is_online) ? "green.500" : "red.500"}>
+            {sites.filter(s => s.is_online).length} / {sites.length} Online
           </StatNumber>
         </Stat>
       </SimpleGrid>
@@ -215,6 +241,7 @@ export default function Dashboard({ auth, sites, bannedIps, analytics, recentEve
         <Table variant="simple">
           <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
             <Tr>
+              <Th>Status</Th>
               <Th>Site</Th>
               <Th>Backend</Th>
               <Th>Protection</Th>
@@ -225,6 +252,27 @@ export default function Dashboard({ auth, sites, bannedIps, analytics, recentEve
           <Tbody>
             {sites.map((site) => (
               <Tr key={site.id}>
+                <Td>
+                  <HStack spacing={2}>
+                    <Badge
+                      colorScheme={site.is_online ? 'green' : 'red'}
+                      variant="solid"
+                      rounded="full"
+                      px={2}
+                      title={site.is_online ? 'Online' : `Offline: ${site.last_error}`}
+                    >
+                      {site.is_online ? 'ONLINE' : 'OFFLINE'}
+                    </Badge>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => handleManualCheck(site.id)}
+                      title="Re-check health"
+                    >
+                      <RefreshCcw size={12} />
+                    </Button>
+                  </HStack>
+                </Td>
                 <Td>
                   <Stack spacing={0}>
                     <Text fontWeight="bold">{site.name}</Text>

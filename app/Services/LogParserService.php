@@ -31,6 +31,11 @@ class LogParserService
         $lines = file($logPath);
         $totalRequests = 0;
         $blockedRequests = 0;
+        $hits2xx = 0;
+        $hits4xx = 0;
+        $hits5xx = 0;
+        $totalLatency = 0;
+        $latencyCount = 0;
         $ipAttackCounts = [];
 
         foreach ($lines as $line) {
@@ -39,7 +44,19 @@ class LogParserService
 
             $totalRequests++;
 
+            // Track Latency (duration is in seconds in Caddy logs)
+            if (isset($data['duration'])) {
+                $totalLatency += ($data['duration'] * 1000); // convert to ms
+                $latencyCount++;
+            }
+
             $status = $data['status'] ?? 200;
+            
+            // Track Status Codes
+            if ($status >= 200 && $status < 300) $hits2xx++;
+            elseif ($status >= 400 && $status < 500) $hits4xx++;
+            elseif ($status >= 500) $hits5xx++;
+
             if ($status === 403) {
                 $blockedRequests++;
                 $ip = $data['request']['remote_ip'] ?? 'unknown';
@@ -72,6 +89,16 @@ class LogParserService
         // Update site stats
         $site->increment('total_requests', $totalRequests);
         $site->increment('blocked_requests', $blockedRequests);
+        $site->increment('hits_2xx', $hits2xx);
+        $site->increment('hits_4xx', $hits4xx);
+        $site->increment('hits_5xx', $hits5xx);
+
+        if ($latencyCount > 0) {
+            $currentAvg = $site->avg_latency_ms;
+            $newAvg = $totalLatency / $latencyCount;
+            // Simple moving average
+            $site->update(['avg_latency_ms' => ($currentAvg + $newAvg) / 2]);
+        }
 
         // Auto-Ban IPs that exceeded threshold (e.g., 3 attacks in one batch)
         foreach ($ipAttackCounts as $ip => $count) {

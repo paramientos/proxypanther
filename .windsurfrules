@@ -43,6 +43,14 @@ tasarım için chakra ui kullan
 dizayna sadık kal
 enterprise bir hava olsun ui'da
 
+kod yazarken yorum satırı yazma
+
+kaliteli kod yaz. PSR kurallarına uy.
+N+1 işlemlerinden kaçın.
+Sistemi yormayacak kod yaz.
+DB sorguların optimize olsun
+Tablolarda daima indexleme kullan
+
 platfrmda tıklanıp gidilecek nav varsa git ya da modalda bilgi ver
 
 # RTK - Rust Token Killer (Windsurf)

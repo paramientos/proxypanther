@@ -31,6 +31,13 @@ class ProxySite extends Model
         'cache_ttl',
         'is_maintenance',
         'maintenance_message',
+        'is_online',
+        'last_check_at',
+        'last_error',
+        'hits_2xx',
+        'hits_4xx',
+        'hits_5xx',
+        'avg_latency_ms',
     ];
 
     public function securityEvents(): HasMany

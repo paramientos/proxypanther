@@ -67,6 +67,7 @@ export default function AppLayout({ children, user }) {
              <Stack direction={'row'} spacing={4}>
                 <NavItem href={route('dashboard')}>Dashboard</NavItem>
                 <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
+                <NavItem href={route('logs.index')}>Security Logs</NavItem>
              </Stack>
           </Flex>
         </Flex>
@@ -88,6 +89,7 @@ export default function AppLayout({ children, user }) {
          <Stack bg={useColorModeValue('white', 'gray.800')} p={4} display={{ md: 'none' }}>
             <NavItem href={route('dashboard')}>Dashboard</NavItem>
             <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
+            <NavItem href={route('logs.index')}>Security Logs</NavItem>
          </Stack>
       </Collapse>
 

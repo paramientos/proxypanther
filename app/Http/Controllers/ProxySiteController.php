@@ -14,14 +14,17 @@ class ProxySiteController extends Controller
 {
     public function __construct(
         protected CaddyService $caddy,
-        protected LogParserService $logParser
+        protected LogParserService $logParser,
+        protected \App\Services\HealthCheckService $healthCheck
     ) {
     }
 
     public function index()
     {
         $this->logParser->parseAll();
-
+        // Optional: Trigger health check on index load if it's been a while
+        // But better to keep it async or via schedule to not slow down UI
+        
         $analytics = SecurityEvent::selectRaw('DATE(created_at) as date, count(*) as count')
             ->where('created_at', '>=', now()->subDays(7))
             ->groupBy('date')
@@ -147,5 +150,11 @@ class ProxySiteController extends Controller
         $this->caddy->sync();
 
         return redirect()->back();
+    }
+
+    public function checkHealth(ProxySite $site)
+    {
+        $this->healthCheck->checkSite($site);
+        return redirect()->back()->with('success', 'Health check performed.');
     }
 }
