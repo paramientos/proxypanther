@@ -34,6 +34,20 @@ class CaddyService
     email admin@proxypanther.com
 }
 
+(common_security_headers) {
+    header {
+        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"
+        X-Content-Type-Options \"nosniff\"
+        X-Frame-Options \"SAMEORIGIN\"
+        X-XSS-Protection \"1; mode=block\"
+        Referrer-Policy \"strict-origin-when-cross-origin\"
+        Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';\"
+        Permissions-Policy \"geolocation=(), microphone=(), camera=()\"
+        -Server
+        -X-Powered-By
+    }
+}
+
 ";
 
         // Global IP Blacklist
@@ -94,7 +108,7 @@ class CaddyService
                         if ($rule['type'] === 'path') {
                             $caddyfile .= "        path {$pattern}\n";
                         } elseif ($rule['type'] === 'query') {
-                            $caddyfile .= "        query *{$pattern}*\n";
+                            $caddyfile .= "        expression {query}.contains('{$pattern}')\n";
                         } elseif ($rule['type'] === 'header') {
                             $caddyfile .= "        header_regexp {$rule['header_name']} \"{$pattern}\"\n";
                         }
@@ -106,23 +120,23 @@ class CaddyService
                 $caddyfile .= "    # Advanced WAF Patterns\n";
                 $caddyfile .= "    @attacks {\n";
                 $caddyfile .= "        # SQL Injection Patterns\n";
-                $caddyfile .= "        query *union*select*\n";
-                $caddyfile .= "        query *information_schema*\n";
-                $caddyfile .= "        query *sleep(*\n";
-                $caddyfile .= "        query *benchmark(*\n";
+                $caddyfile .= "        expression {query}.contains('union') && {query}.contains('select')\n";
+                $caddyfile .= "        expression {query}.contains('information_schema')\n";
+                $caddyfile .= "        expression {query}.contains('sleep(')\n";
+                $caddyfile .= "        expression {query}.contains('benchmark(')\n";
                 $caddyfile .= "        expression {query}.contains(\"' OR 1=1\") || {query}.contains('\" OR 1=1') || {query}.contains('--')\n";
                 
                 $caddyfile .= "        # XSS Patterns\n";
-                $caddyfile .= "        query *<script*\n";
-                $caddyfile .= "        query *javascript:*\n";
-                $caddyfile .= "        query *onerror=*\n";
-                $caddyfile .= "        query *onload=*\n";
-                $caddyfile .= "        query *eval(*\n";
+                $caddyfile .= "        expression {query}.contains('<script')\n";
+                $caddyfile .= "        expression {query}.contains('javascript:')\n";
+                $caddyfile .= "        expression {query}.contains('onerror=')\n";
+                $caddyfile .= "        expression {query}.contains('onload=')\n";
+                $caddyfile .= "        expression {query}.contains('eval(')\n";
                 
                 $caddyfile .= "        # LFI & Directory Traversal\n";
-                $caddyfile .= "        query *../*\n";
-                $caddyfile .= "        query */etc/passwd*\n";
-                $caddyfile .= "        query */etc/shadow*\n";
+                $caddyfile .= "        expression {query}.contains('../')\n";
+                $caddyfile .= "        expression {query}.contains('/etc/passwd')\n";
+                $caddyfile .= "        expression {query}.contains('/etc/shadow')\n";
                 
                 $caddyfile .= "        # Malicious Bots & Scanners\n";
                 $caddyfile .= "        header_regexp User-Agent (?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)\n";
@@ -144,18 +158,6 @@ class CaddyService
                     $caddyfile .= "    @allowlist not remote_ip {$ips}\n";
                     $caddyfile .= "    abort @allowlist\n";
                 }
-
-                $caddyfile .= "    header {\n";
-                $caddyfile .= "        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
-                $caddyfile .= "        X-Content-Type-Options \"nosniff\"\n";
-                $caddyfile .= "        X-Frame-Options \"SAMEORIGIN\"\n";
-                $caddyfile .= "        X-XSS-Protection \"1; mode=block\"\n";
-                $caddyfile .= "        Referrer-Policy \"strict-origin-when-cross-origin\"\n";
-                $caddyfile .= "        Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';\"\n";
-                $caddyfile .= "        Permissions-Policy \"geolocation=(), microphone=(), camera=()\"\n";
-                $caddyfile .= "        -Server\n"; // Hide Caddy version
-                $caddyfile .= "        -X-Powered-By\n"; // Hide backend technology
-                $caddyfile .= "    }\n\n";
             }
 
             if ($site->auth_user && $site->auth_password) {
@@ -185,46 +187,38 @@ class CaddyService
                 $backends = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
                 $backendStr = implode(' ', $backends);
                 
-                if ($site->backup_backend_url) {
+                $hasEnvVars = $site->env_vars && count($site->env_vars) > 0;
+                $hasBackup = !empty($site->backup_backend_url);
+                $hasMultiple = count($backends) > 1;
+
+                if ($hasEnvVars || $hasBackup || $hasMultiple) {
                     $caddyfile .= "    reverse_proxy {$backendStr} {\n";
-                    $caddyfile .= "        lb_policy first\n"; // Primary first
-                    $caddyfile .= "        fail_timeout 5s\n";
-                    $caddyfile .= "        max_fails 2\n";
-                    $caddyfile .= "        to {$site->backup_backend_url}\n"; // Explicitly add backup to pool
                     
-                    // For reverse_proxy, we can inject via headers if the app is configured to read them
-                    // or we could use this space for other proxy-specific env injection if needed.
-                    if ($site->env_vars && count($site->env_vars) > 0) {
+                    if ($hasMultiple) {
+                        $caddyfile .= "        lb_policy random\n";
+                    }
+
+                    if ($hasBackup) {
+                        $caddyfile .= "        lb_policy first\n";
+                        $caddyfile .= "        fail_timeout 5s\n";
+                        $caddyfile .= "        max_fails 2\n";
+                        $caddyfile .= "        to {$site->backup_backend_url}\n";
+                    }
+
+                    if ($hasEnvVars) {
                         foreach ($site->env_vars as $key => $value) {
                             $caddyfile .= "        header_up X-Env-{$key} \"{$value}\"\n";
                         }
+                        // Security: Don't leak injected env vars back to the client
+                        $caddyfile .= "        header_down -X-Env-*\n";
                     }
 
+                    $caddyfile .= "        header_up Host {host}\n";
+                    $caddyfile .= "        header_up X-Real-IP {remote_host}\n";
                     $caddyfile .= "    }\n";
                 } else {
                     $caddyfile .= "    reverse_proxy {$backendStr}\n";
                 }
-            } else {
-                $backends = preg_split('/[,\n\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
-                $backends_str = implode(' ', $backends);
-                
-                $caddyfile .= "    reverse_proxy {$backends_str} {\n";
-                if (count($backends) > 1) {
-                    $caddyfile .= "        lb_policy random\n";
-                    $caddyfile .= "        health_uri /health\n";
-                    $caddyfile .= "        health_interval 10s\n";
-                }
-                
-                // Inject .env variables via headers for Load Balanced backends
-                if ($site->env_vars && count($site->env_vars) > 0) {
-                    foreach ($site->env_vars as $key => $value) {
-                        $caddyfile .= "        header_up X-Env-{$key} \"{$value}\"\n";
-                    }
-                }
-
-                $caddyfile .= "        header_up Host {host}\n";
-                $caddyfile .= "        header_up X-Real-IP {remote_host}\n";
-                $caddyfile .= "    }\n";
             }
 
             if ($site->rate_limit_rps > 0) {

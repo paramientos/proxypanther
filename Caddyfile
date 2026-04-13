@@ -3,7 +3,70 @@
     email admin@proxypanther.com
 }
 
+(common_security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+        -X-Powered-By
+    }
+}
+
 http://testme.com {
-    respond "yeah" 503
+    log {
+        output file /Users/aras/projects/deploypanther/storage/logs/caddy-3.log
+        format json
+    }
+
+    # Protect Sensitive Files
+    @sensitive_paths {
+        path /.env* /.git* /.svn* /wp-config.php /config.php /composer.json /composer.lock
+    }
+    respond @sensitive_paths "Access to sensitive system files is forbidden." 403
+
+    @bad_bots {
+        header_regexp User-Agent "(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)"
+    }
+    respond @bad_bots "Access Denied" 403
+    # Advanced WAF Patterns
+    @attacks {
+        # SQL Injection Patterns
+        expression {query}.contains('union') && {query}.contains('select')
+        expression {query}.contains('information_schema')
+        expression {query}.contains('sleep(')
+        expression {query}.contains('benchmark(')
+        expression {query}.contains("' OR 1=1") || {query}.contains('" OR 1=1') || {query}.contains('--')
+        # XSS Patterns
+        expression {query}.contains('<script')
+        expression {query}.contains('javascript:')
+        expression {query}.contains('onerror=')
+        expression {query}.contains('onload=')
+        expression {query}.contains('eval(')
+        # LFI & Directory Traversal
+        expression {query}.contains('../')
+        expression {query}.contains('/etc/passwd')
+        expression {query}.contains('/etc/shadow')
+        # Malicious Bots & Scanners
+        header_regexp User-Agent (?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)
+    }
+    respond @attacks "Access Denied by ProxyPanther Advanced WAF" 403
+
+    import common_security_headers
+    reverse_proxy http://localhost:8001 {
+        header_up X-Env-FOO "yessir2"
+        header_down -X-Env-*
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+    # Rate Limit: 5 rps
+    handle_errors {
+        rewrite * /{err.status_code}.html
+        respond "ProxyPanther Secure Gateway: Error {err.status_code}" {err.status_code}
+    }
 }
 
