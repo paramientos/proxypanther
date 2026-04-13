@@ -137,6 +137,7 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
     maintenance_message: '',
     backup_backend_url: '',
     custom_waf_rules: [],
+    env_vars: {},
     custom_error_403: '',
     custom_error_503: '',
     ip_allowlist: '',
@@ -460,6 +461,28 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                     value={data.custom_error_503}
                     onChange={(e) => setData('custom_error_503', e.target.value)}
                   />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Environment Variables (Key:Value)</FormLabel>
+                  <Textarea 
+                    placeholder="KEY1=VALUE1&#10;KEY2=VALUE2" 
+                    size="sm"
+                    onChange={(e) => {
+                      const lines = e.target.value.split('\n');
+                      const vars = {};
+                      lines.forEach(line => {
+                        const [key, ...value] = line.split('=');
+                        if (key && value.length > 0) {
+                          vars[key.trim()] = value.join('=').trim();
+                        }
+                      });
+                      setData('env_vars', vars);
+                    }}
+                  />
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    These variables will be injected directly into the application environment.
+                  </Text>
                 </FormControl>
 
                 <FormControl>

@@ -171,7 +171,16 @@ class CaddyService
                     $backend = "unix/{$backend}";
                 }
                 $caddyfile .= "    root * {$site->root_path}\n";
-                $caddyfile .= "    php_fastcgi {$backend}\n";
+                $caddyfile .= "    php_fastcgi {$backend} {\n";
+                
+                // Inject .env variables
+                if ($site->env_vars && count($site->env_vars) > 0) {
+                    foreach ($site->env_vars as $key => $value) {
+                        $caddyfile .= "        env {$key} \"{$value}\"\n";
+                    }
+                }
+                
+                $caddyfile .= "    }\n";
             } elseif ($site->backend_type === 'proxy') {
                 $backends = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
                 $backendStr = implode(' ', $backends);
@@ -182,6 +191,15 @@ class CaddyService
                     $caddyfile .= "        fail_timeout 5s\n";
                     $caddyfile .= "        max_fails 2\n";
                     $caddyfile .= "        to {$site->backup_backend_url}\n"; // Explicitly add backup to pool
+                    
+                    // For reverse_proxy, we can inject via headers if the app is configured to read them
+                    // or we could use this space for other proxy-specific env injection if needed.
+                    if ($site->env_vars && count($site->env_vars) > 0) {
+                        foreach ($site->env_vars as $key => $value) {
+                            $caddyfile .= "        header_up X-Env-{$key} \"{$value}\"\n";
+                        }
+                    }
+
                     $caddyfile .= "    }\n";
                 } else {
                     $caddyfile .= "    reverse_proxy {$backendStr}\n";
@@ -196,6 +214,14 @@ class CaddyService
                     $caddyfile .= "        health_uri /health\n";
                     $caddyfile .= "        health_interval 10s\n";
                 }
+                
+                // Inject .env variables via headers for Load Balanced backends
+                if ($site->env_vars && count($site->env_vars) > 0) {
+                    foreach ($site->env_vars as $key => $value) {
+                        $caddyfile .= "        header_up X-Env-{$key} \"{$value}\"\n";
+                    }
+                }
+
                 $caddyfile .= "        header_up Host {host}\n";
                 $caddyfile .= "        header_up X-Real-IP {remote_host}\n";
                 $caddyfile .= "    }\n";

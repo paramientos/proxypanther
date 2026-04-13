@@ -40,6 +40,7 @@ class ProxySite extends Model
         'ip_allowlist',
         'ip_denylist',
         'custom_waf_rules',
+        'env_vars',
         'block_common_bad_bots',
         'hits_2xx',
         'hits_4xx',
@@ -57,6 +58,7 @@ class ProxySite extends Model
         'cache_enabled' => 'boolean',
         'block_common_bad_bots' => 'boolean',
         'custom_waf_rules' => 'array',
+        'env_vars' => 'array',
     ];
 
     public function securityEvents(): HasMany

@@ -112,6 +112,7 @@ export default function Show({ auth, site, analytics }) {
     maintenance_message: site.maintenance_message || '',
     backup_backend_url: site.backup_backend_url || '',
     custom_waf_rules: site.custom_waf_rules || [],
+    env_vars: site.env_vars || {},
     custom_error_403: site.custom_error_403 || '',
     custom_error_503: site.custom_error_503 || '',
     ip_allowlist: Array.isArray(site.ip_allowlist) ? site.ip_allowlist.join(', ') : '',
@@ -377,6 +378,29 @@ export default function Show({ auth, site, analytics }) {
                     ))}
                     <Button leftIcon={<Plus size={14} />} size="sm" variant="outline" onClick={addWafRule}>Add Rule</Button>
                   </VStack>
+
+                  <Divider />
+
+                  <Heading size="md"><Icon as={Settings} size={18} mr={2} /> Environment Variables (.env Injector)</Heading>
+                  <Text fontSize="sm" color="gray.500">Variables will be injected directly into the application runtime (PHP-FPM or via HTTP Headers for Proxy).</Text>
+                  <FormControl>
+                    <Textarea 
+                      rows={6}
+                      placeholder="KEY1=VALUE1&#10;KEY2=VALUE2" 
+                      value={Object.entries(data.env_vars).map(([k, v]) => `${k}=${v}`).join('\n')}
+                      onChange={(e) => {
+                        const lines = e.target.value.split('\n');
+                        const vars = {};
+                        lines.forEach(line => {
+                          const [key, ...value] = line.split('=');
+                          if (key && value.length > 0) {
+                            vars[key.trim()] = value.join('=').trim();
+                          }
+                        });
+                        setData('env_vars', vars);
+                      }}
+                    />
+                  </FormControl>
 
                   <Divider />
 

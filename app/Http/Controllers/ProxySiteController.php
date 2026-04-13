@@ -82,6 +82,7 @@ class ProxySiteController extends Controller
             'maintenance_message' => 'nullable|string|max:1000',
             'backup_backend_url' => 'nullable|string|max:255',
             'custom_waf_rules' => 'nullable|array',
+            'env_vars' => 'nullable|array',
             'custom_error_403' => 'nullable|string',
             'custom_error_503' => 'nullable|string',
             'ip_allowlist' => 'nullable|string', // UI handles as comma/newline separated
@@ -123,6 +124,7 @@ class ProxySiteController extends Controller
             'maintenance_message' => 'nullable|string|max:1000',
             'backup_backend_url' => 'nullable|string|max:255',
             'custom_waf_rules' => 'nullable|array',
+            'env_vars' => 'nullable|array',
             'custom_error_403' => 'nullable|string',
             'custom_error_503' => 'nullable|string',
             'ip_allowlist' => 'nullable|string',
