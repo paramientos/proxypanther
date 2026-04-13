@@ -102,10 +102,12 @@ class LogParserService
     {
         $uri = $data['request']['uri'] ?? '';
         $ua = $data['request']['headers']['User-Agent'][0] ?? '';
+        $query = $data['request']['headers']['Referer'][0] ?? ''; // Or better, extract actual query from URI
 
-        if (str_contains($uri, 'union') || str_contains($uri, 'select')) return 'SQLi';
-        if (str_contains($uri, '<script')) return 'XSS';
-        if (preg_match('/(sqlmap|nikto|nmap)/i', $ua)) return 'Bot';
+        if (str_contains($uri, 'union') || str_contains($uri, 'select') || str_contains($uri, 'information_schema') || str_contains($uri, 'sleep(')) return 'SQLi';
+        if (str_contains($uri, '<script') || str_contains($uri, 'onerror=') || str_contains($uri, 'onload=')) return 'XSS';
+        if (str_contains($uri, '../') || str_contains($uri, '/etc/passwd')) return 'LFI';
+        if (preg_match('/(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)/i', $ua)) return 'Bot';
         if (str_contains($uri, '.env') || str_contains($uri, '.git')) return 'SensitivePath';
 
         return 'WAF_Block';

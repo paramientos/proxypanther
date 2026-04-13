@@ -65,6 +65,8 @@ class ProxySiteController extends Controller
             'auth_password' => 'nullable|string|max:255',
             'protect_sensitive_files' => 'boolean',
             'notification_webhook_url' => 'nullable|url',
+            'backend_type' => 'required|string|in:proxy,php_fpm',
+            'root_path' => 'required_if:backend_type,php_fpm|nullable|string|max:255',
         ]);
 
         ProxySite::create($validated);
@@ -86,6 +88,8 @@ class ProxySiteController extends Controller
             'auth_password' => 'nullable|string|max:255',
             'protect_sensitive_files' => 'boolean',
             'notification_webhook_url' => 'nullable|url',
+            'backend_type' => 'required|string|in:proxy,php_fpm',
+            'root_path' => 'required_if:backend_type,php_fpm|nullable|string|max:255',
         ]);
 
         $site->update($validated);

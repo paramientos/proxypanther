@@ -70,13 +70,45 @@ class CaddyService
             }
 
             if ($site->waf_enabled) {
-                // Basic WAF Protection using expression matcher
-                $caddyfile .= "    # Basic WAF Protection\n";
+                // Advanced WAF Protection
+                $caddyfile .= "    # Advanced WAF Protection\n";
                 $caddyfile .= "    @attacks {\n";
-                $caddyfile .= "        expression {query}.contains('union') || {query}.contains('select') || {query}.contains('<script')\n";
-                $caddyfile .= "        header_regexp User-Agent (?i)(sqlmap|nikto|nmap)\n";
+                $caddyfile .= "        # SQL Injection Patterns\n";
+                $caddyfile .= "        query *union*select*\n";
+                $caddyfile .= "        query *information_schema*\n";
+                $caddyfile .= "        query *sleep(*\n";
+                $caddyfile .= "        query *benchmark(*\n";
+                $caddyfile .= "        expression {query}.contains(\"' OR 1=1\") || {query}.contains('\" OR 1=1') || {query}.contains('--')\n";
+                
+                $caddyfile .= "        # XSS Patterns\n";
+                $caddyfile .= "        query *<script*\n";
+                $caddyfile .= "        query *javascript:*\n";
+                $caddyfile .= "        query *onerror=*\n";
+                $caddyfile .= "        query *onload=*\n";
+                $caddyfile .= "        query *eval(*\n";
+                
+                $caddyfile .= "        # LFI & Directory Traversal\n";
+                $caddyfile .= "        query *../*\n";
+                $caddyfile .= "        query */etc/passwd*\n";
+                $caddyfile .= "        query */etc/shadow*\n";
+                
+                $caddyfile .= "        # Malicious Bots & Scanners\n";
+                $caddyfile .= "        header_regexp User-Agent (?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)\n";
                 $caddyfile .= "    }\n";
-                $caddyfile .= "    respond @attacks \"Access Denied by ProxyPanther WAF\" 403\n\n";
+                $caddyfile .= "    respond @attacks \"Access Denied by ProxyPanther Advanced WAF\" 403\n\n";
+                
+                $caddyfile .= "    # Security Headers\n";
+                $caddyfile .= "    header {\n";
+                $caddyfile .= "        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
+                $caddyfile .= "        X-Content-Type-Options \"nosniff\"\n";
+                $caddyfile .= "        X-Frame-Options \"SAMEORIGIN\"\n";
+                $caddyfile .= "        X-XSS-Protection \"1; mode=block\"\n";
+                $caddyfile .= "        Referrer-Policy \"strict-origin-when-cross-origin\"\n";
+                $caddyfile .= "        Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';\"\n";
+                $caddyfile .= "        Permissions-Policy \"geolocation=(), microphone=(), camera=()\"\n";
+                $caddyfile .= "        -Server\n"; // Hide Caddy version
+                $caddyfile .= "        -X-Powered-By\n"; // Hide backend technology
+                $caddyfile .= "    }\n\n";
             }
 
             if ($site->auth_user && $site->auth_password) {
@@ -86,10 +118,20 @@ class CaddyService
                 $caddyfile .= "    }\n";
             }
 
-            $caddyfile .= "    reverse_proxy {$site->backend_url} {\n";
-            $caddyfile .= "        header_up Host {host}\n";
-            $caddyfile .= "        header_up X-Real-IP {remote_host}\n";
-            $caddyfile .= "    }\n";
+            if ($site->backend_type === 'php_fpm') {
+                $backend = $site->backend_url;
+                if (str_starts_with($backend, '/') && !str_starts_with($backend, 'unix/')) {
+                    $backend = "unix/{$backend}";
+                }
+                $caddyfile .= "    root * {$site->root_path}\n";
+                $caddyfile .= "    php_fastcgi {$backend}\n";
+                $caddyfile .= "    file_server\n";
+            } else {
+                $caddyfile .= "    reverse_proxy {$site->backend_url} {\n";
+                $caddyfile .= "        header_up Host {host}\n";
+                $caddyfile .= "        header_up X-Real-IP {remote_host}\n";
+                $caddyfile .= "    }\n";
+            }
 
             if ($site->rate_limit_rps > 0) {
                 $caddyfile .= "    # Rate Limit: {$site->rate_limit_rps} rps\n";

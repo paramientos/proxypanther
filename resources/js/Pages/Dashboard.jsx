@@ -39,6 +39,7 @@ import {
   NumberDecrementStepper,
   HStack,
   VStack,
+  Select,
 } from '@chakra-ui/react';
 import { Plus, Shield, Globe, Activity, ExternalLink, AlertTriangle, TrendingUp } from 'lucide-react';
 import { Head, useForm, Link } from '@inertiajs/react';
@@ -98,6 +99,8 @@ export default function Dashboard({ auth, sites, bannedIps, analytics }) {
     name: '',
     domain: '',
     backend_url: '',
+    backend_type: 'proxy',
+    root_path: '',
     ssl_enabled: true,
     waf_enabled: true,
     rate_limit_rps: 5,
@@ -266,14 +269,34 @@ export default function Dashboard({ auth, sites, bannedIps, analytics }) {
                   {errors.domain && <Text color="red.500" fontSize="xs">{errors.domain}</Text>}
                 </FormControl>
                 <FormControl isRequired isInvalid={errors.backend_url}>
-                  <FormLabel>Backend URL</FormLabel>
+                  <FormLabel>Backend URL / FastCGI Socket</FormLabel>
                   <Input
-                    placeholder="http://localhost:8001"
+                    placeholder={data.backend_type === 'proxy' ? 'http://localhost:8001' : '/var/run/php/php-fpm.sock'}
                     value={data.backend_url}
                     onChange={(e) => setData('backend_url', e.target.value)}
                   />
                   {errors.backend_url && <Text color="red.500" fontSize="xs">{errors.backend_url}</Text>}
                 </FormControl>
+                
+                <FormControl isRequired>
+                  <FormLabel>Backend Type</FormLabel>
+                  <Select value={data.backend_type} onChange={(e) => setData('backend_type', e.target.value)}>
+                    <option value="proxy">Reverse Proxy (HTTP)</option>
+                    <option value="php_fpm">PHP-FPM (FastCGI)</option>
+                  </Select>
+                </FormControl>
+
+                {data.backend_type === 'php_fpm' && (
+                  <FormControl isRequired isInvalid={errors.root_path}>
+                    <FormLabel>Root Path (on server)</FormLabel>
+                    <Input
+                      placeholder="/var/www/my-app/public"
+                      value={data.root_path}
+                      onChange={(e) => setData('root_path', e.target.value)}
+                    />
+                    {errors.root_path && <Text color="red.500" fontSize="xs">{errors.root_path}</Text>}
+                  </FormControl>
+                )}
                 <SimpleGrid columns={2} spacing={4}>
                    <FormControl display="flex" alignItems="center">
                       <FormLabel mb="0">Enable SSL</FormLabel>

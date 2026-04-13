@@ -25,6 +25,8 @@ class ProxySite extends Model
         'auth_password',
         'protect_sensitive_files',
         'notification_webhook_url',
+        'backend_type',
+        'root_path',
     ];
 
     public function securityEvents(): HasMany

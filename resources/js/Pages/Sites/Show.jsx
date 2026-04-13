@@ -36,6 +36,7 @@ import {
   FormLabel,
   Input,
   Stack,
+  Select,
 } from '@chakra-ui/react';
 import { Shield, Globe, Activity, ChevronRight, AlertTriangle, Clock, Trash2, Power, Lock, Settings, TrendingUp } from 'lucide-react';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -98,6 +99,8 @@ export default function Show({ auth, site, analytics }) {
     ssl_enabled: !!site.ssl_enabled,
     waf_enabled: !!site.waf_enabled,
     rate_limit_rps: site.rate_limit_rps,
+    backend_type: site.backend_type || 'proxy',
+    root_path: site.root_path || '',
     auth_user: site.auth_user || '',
     auth_password: '',
     protect_sensitive_files: !!site.protect_sensitive_files,
@@ -228,9 +231,22 @@ export default function Show({ auth, site, analytics }) {
                       <Input value={data.domain} onChange={e => setData('domain', e.target.value)} />
                     </FormControl>
                     <FormControl isRequired isInvalid={errors.backend_url}>
-                      <FormLabel>Backend URL</FormLabel>
-                      <Input value={data.backend_url} onChange={e => setData('backend_url', e.target.value)} />
+                      <FormLabel>Backend URL / FastCGI Socket</FormLabel>
+                      <Input value={data.backend_url} onChange={e => setData('backend_url', e.target.value)} placeholder={data.backend_type === 'proxy' ? 'http://localhost:8001' : '/var/run/php/php-fpm.sock'} />
                     </FormControl>
+                    <FormControl isRequired>
+                      <FormLabel>Backend Type</FormLabel>
+                      <Select value={data.backend_type} onChange={e => setData('backend_type', e.target.value)}>
+                        <option value="proxy">Reverse Proxy (HTTP)</option>
+                        <option value="php_fpm">PHP-FPM (FastCGI)</option>
+                      </Select>
+                    </FormControl>
+                    {data.backend_type === 'php_fpm' && (
+                      <FormControl isRequired isInvalid={errors.root_path}>
+                        <FormLabel>Root Path (on server)</FormLabel>
+                        <Input value={data.root_path} onChange={e => setData('root_path', e.target.value)} placeholder="/var/www/my-app/public" />
+                      </FormControl>
+                    )}
                     <FormControl>
                       <FormLabel>Rate Limit (Req/Sec)</FormLabel>
                       <Input type="number" value={data.rate_limit_rps} onChange={e => setData('rate_limit_rps', e.target.value)} />
