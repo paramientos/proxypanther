@@ -78,7 +78,32 @@ class CaddyService
 
             if ($site->waf_enabled) {
                 // Advanced WAF Protection
-                $caddyfile .= "    # Advanced WAF Protection\n";
+                if ($site->block_common_bad_bots) {
+                    $caddyfile .= "    @bad_bots {\n";
+                    $caddyfile .= "        header_regexp User-Agent \"(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)\"\n";
+                    $caddyfile .= "    }\n";
+                    $caddyfile .= "    respond @bad_bots \"Access Denied\" 403\n";
+                }
+
+                // Custom User-Defined WAF Rules
+                if ($site->custom_waf_rules && count($site->custom_waf_rules) > 0) {
+                    foreach ($site->custom_waf_rules as $index => $rule) {
+                        $name = "custom_rule_" . ($index + 1);
+                        $pattern = addslashes($rule['pattern']);
+                        $caddyfile .= "    @{$name} {\n";
+                        if ($rule['type'] === 'path') {
+                            $caddyfile .= "        path {$pattern}\n";
+                        } elseif ($rule['type'] === 'query') {
+                            $caddyfile .= "        query *{$pattern}*\n";
+                        } elseif ($rule['type'] === 'header') {
+                            $caddyfile .= "        header_regexp {$rule['header_name']} \"{$pattern}\"\n";
+                        }
+                        $caddyfile .= "    }\n";
+                        $caddyfile .= "    respond @{$name} \"Blocked by Custom Security Rule\" 403\n";
+                    }
+                }
+                
+                $caddyfile .= "    # Advanced WAF Patterns\n";
                 $caddyfile .= "    @attacks {\n";
                 $caddyfile .= "        # SQL Injection Patterns\n";
                 $caddyfile .= "        query *union*select*\n";
@@ -104,7 +129,22 @@ class CaddyService
                 $caddyfile .= "    }\n";
                 $caddyfile .= "    respond @attacks \"Access Denied by ProxyPanther Advanced WAF\" 403\n\n";
                 
-                $caddyfile .= "    # Security Headers\n";
+                $caddyfile .= "    import common_security_headers\n";
+
+                // Advanced ACL: Denylist
+                if ($site->ip_denylist && count($site->ip_denylist) > 0) {
+                    $ips = implode(' ', $site->ip_denylist);
+                    $caddyfile .= "    @denylist remote_ip {$ips}\n";
+                    $caddyfile .= "    abort @denylist\n";
+                }
+
+                // Advanced ACL: Allowlist
+                if ($site->ip_allowlist && count($site->ip_allowlist) > 0) {
+                    $ips = implode(' ', $site->ip_allowlist);
+                    $caddyfile .= "    @allowlist not remote_ip {$ips}\n";
+                    $caddyfile .= "    abort @allowlist\n";
+                }
+
                 $caddyfile .= "    header {\n";
                 $caddyfile .= "        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
                 $caddyfile .= "        X-Content-Type-Options \"nosniff\"\n";
@@ -132,7 +172,20 @@ class CaddyService
                 }
                 $caddyfile .= "    root * {$site->root_path}\n";
                 $caddyfile .= "    php_fastcgi {$backend}\n";
-                $caddyfile .= "    file_server\n";
+            } elseif ($site->backend_type === 'proxy') {
+                $backends = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
+                $backendStr = implode(' ', $backends);
+                
+                if ($site->backup_backend_url) {
+                    $caddyfile .= "    reverse_proxy {$backendStr} {\n";
+                    $caddyfile .= "        lb_policy first\n"; // Primary first
+                    $caddyfile .= "        fail_timeout 5s\n";
+                    $caddyfile .= "        max_fails 2\n";
+                    $caddyfile .= "        to {$site->backup_backend_url}\n"; // Explicitly add backup to pool
+                    $caddyfile .= "    }\n";
+                } else {
+                    $caddyfile .= "    reverse_proxy {$backendStr}\n";
+                }
             } else {
                 $backends = preg_split('/[,\n\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
                 $backends_str = implode(' ', $backends);
@@ -157,10 +210,28 @@ class CaddyService
                 $caddyfile .= "    header >Cache-Control \"public, max-age={$site->cache_ttl}\"\n";
             }
 
-            $caddyfile .= "    handle_errors {\n";
-            $caddyfile .= "        rewrite * /{err.status_code}.html\n";
-            $caddyfile .= "        respond \"ProxyPanther Secure Gateway: Error {err.status_code}\" {err.status_code}\n";
-            $caddyfile .= "    }\n";
+            // Custom Error Handling
+            if ($site->custom_error_403 || $site->custom_error_503) {
+                $caddyfile .= "    handle_errors {\n";
+                if ($site->custom_error_403) {
+                    $caddyfile .= "        @403 expression {err.status_code} == 403\n";
+                    $caddyfile .= "        handle @403 {\n";
+                    $caddyfile .= "            respond `{$site->custom_error_403}` 403\n";
+                    $caddyfile .= "        }\n";
+                }
+                if ($site->custom_error_503) {
+                    $caddyfile .= "        @503 expression {err.status_code} == 503\n";
+                    $caddyfile .= "        handle @503 {\n";
+                    $caddyfile .= "            respond `{$site->custom_error_503}` 503\n";
+                    $caddyfile .= "        }\n";
+                }
+                $caddyfile .= "    }\n";
+            } else {
+                $caddyfile .= "    handle_errors {\n";
+                $caddyfile .= "        rewrite * /{err.status_code}.html\n";
+                $caddyfile .= "        respond \"ProxyPanther Secure Gateway: Error {err.status_code}\" {err.status_code}\n";
+                $caddyfile .= "    }\n";
+            }
 
             $caddyfile .= "}\n\n";
         }

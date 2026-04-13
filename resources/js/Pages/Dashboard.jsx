@@ -135,6 +135,13 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
     cache_ttl: 3600,
     is_maintenance: false,
     maintenance_message: '',
+    backup_backend_url: '',
+    custom_waf_rules: [],
+    custom_error_403: '',
+    custom_error_503: '',
+    ip_allowlist: '',
+    ip_denylist: '',
+    block_common_bad_bots: true,
   });
 
   const submit = (e) => {
@@ -359,6 +366,19 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                   {errors.backend_url && <Text color="red.500" fontSize="xs">{errors.backend_url}</Text>}
                 </FormControl>
                 
+                <FormControl isInvalid={errors.backup_backend_url}>
+                  <FormLabel>Backup Backend URL (Failover)</FormLabel>
+                  <Input
+                    placeholder="e.g. http://backup-server:8001"
+                    value={data.backup_backend_url}
+                    onChange={(e) => setData('backup_backend_url', e.target.value)}
+                  />
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    If the primary backend fails, traffic will automatically switch to this server.
+                  </Text>
+                  {errors.backup_backend_url && <Text color="red.500" fontSize="xs">{errors.backup_backend_url}</Text>}
+                </FormControl>
+                
                 <FormControl isRequired>
                   <FormLabel>Backend Type</FormLabel>
                   <Select value={data.backend_type} onChange={(e) => setData('backend_type', e.target.value)}>
@@ -395,7 +415,52 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                       <FormLabel mb="0">Maintenance Mode</FormLabel>
                       <Switch isChecked={data.is_maintenance} onChange={(e) => setData('is_maintenance', e.target.checked)} />
                    </FormControl>
+                   <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Block Bad Bots</FormLabel>
+                      <Switch isChecked={data.block_common_bad_bots} onChange={(e) => setData('block_common_bad_bots', e.target.checked)} />
+                   </FormControl>
                 </SimpleGrid>
+
+                <SimpleGrid columns={2} spacing={4}>
+                  <FormControl>
+                    <FormLabel>IP Allowlist</FormLabel>
+                    <Textarea 
+                      placeholder="Allow specific IPs only (comma or newline)" 
+                      size="sm"
+                      value={data.ip_allowlist}
+                      onChange={(e) => setData('ip_allowlist', e.target.value)}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>IP Denylist</FormLabel>
+                    <Textarea 
+                      placeholder="Block specific IPs (comma or newline)" 
+                      size="sm"
+                      value={data.ip_denylist}
+                      onChange={(e) => setData('ip_denylist', e.target.value)}
+                    />
+                  </FormControl>
+                </SimpleGrid>
+
+                <FormControl>
+                  <FormLabel>Custom 403 (WAF Blocked) HTML</FormLabel>
+                  <Textarea 
+                    placeholder="Custom HTML for WAF blocks" 
+                    size="sm"
+                    value={data.custom_error_403}
+                    onChange={(e) => setData('custom_error_403', e.target.value)}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Custom 503 (Maintenance) HTML</FormLabel>
+                  <Textarea 
+                    placeholder="Custom HTML for maintenance mode" 
+                    size="sm"
+                    value={data.custom_error_503}
+                    onChange={(e) => setData('custom_error_503', e.target.value)}
+                  />
+                </FormControl>
 
                 <FormControl>
                   <FormLabel>Rate Limit (Req/Sec)</FormLabel>

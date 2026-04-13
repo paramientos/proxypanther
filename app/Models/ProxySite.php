@@ -15,6 +15,7 @@ class ProxySite extends Model
         'name',
         'domain',
         'backend_url',
+        'backup_backend_url',
         'ssl_enabled',
         'waf_enabled',
         'rate_limit_rps',
@@ -34,10 +35,28 @@ class ProxySite extends Model
         'is_online',
         'last_check_at',
         'last_error',
+        'custom_error_403',
+        'custom_error_503',
+        'ip_allowlist',
+        'ip_denylist',
+        'custom_waf_rules',
+        'block_common_bad_bots',
         'hits_2xx',
         'hits_4xx',
         'hits_5xx',
         'avg_latency_ms',
+    ];
+
+    protected $casts = [
+        'ip_allowlist' => 'array',
+        'ip_denylist' => 'array',
+        'ssl_enabled' => 'boolean',
+        'waf_enabled' => 'boolean',
+        'is_active' => 'boolean',
+        'is_maintenance' => 'boolean',
+        'cache_enabled' => 'boolean',
+        'block_common_bad_bots' => 'boolean',
+        'custom_waf_rules' => 'array',
     ];
 
     public function securityEvents(): HasMany

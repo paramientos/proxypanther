@@ -39,7 +39,7 @@ import {
   Select,
   Textarea,
 } from '@chakra-ui/react';
-import { Shield, Globe, Activity, ChevronRight, AlertTriangle, Clock, Trash2, Power, Lock, Settings, TrendingUp } from 'lucide-react';
+import { Shield, Globe, Activity, ChevronRight, AlertTriangle, Clock, Trash2, Power, Lock, Settings, TrendingUp, Plus, X } from 'lucide-react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 
@@ -110,6 +110,13 @@ export default function Show({ auth, site, analytics }) {
     cache_ttl: site.cache_ttl || 3600,
     is_maintenance: !!site.is_maintenance,
     maintenance_message: site.maintenance_message || '',
+    backup_backend_url: site.backup_backend_url || '',
+    custom_waf_rules: site.custom_waf_rules || [],
+    custom_error_403: site.custom_error_403 || '',
+    custom_error_503: site.custom_error_503 || '',
+    ip_allowlist: Array.isArray(site.ip_allowlist) ? site.ip_allowlist.join(', ') : '',
+    ip_denylist: Array.isArray(site.ip_denylist) ? site.ip_denylist.join(', ') : '',
+    block_common_bad_bots: !!site.block_common_bad_bots,
   });
 
   const toggleStatus = () => {
@@ -122,6 +129,25 @@ export default function Show({ auth, site, analytics }) {
         });
       },
     });
+  };
+
+  const addWafRule = () => {
+    setData('custom_waf_rules', [
+      ...data.custom_waf_rules,
+      { type: 'path', pattern: '', header_name: '' }
+    ]);
+  };
+
+  const removeWafRule = (index) => {
+    const rules = [...data.custom_waf_rules];
+    rules.splice(index, 1);
+    setData('custom_waf_rules', rules);
+  };
+
+  const updateWafRule = (index, field, value) => {
+    const rules = [...data.custom_waf_rules];
+    rules[index][field] = value;
+    setData('custom_waf_rules', rules);
   };
 
   const submitUpdate = (e) => {
@@ -244,6 +270,10 @@ export default function Show({ auth, site, analytics }) {
                           : 'Enter path to PHP-FPM socket or TCP address.'}
                       </Text>
                     </FormControl>
+                    <FormControl isInvalid={errors.backup_backend_url}>
+                      <FormLabel>Backup Backend (Failover)</FormLabel>
+                      <Input value={data.backup_backend_url} onChange={e => setData('backup_backend_url', e.target.value)} placeholder="e.g. http://backup:8001" />
+                    </FormControl>
                     <FormControl isRequired>
                       <FormLabel>Backend Type</FormLabel>
                       <Select value={data.backend_type} onChange={e => setData('backend_type', e.target.value)}>
@@ -293,12 +323,81 @@ export default function Show({ auth, site, analytics }) {
                       <FormLabel mb="0">Maintenance Mode</FormLabel>
                       <Switch isChecked={data.is_maintenance} onChange={e => setData('is_maintenance', e.target.checked)} />
                     </FormControl>
+                    <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Block Common Bad Bots</FormLabel>
+                      <Switch isChecked={data.block_common_bad_bots} onChange={e => setData('block_common_bad_bots', e.target.checked)} />
+                    </FormControl>
                     {data.is_maintenance && (
-                      <FormControl>
-                        <FormLabel>Maintenance Message</FormLabel>
-                        <Textarea value={data.maintenance_message} onChange={e => setData('maintenance_message', e.target.value)} placeholder="We'll be back soon!" />
+                      <FormControl colSpan={2}>
+                        <FormLabel>Maintenance Message (Simple Text)</FormLabel>
+                        <Input value={data.maintenance_message} onChange={e => setData('maintenance_message', e.target.value)} placeholder="We'll be back soon!" />
                       </FormControl>
                     )}
+                  </SimpleGrid>
+
+                  <Divider />
+
+                  <Heading size="md"><Icon as={Shield} size={18} mr={2} /> Custom WAF Rules</Heading>
+                  <Text fontSize="sm" color="gray.500">Add custom regex patterns to block specific paths, queries, or headers.</Text>
+                  <VStack align="stretch" spacing={4}>
+                    {data.custom_waf_rules.map((rule, index) => (
+                      <Box key={index} p={4} border="1px" borderColor="gray.200" rounded="md" position="relative">
+                        <Button 
+                          size="xs" 
+                          colorScheme="red" 
+                          variant="ghost" 
+                          position="absolute" 
+                          top={2} 
+                          right={2} 
+                          onClick={() => removeWafRule(index)}
+                        >
+                          <X size={14} />
+                        </Button>
+                        <SimpleGrid columns={3} spacing={4}>
+                          <FormControl>
+                            <FormLabel fontSize="xs">Type</FormLabel>
+                            <Select size="sm" value={rule.type} onChange={e => updateWafRule(index, 'type', e.target.value)}>
+                              <option value="path">Path Match</option>
+                              <option value="query">Query Match</option>
+                              <option value="header">Header Regex</option>
+                            </Select>
+                          </FormControl>
+                          {rule.type === 'header' && (
+                            <FormControl>
+                              <FormLabel fontSize="xs">Header Name</FormLabel>
+                              <Input size="sm" value={rule.header_name} onChange={e => updateWafRule(index, 'header_name', e.target.value)} placeholder="User-Agent" />
+                            </FormControl>
+                          )}
+                          <FormControl gridColumn={rule.type !== 'header' ? "span 2" : "auto"}>
+                            <FormLabel fontSize="xs">Pattern / Regex</FormLabel>
+                            <Input size="sm" value={rule.pattern} onChange={e => updateWafRule(index, 'pattern', e.target.value)} placeholder="/admin/sensitive" />
+                          </FormControl>
+                        </SimpleGrid>
+                      </Box>
+                    ))}
+                    <Button leftIcon={<Plus size={14} />} size="sm" variant="outline" onClick={addWafRule}>Add Rule</Button>
+                  </VStack>
+
+                  <Divider />
+
+                  <Heading size="md"><Icon as={Lock} size={18} mr={2} /> Access Control & Custom Errors</Heading>
+                  <SimpleGrid columns={2} spacing={6}>
+                    <FormControl>
+                      <FormLabel>IP Allowlist (Comma or Newline separated)</FormLabel>
+                      <Textarea value={data.ip_allowlist} onChange={e => setData('ip_allowlist', e.target.value)} placeholder="Allow only these IPs..." size="sm" />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>IP Denylist (Comma or Newline separated)</FormLabel>
+                      <Textarea value={data.ip_denylist} onChange={e => setData('ip_denylist', e.target.value)} placeholder="Block these specific IPs..." size="sm" />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Custom 403 (WAF Blocked) HTML</FormLabel>
+                      <Textarea value={data.custom_error_403} onChange={e => setData('custom_error_403', e.target.value)} placeholder="Custom HTML for WAF blocks" size="sm" />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Custom 503 (Maintenance) HTML</FormLabel>
+                      <Textarea value={data.custom_error_503} onChange={e => setData('custom_error_503', e.target.value)} placeholder="Custom HTML for maintenance mode" size="sm" />
+                    </FormControl>
                   </SimpleGrid>
 
                   <Divider />

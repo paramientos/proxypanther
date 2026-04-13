@@ -80,7 +80,21 @@ class ProxySiteController extends Controller
             'cache_ttl' => 'integer|min:0',
             'is_maintenance' => 'boolean',
             'maintenance_message' => 'nullable|string|max:1000',
+            'backup_backend_url' => 'nullable|string|max:255',
+            'custom_waf_rules' => 'nullable|array',
+            'custom_error_403' => 'nullable|string',
+            'custom_error_503' => 'nullable|string',
+            'ip_allowlist' => 'nullable|string', // UI handles as comma/newline separated
+            'ip_denylist' => 'nullable|string',
+            'block_common_bad_bots' => 'boolean',
         ]);
+
+        if (isset($validated['ip_allowlist'])) {
+            $validated['ip_allowlist'] = preg_split('/[,\s]+/', $validated['ip_allowlist'], -1, PREG_SPLIT_NO_EMPTY);
+        }
+        if (isset($validated['ip_denylist'])) {
+            $validated['ip_denylist'] = preg_split('/[,\s]+/', $validated['ip_denylist'], -1, PREG_SPLIT_NO_EMPTY);
+        }
 
         ProxySite::create($validated);
         $this->caddy->sync();
@@ -107,7 +121,21 @@ class ProxySiteController extends Controller
             'cache_ttl' => 'integer|min:0',
             'is_maintenance' => 'boolean',
             'maintenance_message' => 'nullable|string|max:1000',
+            'backup_backend_url' => 'nullable|string|max:255',
+            'custom_waf_rules' => 'nullable|array',
+            'custom_error_403' => 'nullable|string',
+            'custom_error_503' => 'nullable|string',
+            'ip_allowlist' => 'nullable|string',
+            'ip_denylist' => 'nullable|string',
+            'block_common_bad_bots' => 'boolean',
         ]);
+
+        if (isset($validated['ip_allowlist'])) {
+            $validated['ip_allowlist'] = preg_split('/[,\s]+/', $validated['ip_allowlist'], -1, PREG_SPLIT_NO_EMPTY);
+        }
+        if (isset($validated['ip_denylist'])) {
+            $validated['ip_denylist'] = preg_split('/[,\s]+/', $validated['ip_denylist'], -1, PREG_SPLIT_NO_EMPTY);
+        }
 
         $site->update($validated);
         $this->caddy->sync();
