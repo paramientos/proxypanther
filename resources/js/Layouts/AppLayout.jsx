@@ -66,6 +66,7 @@ export default function AppLayout({ children, user }) {
           <Flex display={{ base: 'none', md: 'flex' }} ml={10}>
              <Stack direction={'row'} spacing={4}>
                 <NavItem href={route('dashboard')}>Dashboard</NavItem>
+                <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
              </Stack>
           </Flex>
         </Flex>
@@ -86,6 +87,7 @@ export default function AppLayout({ children, user }) {
       <Collapse in={isOpen} animateOpacity>
          <Stack bg={useColorModeValue('white', 'gray.800')} p={4} display={{ md: 'none' }}>
             <NavItem href={route('dashboard')}>Dashboard</NavItem>
+            <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
          </Stack>
       </Collapse>
 

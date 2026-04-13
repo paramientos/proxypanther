@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProxySiteController;
+use App\Http\Controllers\BannedIpController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -26,8 +27,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/sites/{site}/toggle', [ProxySiteController::class, 'toggle'])->name('sites.toggle');
     Route::delete('/sites/{site}', [ProxySiteController::class, 'destroy'])->name('sites.destroy');
     
-    Route::post('/banned-ips', [ProxySiteController::class, 'banIp'])->name('banned-ips.store');
-    Route::delete('/banned-ips/{bannedIp}', [ProxySiteController::class, 'unbanIp'])->name('banned-ips.destroy');
+    Route::get('/banned-ips', [BannedIpController::class, 'index'])->name('banned-ips.index');
+    Route::post('/banned-ips', [BannedIpController::class, 'store'])->name('banned-ips.store');
+    Route::delete('/banned-ips/{bannedIp}', [BannedIpController::class, 'destroy'])->name('banned-ips.destroy');
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 });

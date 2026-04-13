@@ -28,10 +28,16 @@ class ProxySiteController extends Controller
             ->orderBy('date')
             ->get();
 
+        $recentEvents = SecurityEvent::with('proxySite')
+            ->latest()
+            ->limit(10)
+            ->get();
+
         return Inertia::render('Dashboard', [
             'sites' => ProxySite::withCount('securityEvents')->get(),
             'bannedIps' => BannedIp::all(),
             'analytics' => $analytics,
+            'recentEvents' => $recentEvents,
         ]);
     }
 
@@ -57,7 +63,7 @@ class ProxySiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'domain' => 'required|string|unique:proxy_sites,domain',
-            'backend_url' => 'required|url',
+            'backend_url' => 'required|string', // Support multiple URLs
             'ssl_enabled' => 'boolean',
             'waf_enabled' => 'boolean',
             'rate_limit_rps' => 'integer|min:1|max:1000',
@@ -67,6 +73,10 @@ class ProxySiteController extends Controller
             'notification_webhook_url' => 'nullable|url',
             'backend_type' => 'required|string|in:proxy,php_fpm',
             'root_path' => 'required_if:backend_type,php_fpm|nullable|string|max:255',
+            'cache_enabled' => 'boolean',
+            'cache_ttl' => 'integer|min:0',
+            'is_maintenance' => 'boolean',
+            'maintenance_message' => 'nullable|string|max:1000',
         ]);
 
         ProxySite::create($validated);
@@ -80,7 +90,7 @@ class ProxySiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'domain' => 'required|string|unique:proxy_sites,domain,' . $site->id,
-            'backend_url' => 'required|url',
+            'backend_url' => 'required|string', // Support multiple URLs
             'ssl_enabled' => 'boolean',
             'waf_enabled' => 'boolean',
             'rate_limit_rps' => 'integer|min:1|max:1000',
@@ -90,6 +100,10 @@ class ProxySiteController extends Controller
             'notification_webhook_url' => 'nullable|url',
             'backend_type' => 'required|string|in:proxy,php_fpm',
             'root_path' => 'required_if:backend_type,php_fpm|nullable|string|max:255',
+            'cache_enabled' => 'boolean',
+            'cache_ttl' => 'integer|min:0',
+            'is_maintenance' => 'boolean',
+            'maintenance_message' => 'nullable|string|max:1000',
         ]);
 
         $site->update($validated);

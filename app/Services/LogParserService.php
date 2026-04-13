@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ProxySite;
 use App\Models\SecurityEvent;
 use App\Models\BannedIp;
+use App\Events\SecurityEventOccurred;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 
@@ -57,6 +58,9 @@ class LogParserService
 
                 // Send notification if configured
                 $this->notify($site, $event);
+
+                // Broadcast event for real-time UI
+                SecurityEventOccurred::dispatch($event);
 
                 // Auto-Mitigation Logic: Track attacks per IP in this batch
                 if ($ip !== 'unknown' && $ip !== '127.0.0.1') {

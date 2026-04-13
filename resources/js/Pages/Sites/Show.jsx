@@ -37,6 +37,7 @@ import {
   Input,
   Stack,
   Select,
+  Textarea,
 } from '@chakra-ui/react';
 import { Shield, Globe, Activity, ChevronRight, AlertTriangle, Clock, Trash2, Power, Lock, Settings, TrendingUp } from 'lucide-react';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -105,6 +106,10 @@ export default function Show({ auth, site, analytics }) {
     auth_password: '',
     protect_sensitive_files: !!site.protect_sensitive_files,
     notification_webhook_url: site.notification_webhook_url || '',
+    cache_enabled: !!site.cache_enabled,
+    cache_ttl: site.cache_ttl || 3600,
+    is_maintenance: !!site.is_maintenance,
+    maintenance_message: site.maintenance_message || '',
   });
 
   const toggleStatus = () => {
@@ -233,6 +238,11 @@ export default function Show({ auth, site, analytics }) {
                     <FormControl isRequired isInvalid={errors.backend_url}>
                       <FormLabel>Backend URL / FastCGI Socket</FormLabel>
                       <Input value={data.backend_url} onChange={e => setData('backend_url', e.target.value)} placeholder={data.backend_type === 'proxy' ? 'http://localhost:8001' : '/var/run/php/php-fpm.sock'} />
+                      <Text fontSize="xs" color="gray.500" mt={1}>
+                        {data.backend_type === 'proxy' 
+                          ? 'Multiple URLs supported for Load Balancing (separate with comma or space).' 
+                          : 'Enter path to PHP-FPM socket or TCP address.'}
+                      </Text>
                     </FormControl>
                     <FormControl isRequired>
                       <FormLabel>Backend Type</FormLabel>
@@ -269,6 +279,26 @@ export default function Show({ auth, site, analytics }) {
                       <FormLabel mb="0">Enable Automatic SSL</FormLabel>
                       <Switch isChecked={data.ssl_enabled} onChange={e => setData('ssl_enabled', e.target.checked)} />
                     </FormControl>
+                    <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Enable Caching</FormLabel>
+                      <Switch isChecked={data.cache_enabled} onChange={e => setData('cache_enabled', e.target.checked)} />
+                    </FormControl>
+                    {data.cache_enabled && (
+                      <FormControl>
+                        <FormLabel>Cache TTL (Seconds)</FormLabel>
+                        <Input type="number" value={data.cache_ttl} onChange={e => setData('cache_ttl', e.target.value)} />
+                      </FormControl>
+                    )}
+                    <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Maintenance Mode</FormLabel>
+                      <Switch isChecked={data.is_maintenance} onChange={e => setData('is_maintenance', e.target.checked)} />
+                    </FormControl>
+                    {data.is_maintenance && (
+                      <FormControl>
+                        <FormLabel>Maintenance Message</FormLabel>
+                        <Textarea value={data.maintenance_message} onChange={e => setData('maintenance_message', e.target.value)} placeholder="We'll be back soon!" />
+                      </FormControl>
+                    )}
                   </SimpleGrid>
 
                   <Divider />

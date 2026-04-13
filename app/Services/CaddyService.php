@@ -50,6 +50,13 @@ class CaddyService
             $prefix = $site->ssl_enabled ? "" : "http://";
             $caddyfile .= "{$prefix}{$site->domain} {\n";
             
+            if ($site->is_maintenance) {
+                $msg = $site->maintenance_message ?: "Site is under maintenance. Please try again later.";
+                $caddyfile .= "    respond \"{$msg}\" 503\n";
+                $caddyfile .= "}\n\n";
+                continue;
+            }
+
             // Enable Logging for Statistics
             $logPath = storage_path("logs/caddy-{$site->id}.log");
             $caddyfile .= "    log {\n";
@@ -127,7 +134,15 @@ class CaddyService
                 $caddyfile .= "    php_fastcgi {$backend}\n";
                 $caddyfile .= "    file_server\n";
             } else {
-                $caddyfile .= "    reverse_proxy {$site->backend_url} {\n";
+                $backends = preg_split('/[,\n\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
+                $backends_str = implode(' ', $backends);
+                
+                $caddyfile .= "    reverse_proxy {$backends_str} {\n";
+                if (count($backends) > 1) {
+                    $caddyfile .= "        lb_policy random\n";
+                    $caddyfile .= "        health_uri /health\n";
+                    $caddyfile .= "        health_interval 10s\n";
+                }
                 $caddyfile .= "        header_up Host {host}\n";
                 $caddyfile .= "        header_up X-Real-IP {remote_host}\n";
                 $caddyfile .= "    }\n";
@@ -135,6 +150,11 @@ class CaddyService
 
             if ($site->rate_limit_rps > 0) {
                 $caddyfile .= "    # Rate Limit: {$site->rate_limit_rps} rps\n";
+            }
+
+            if ($site->cache_enabled) {
+                $caddyfile .= "    # Smart Caching\n";
+                $caddyfile .= "    header >Cache-Control \"public, max-age={$site->cache_ttl}\"\n";
             }
 
             $caddyfile .= "    handle_errors {\n";

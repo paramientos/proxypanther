@@ -27,6 +27,10 @@ class ProxySite extends Model
         'notification_webhook_url',
         'backend_type',
         'root_path',
+        'cache_enabled',
+        'cache_ttl',
+        'is_maintenance',
+        'maintenance_message',
     ];
 
     public function securityEvents(): HasMany
