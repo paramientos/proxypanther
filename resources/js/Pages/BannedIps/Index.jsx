@@ -56,7 +56,7 @@ export default function Index({ auth, bannedIps }) {
                 value={data.ip_address}
                 onChange={e => setData('ip_address', e.target.value)}
                 bg="#0d0d0d" borderColor="#242424" color="white"
-                _focus={{ borderColor: '#F68220', boxShadow: '0 0 0 1px #F68220' }}
+                _focus={{ borderColor: '#6366f1', boxShadow: '0 0 0 1px #6366f1' }}
               />
             </FormControl>
             <FormControl>
@@ -66,7 +66,7 @@ export default function Index({ auth, bannedIps }) {
                 value={data.reason}
                 onChange={e => setData('reason', e.target.value)}
                 bg="#0d0d0d" borderColor="#242424" color="white"
-                _focus={{ borderColor: '#F68220', boxShadow: '0 0 0 1px #F68220' }}
+                _focus={{ borderColor: '#6366f1', boxShadow: '0 0 0 1px #6366f1' }}
               />
             </FormControl>
             <Button

@@ -48,17 +48,17 @@ const NAV_ITEMS = [
     { name: 'IP Blacklist', icon: Shield, route: 'banned-ips.index' },
     { name: 'SSL Certificates', icon: Lock, route: 'ssl.index' },
     { name: 'Uptime & SLA', icon: TrendingUp, route: 'uptime.index' },
-    { name: 'Analytics', icon: BarChart3, route: 'logs.index' },
+    { name: 'Analytics', icon: BarChart3, route: 'analytics.index' },
     { name: 'Teams', icon: Users, route: 'teams.index' },
 ];
 
-const SIDEBAR_BG = '#111111';
-const SIDEBAR_BORDER = '#1f1f1f';
+const SIDEBAR_BG = '#08080a';
+const SIDEBAR_BORDER = 'rgba(255,255,255,0.05)';
 const TOPBAR_BG = '#0a0a0a';
 const CONTENT_BG = '#0d0d0d';
-const ACTIVE_BG = '#F68220';
+const ACTIVE_BG = '#6366f1';
 const HOVER_BG = '#1a1a1a';
-const ACCENT = '#F68220';
+const ACCENT = '#6366f1';
 
 function SidebarContent({ onClose }) {
     return (

@@ -98,7 +98,7 @@ export default function Index({ auth, events, filters, sites, types }) {
         </SimpleGrid>
 
         <HStack mt={3} spacing={2}>
-          <Button size="sm" bg="#F68220" color="white" _hover={{ bg: '#e56b10' }} onClick={() => apply()}>Apply Filters</Button>
+          <Button size="sm" bg="#6366f1" color="white" _hover={{ bg: '#4f46e5' }} onClick={() => apply()}>Apply Filters</Button>
           <Button size="sm" variant="ghost" color="gray.500" onClick={() => {
             setForm({ search: '', site_id: '', type: '', from: '', to: '' });
             router.get(route('logs.index'));
@@ -138,7 +138,7 @@ export default function Index({ auth, events, filters, sites, types }) {
                   <Badge colorScheme={TYPE_COLORS[event.type] || 'gray'} fontSize="10px">{event.type}</Badge>
                 </Td>
                 <Td px={4} py={2.5} fontSize="xs" maxW="260px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
-                  <Box as="code" bg="#2a2a2a" px={1} py={0.5} borderRadius="sm" fontSize="10px" color="#F68220" mr={1}>
+                  <Box as="code" bg="#2a2a2a" px={1} py={0.5} borderRadius="sm" fontSize="10px" color="#6366f1" mr={1}>
                     {event.request_method}
                   </Box>
                   <Text as="span" color="gray.400">{event.request_path}</Text>
@@ -149,7 +149,7 @@ export default function Index({ auth, events, filters, sites, types }) {
                 <Td px={4} py={2.5}>
                   {event.proxy_site_id && (
                     <Button as={Link} href={route('sites.show', event.proxy_site_id)}
-                      size="xs" variant="ghost" color="#F68220" _hover={{ bg: 'rgba(246,130,32,0.1)' }}>
+                      size="xs" variant="ghost" color="#6366f1" _hover={{ bg: 'rgba(99,102,241,0.1)' }}>
                       Site →
                     </Button>
                   )}
@@ -177,9 +177,9 @@ export default function Index({ auth, events, filters, sites, types }) {
               link.url ? (
                 <Button key={i} as={Link} href={link.url} size="xs"
                   variant={link.active ? 'solid' : 'ghost'}
-                  bg={link.active ? '#F68220' : 'transparent'}
+                  bg={link.active ? '#6366f1' : 'transparent'}
                   color={link.active ? 'white' : 'gray.500'}
-                  _hover={{ bg: link.active ? '#e56b10' : '#1c1c1c' }}>
+                  _hover={{ bg: link.active ? '#4f46e5' : '#1c1c1c' }}>
                   {link.label.replace(/<[^>]*>/g, '')}
                 </Button>
               ) : (

@@ -16,11 +16,11 @@ import {
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 
-const CARD_BG = '#161616';
-const BORDER = '#242424';
+const CARD_BG = '#0c0d12';
+const BORDER = 'rgba(255,255,255,0.08)';
 const ROW_HOVER = '#1c1c1c';
-const ACCENT = '#F68220';
-const ACCENT_DIM = 'rgba(246,130,32,0.12)';
+const ACCENT = '#6366f1';
+const ACCENT_DIM = 'rgba(99,102,241,0.12)';
 
 export default function EnterpriseDashboard({ auth, sites: initialSites, analytics }) {
     const [sites, setSites] = React.useState(initialSites);
@@ -88,8 +88,8 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                 color: {
                     type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
                     colorStops: [
-                        { offset: 0, color: 'rgba(246,130,32,0.25)' },
-                        { offset: 1, color: 'rgba(246,130,32,0)' },
+                        { offset: 0, color: 'rgba(99,102,241,0.25)' },
+                        { offset: 1, color: 'rgba(99,102,241,0)' },
                     ],
                 },
             },
@@ -169,7 +169,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                     leftIcon={<Plus size={16} />}
                     bg={ACCENT}
                     color="white"
-                    _hover={{ bg: '#e56b10' }}
+                    _hover={{ bg: '#4f46e5' }}
                     size="md"
                     onClick={onOpen}
                     fontWeight="medium"
@@ -306,7 +306,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                             {site.waf_enabled && (
                                                 <Badge fontSize="10px"
                                                     bg={ACCENT_DIM} color={ACCENT}
-                                                    border="1px solid" borderColor="rgba(246,130,32,0.3)">
+                                                    border="1px solid" borderColor="rgba(99,102,241,0.3)">
                                                     WAF
                                                 </Badge>
                                             )}
@@ -436,7 +436,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                         </ModalBody>
                         <Flex px={6} py={4} borderTop="1px solid" borderColor={BORDER} justify="flex-end" gap={3}>
                             <Button variant="ghost" color="gray.400" onClick={onClose}>Cancel</Button>
-                            <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#e56b10' }}>
+                            <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }}>
                                 Create Site
                             </Button>
                         </Flex>

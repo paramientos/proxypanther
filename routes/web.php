@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProxySiteController;
 use App\Http\Controllers\BannedIpController;
 use App\Http\Controllers\LogExplorerController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SslController;
 use App\Http\Controllers\UptimeController;
@@ -36,9 +37,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/banned-ips', [BannedIpController::class, 'store'])->name('banned-ips.store');
     Route::delete('/banned-ips/{bannedIp}', [BannedIpController::class, 'destroy'])->name('banned-ips.destroy');
 
-    // Logs
+    // Logs & Analytics
     Route::get('/logs', [LogExplorerController::class, 'index'])->name('logs.index');
     Route::get('/logs/export', [LogExplorerController::class, 'export'])->name('logs.export');
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
     // SSL Panel
     Route::get('/ssl', [SslController::class, 'index'])->name('ssl.index');

@@ -11,29 +11,34 @@ const theme = extendTheme({
         initialColorMode: 'dark',
         useSystemColorMode: false,
     },
+    fonts: {
+        heading: '"Plus Jakarta Sans", sans-serif',
+        body: '"Plus Jakarta Sans", sans-serif',
+        mono: '"JetBrains Mono", monospace',
+    },
     colors: {
         brand: {
-            50: '#fff8f1',
-            100: '#feebdb',
-            200: '#fdd7b7',
-            300: '#fbb983',
-            400: '#f99b4f',
-            500: '#F68220',
-            600: '#e56b10',
-            700: '#bf520d',
-            800: '#99410f',
-            900: '#7d3610',
+            50: '#eef2ff',
+            100: '#e0e7ff',
+            200: '#c7d2fe',
+            300: '#a5b4fc',
+            400: '#818cf8',
+            500: '#6366f1', // Electric Indigo
+            600: '#4f46e5',
+            700: '#4338ca',
+            800: '#3730a3',
+            900: '#312e81',
         },
     },
     semanticTokens: {
         colors: {
-            'chakra-body-bg': { _dark: '#0f0f0f' },
+            'chakra-body-bg': { _dark: '#050508' },
         },
     },
     styles: {
         global: {
             body: {
-                bg: 'gray.950',
+                bg: '#050508',
                 color: 'gray.100',
             },
         },
@@ -41,9 +46,19 @@ const theme = extendTheme({
     components: {
         Button: {
             defaultProps: { colorScheme: 'brand' },
+            baseStyle: {
+                borderRadius: 'lg',
+                fontWeight: '600',
+            },
         },
         Badge: {
             defaultProps: { colorScheme: 'brand' },
+            baseStyle: {
+                borderRadius: 'full',
+                textTransform: 'none',
+                fontWeight: '600',
+                px: 2,
+            },
         },
         Progress: {
             defaultProps: { colorScheme: 'brand' },
@@ -85,6 +100,6 @@ createInertiaApp({
         );
     },
     progress: {
-        color: '#F68220',
+        color: '#6366f1',
     },
 });

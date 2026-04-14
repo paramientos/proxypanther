@@ -28,7 +28,7 @@ export default function Index({ auth, sites, events }) {
 
     const chartOption = {
         backgroundColor: 'transparent',
-        tooltip: { trigger: 'axis', backgroundColor: '#1a1a1a', borderColor: '#F68220', textStyle: { color: '#e5e5e5' } },
+        tooltip: { trigger: 'axis', backgroundColor: '#1a1a1a', borderColor: '#6366f1', textStyle: { color: '#e5e5e5' } },
         legend: { data: sites.slice(0, 5).map(s => s.name), textStyle: { color: '#666' } },
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
         xAxis: {
@@ -86,7 +86,7 @@ export default function Index({ auth, sites, events }) {
             <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" overflow="hidden">
                 <Box px={5} py={4} borderBottom="1px solid" borderColor="#242424">
                     <HStack>
-                        <Icon as={Activity} color="#F68220" boxSize={4} />
+                        <Icon as={Activity} color="#6366f1" boxSize={4} />
                         <Text fontWeight="semibold" color="white" fontSize="sm">Site SLA Overview</Text>
                     </HStack>
                 </Box>

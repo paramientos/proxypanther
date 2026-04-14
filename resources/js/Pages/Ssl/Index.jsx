@@ -12,7 +12,7 @@ export default function Index({ auth, sites, certs }) {
     const onlineSites = sslSites.filter(s => s.is_online);
 
     const kpis = [
-        { label: 'SSL-Enabled Sites', value: sslSites.length, sub: 'Auto-managed by Caddy', color: '#F68220' },
+        { label: 'SSL-Enabled Sites', value: sslSites.length, sub: 'Auto-managed by Caddy', color: '#6366f1' },
         { label: 'Online & Healthy', value: onlineSites.length, sub: 'Responding to health checks', color: '#22c55e' },
         { label: 'HTTP-Only Sites', value: sites.filter(s => !s.ssl_enabled).length, sub: 'No SSL configured', color: '#f59e0b' },
     ];
@@ -38,10 +38,10 @@ export default function Index({ auth, sites, certs }) {
 
             <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" p={4} mb={6}>
                 <HStack spacing={2}>
-                    <Icon as={Lock} color="#F68220" boxSize={4} />
+                    <Icon as={Lock} color="#6366f1" boxSize={4} />
                     <Text fontSize="sm" color="gray.400">
                         Caddy automatically renews certificates 30 days before expiry. Certificate data is served from the Caddy Admin API at{' '}
-                        <Box as="code" bg="#2a2a2a" px={1} borderRadius="sm" fontSize="xs" color="#F68220">localhost:2019</Box>.
+                        <Box as="code" bg="#2a2a2a" px={1} borderRadius="sm" fontSize="xs" color="#6366f1">localhost:2019</Box>.
                     </Text>
                 </HStack>
             </Box>
@@ -49,7 +49,7 @@ export default function Index({ auth, sites, certs }) {
             <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" overflow="hidden">
                 <Box px={5} py={4} borderBottom="1px solid" borderColor="#242424">
                     <HStack>
-                        <Icon as={Lock} color="#F68220" boxSize={4} />
+                        <Icon as={Lock} color="#6366f1" boxSize={4} />
                         <Text fontWeight="semibold" color="white" fontSize="sm">Site SSL Status</Text>
                     </HStack>
                 </Box>
@@ -93,7 +93,7 @@ export default function Index({ auth, sites, certs }) {
                                 </Td>
                                 <Td px={4} py={3}>
                                     <Button as={Link} href={route('sites.show', site.id)}
-                                        size="xs" variant="ghost" color="#F68220" _hover={{ bg: 'rgba(246,130,32,0.1)' }}>
+                                        size="xs" variant="ghost" color="#6366f1" _hover={{ bg: 'rgba(99,102,241,0.1)' }}>
                                         Configure →
                                     </Button>
                                 </Td>
