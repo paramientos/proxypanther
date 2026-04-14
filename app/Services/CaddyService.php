@@ -56,9 +56,6 @@ class CaddyService
 
             // Infrastructure Debug Headers
             $out .= "    header X-ProxyPanther-Gateway \"Secure-Alpha\"\n";
-            if ($site->geoip_enabled) {
-                $out .= "    header X-ProxyPanther-Country \"{maxmind_geolocation.country_code}\"\n";
-            }
 
             // GeoIP - High Priority Shield
             if ($site->geoip_enabled) {
@@ -67,14 +64,14 @@ class CaddyService
                     $out .= "    @geo_blocked {\n        maxmind_geolocation {\n";
                     $out .= "            db_path \"/etc/caddy/GeoLite2-Country.mmdb\"\n";
                     $out .= "            deny_countries {$countries}\n        }\n    }\n";
-                    $out .= "    respond @geo_blocked \"Access Denied: Your region ({maxmind_geolocation.country_code}) is restricted managed by ProxyPanther SOC.\" 403\n\n";
+                    $out .= "    respond @geo_blocked \"Access Denied: Your region is restricted by ProxyPanther Global SOC.\" 403\n\n";
                 }
                 if ($site->geoip_allowlist && \count($site->geoip_allowlist) > 0) {
                     $countries = implode(' ', array_map('strtoupper', $site->geoip_allowlist));
                     $out .= "    @geo_not_allowed {\n        not maxmind_geolocation {\n";
                     $out .= "            db_path \"/etc/caddy/GeoLite2-Country.mmdb\"\n";
                     $out .= "            allow_countries {$countries}\n        }\n    }\n";
-                    $out .= "    respond @geo_not_allowed \"Access Denied: Access from your region ({maxmind_geolocation.country_code}) is not authorized.\" 403\n\n";
+                    $out .= "    respond @geo_not_allowed \"Access Denied: Your region is not authorized for access.\" 403\n\n";
                 }
             }
 
