@@ -17,59 +17,94 @@
     }
 }
 
-http://testme.com {
+(blacklist) {
+    @banned_ips remote_ip 1.2.3.4 5.6.7.8
+    respond @banned_ips "Access Denied by ProxyPanther Global Blacklist" 403
+}
+
+blog.com {
+    header X-ProxyPanther-Gateway "Secure-Alpha"
+    header Retry-After "5"
+    header Content-Type "text/html; charset=utf-8"
+    respond `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Shield Active | ProxyPanther</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: #050508; color: #fff; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .card { background: #0c0d12; border: 1px solid rgba(255,255,255,0.08); padding: 40px; border-radius: 20px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .icon { width: 64px; height: 64px; background: #6366f1; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; box-shadow: 0 0 30px rgba(99,102,241,0.4); }
+        h1 { font-size: 24px; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.02em; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin: 0 0 32px; }
+        .progress-container { background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden; position: relative; }
+        .progress-bar { background: #6366f1; height: 100%; width: 0%; transition: width 15s linear; }
+        .counter { font-size: 11px; color: #6366f1; font-weight: 700; margin-top: 16px; display: block; text-transform: uppercase; letter-spacing: 0.1em; }
+    </style>
+</head>
+<body onload="setTimeout(() => document.getElementById('bar').style.width = '100%', 50)">
+    <div class="card">
+        <div class="icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h1>Emergency Shield Active</h1>
+        <p>High-level infrastructure protection is currently enforced.. Successive requests will be allowed shortly.</p>
+        <div class="progress-container">
+            <div id="bar" class="progress-bar"></div>
+        </div>
+        <span id="timer" class="counter">Analyzing Connection...</span>
+    </div>
+    <script>
+        let count = 15;
+        const int = setInterval(() => {
+            count--;
+            if(count <= 0) {
+                clearInterval(int);
+                window.location.reload();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>` 429
+}
+
+app.com {
+    header X-ProxyPanther-Gateway "Secure-Alpha"
     log {
-        output file /Users/aras/projects/deploypanther/storage/logs/caddy-3.log
+        output file /Users/aras/projects/deploypanther/storage/logs/caddy-2.log
         format json
     }
 
-    # Protect Sensitive Files
+    import blacklist
     @sensitive_paths {
         path /.env* /.git* /.svn* /wp-config.php /config.php /composer.json /composer.lock
     }
     respond @sensitive_paths "Access to sensitive system files is forbidden." 403
 
+    encode brotli gzip
     @bad_bots {
         header_regexp User-Agent "(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)"
     }
-    respond @bad_bots "Access Denied" 403
-    # Force Challenge Mode - All Requests
-    header Retry-After "15"
-    header Content-Type "text/html; charset=utf-8"
-    respond `<html><head><title>Security Check</title></head><body style="text-align:center;padding:50px;font-family:sans-serif"><h1>Security Check Required</h1><p>This site is under enhanced protection.</p><p>Please retry after 15 seconds.</p></body></html>` 429
-    # Advanced WAF Patterns
+    error @bad_bots "Access Denied" 403
     @attacks {
-        # SQL Injection Patterns
         expression {query}.contains('union') && {query}.contains('select')
         expression {query}.contains('information_schema')
         expression {query}.contains('sleep(')
         expression {query}.contains('benchmark(')
-        expression {query}.contains("' OR 1=1") || {query}.contains('" OR 1=1') || {query}.contains('--')
-        # XSS Patterns
         expression {query}.contains('<script')
         expression {query}.contains('javascript:')
         expression {query}.contains('onerror=')
-        expression {query}.contains('onload=')
-        expression {query}.contains('eval(')
-        # LFI & Directory Traversal
         expression {query}.contains('../')
         expression {query}.contains('/etc/passwd')
-        expression {query}.contains('/etc/shadow')
-        # Malicious Bots & Scanners
         header_regexp User-Agent (?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)
     }
-    respond @attacks "Access Denied by ProxyPanther Advanced WAF" 403
+    error @attacks "Access Denied by ProxyPanther Advanced WAF" 403
 
     import common_security_headers
-    reverse_proxy http://localhost:8001 {
-        header_up X-Env-FOO "yessir2"
-        header_down -X-Env-*
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-    }
-    # Rate Limit: 5 rps
+    reverse_proxy http://localhost:8002
     handle_errors {
-        rewrite * /{err.status_code}.html
         respond "ProxyPanther Secure Gateway: Error {err.status_code}" {err.status_code}
     }
 }

@@ -34,13 +34,9 @@ class ProxySiteController extends Controller
             ->groupBy('date')
             ->orderBy('date')
             ->get();
-
-        $recentEvents = SecurityEvent::with('proxySite')
-            ->latest()
-            ->limit(10)
-            ->get();
-
-        $threatsByCountry = SecurityEvent::selectRaw('country_code, count(*) as count')
+        $recentEvents = SecurityEvent::with('proxySite')->latest()->limit(10)->get();
+        
+        $threatsByCountry = SecurityEvent::selectRaw('country_code, COUNT(*) as count')
             ->whereNotNull('country_code')
             ->groupBy('country_code')
             ->orderByDesc('count')
@@ -83,6 +79,8 @@ class ProxySiteController extends Controller
             'bandwidth' => $bandwidth,
             'wafPresets' => $this->presetService->getPresets(),
             'errorTemplates' => $this->errorPageService->getTemplates(),
+            'healthLogs' => $site->healthCheckLogs()->latest()->limit(48)->get(),
+            'sslCertificates' => $this->caddy->getSslCertificates(),
         ]);
     }
 
@@ -189,6 +187,17 @@ class ProxySiteController extends Controller
         return back()->with('success', "Template applied to {$request->code} successfully.");
     }
 
+    public function threatMap(ProxySite $site)
+    {
+        $threats = SecurityEvent::where('proxy_site_id', $site->id)
+            ->selectRaw('country_code, country_name, COUNT(*) as count')
+            ->whereNotNull('country_code')
+            ->groupBy('country_code', 'country_name')
+            ->get();
+
+        return response()->json($threats);
+    }
+
     public function destroy(ProxySite $site)
     {
         $site->delete();
@@ -287,8 +296,6 @@ class ProxySiteController extends Controller
             'env_vars' => 'nullable|array',
             'header_rules' => 'nullable|array',
             'redirect_rules' => 'nullable|array',
-            'bot_challenge_mode' => 'boolean',
-            'bot_challenge_force' => 'boolean',
             'route_policies' => 'nullable|array',
             'circuit_breaker_enabled' => 'boolean',
             'circuit_breaker_threshold' => 'integer|min:1|max:20',
@@ -301,7 +308,13 @@ class ProxySiteController extends Controller
             'geoip_denylist' => 'nullable|string',
             'geoip_enabled' => 'boolean',
             'block_common_bad_bots' => 'boolean',
+            'bot_challenge_mode' => 'boolean',
+            'bot_challenge_force' => 'boolean',
             'under_attack_mode' => 'boolean',
+            'bot_fight_mode' => 'boolean',
+            'brotli_enabled' => 'boolean',
+            'hsts_enabled' => 'boolean',
+            'performance_level' => 'required|string|in:balanced,aggressive,off',
         ];
     }
 

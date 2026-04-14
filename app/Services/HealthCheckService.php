@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\BackendHealthUpdated;
 use App\Models\ProxySite;
 use App\Models\UptimeEvent;
+use App\Models\HealthCheckLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -25,17 +26,21 @@ class HealthCheckService
         $lastError = null;
 
         foreach ($urls as $url) {
+            $start = microtime(true);
             if ($site->backend_type === 'php_fpm') {
                 $status = $this->checkPhpFpm($url);
             } else {
                 $status = $this->checkHttp($url);
             }
+            $latency = (microtime(true) - $start) * 1000;
 
             if ($status['online']) {
                 $isOnline = true;
+                $this->logHealth($site, 'UP', $status['code'] ?? null, $latency);
                 break;
             } else {
                 $lastError = $status['error'];
+                $this->logHealth($site, 'DOWN', $status['code'] ?? null, $latency, $lastError);
             }
         }
 
@@ -124,14 +129,35 @@ class HealthCheckService
             
             return [
                 'online' => $response->successful() || $response->status() === 503 || $response->status() === 401 || $response->status() === 403,
+                'code' => $response->status(),
                 'error' => $response->successful() ? null : "HTTP Response: " . $response->status(),
             ];
         } catch (\Exception $e) {
             Log::warning("Health check failed for $url: " . $e->getMessage());
             return [
                 'online' => false,
+                'code' => null,
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    private function logHealth(ProxySite $site, string $status, ?int $code, float $latency, ?string $error = null)
+    {
+        HealthCheckLog::create([
+            'proxy_site_id' => $site->id,
+            'status' => $status,
+            'response_code' => $code,
+            'latency' => $latency,
+            'error_message' => $error,
+            'created_at' => now(),
+        ]);
+
+        // Keep only last 200 logs per site to save space
+        if (rand(1, 20) === 1) {
+            HealthCheckLog::where('proxy_site_id', $site->id)
+                ->where('created_at', '<', now()->subDays(3))
+                ->delete();
         }
     }
 

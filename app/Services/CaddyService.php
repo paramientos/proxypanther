@@ -127,6 +127,16 @@ class CaddyService
                 $out .= "    respond @sensitive_paths \"Access to sensitive system files is forbidden.\" 403\n\n";
             }
 
+            // Performance & Security Hardening
+            if ($site->hsts_enabled) {
+                $out .= "    header Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
+            }
+            if ($site->brotli_enabled) {
+                $out .= "    encode brotli gzip\n";
+            } else {
+                $out .= "    encode gzip\n";
+            }
+
             // WAF
             if ($site->waf_enabled) {
                 if ($site->block_common_bad_bots) {
@@ -146,6 +156,17 @@ class CaddyService
                     $out .= "    header @bot_challenge Retry-After \"15\"\n";
                     $out .= "    header @bot_challenge Content-Type \"text/html; charset=utf-8\"\n";
                     $out .= "    respond @bot_challenge `{$html}` 429\n";
+                }
+
+                if ($site->bot_fight_mode) {
+                    $html = $this->getChallengeTemplate('Bot Fight Mode', 'Behavioral protection is analyzing your request pulse.');
+                    $out .= "    @bot_fight {\n";
+                    $out .= "        header_regexp User-Agent \"(?i)(headless|selenium|webdriver|puppeteer|zgrab|masscan)\"\n";
+                    $out .= "        not remote_ip 1.1.1.1 8.8.8.8\n";
+                    $out .= "    }\n";
+                    $out .= "    header @bot_fight Retry-After \"10\"\n";
+                    $out .= "    header @bot_fight Content-Type \"text/html; charset=utf-8\"\n";
+                    $out .= "    error @bot_fight `{$html}` 429\n";
                 }
 
                 // Per-route policies

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
+import * as echarts from 'echarts';
 
 const CARD_BG = '#0c0d12';
 const BORDER = 'rgba(255,255,255,0.08)';
@@ -56,58 +57,57 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
     const blockRate = totalRequests > 0 ? ((totalBlocked / totalRequests) * 100).toFixed(1) : 0;
     const onlineSites = sites.filter(s => s.is_online).length;
 
-    const chartOptions = {
+    const [worldJson, setWorldJson] = React.useState(null);
+
+    React.useEffect(() => {
+        fetch('/world.json')
+            .then(res => res.json())
+            .then(data => {
+                echarts.registerMap('world', data);
+                setWorldJson(data);
+            });
+    }, []);
+
+    const mapOptions = {
         backgroundColor: 'transparent',
         tooltip: {
-            trigger: 'axis',
+            trigger: 'item',
             backgroundColor: '#1a1a1a',
             borderColor: ACCENT,
             textStyle: { color: '#e5e5e5', fontSize: 12 },
+            formatter: (params) => {
+                return `${params.name}: ${params.value || 0} Threats`;
+            }
         },
-        grid: { left: '2%', right: '2%', bottom: '3%', top: '8%', containLabel: true },
-        xAxis: {
-            type: 'category',
-            boundaryGap: false,
-            data: (analytics || []).map(a => new Date(a.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })),
-            axisLine: { lineStyle: { color: '#333' } },
-            axisLabel: { color: '#666', fontSize: 11 },
-        },
-        yAxis: {
-            type: 'value',
-            axisLine: { show: false },
-            splitLine: { lineStyle: { color: '#1f1f1f' } },
-            axisLabel: { color: '#666', fontSize: 11 },
+        visualMap: {
+            min: 0,
+            max: Math.max(...Object.values(threatsByCountry || { 'US': 0 }), 10),
+            left: 'left',
+            top: 'bottom',
+            text: ['High', 'Low'],
+            seriesIndex: [0],
+            inRange: {
+                color: ['rgba(243,128,32,0.1)', 'rgba(243,128,32,0.6)', '#f38020']
+            },
+            calculable: true,
+            textStyle: { color: '#666' }
         },
         series: [
             {
-                name: 'Total Requests',
-                type: 'line',
-                smooth: true,
-                data: (analytics || []).map(a => a.total || a.total_requests),
-                itemStyle: { color: 'rgba(255,255,255,0.3)' },
-                lineStyle: { width: 2, color: 'rgba(255,255,255,0.3)', type: 'dashed' },
-                symbol: 'none',
-            },
-            {
-                name: 'Blocked Threats',
-                type: 'line',
-                smooth: true,
-                data: (analytics || []).map(a => a.blocked || a.blocked_requests),
-                itemStyle: { color: ACCENT },
-                lineStyle: { width: 3, color: ACCENT },
-                areaStyle: {
-                    color: {
-                        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                        colorStops: [
-                            { offset: 0, color: 'rgba(243,128,32,0.3)' },
-                            { offset: 1, color: 'rgba(243,128,32,0)' },
-                        ],
-                    },
+                name: 'Threats',
+                type: 'map',
+                map: 'world',
+                roam: true,
+                emphasis: {
+                    label: { show: false },
+                    itemStyle: { areaColor: '#4f46e5' }
                 },
-                symbol: 'circle',
-                symbolSize: 6,
+                data: Object.entries(threatsByCountry || {}).map(([code, count]) => ({
+                    name: code === 'US' ? 'United States' : (code === 'TR' ? 'Turkey' : (code === 'CN' ? 'China' : code)),
+                    value: count
+                }))
             }
-        ],
+        ]
     };
 
     const submit = (e) => {
@@ -233,19 +233,31 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                         <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER} gridColumn={{ lg: "span 2" }}>
                             <HStack justify="space-between" mb={5}>
                                 <Box>
-                                    <Text fontWeight="semibold" color="white" fontSize="lg">Security Events Timeline</Text>
-                                    <Text fontSize="xs" color="gray.500" mt={0.5}>Last 7 days global threat activity</Text>
+                                    <Text fontWeight="semibold" color="white" fontSize="lg">Global Threat Map</Text>
+                                    <Text fontSize="xs" color="gray.500" mt={0.5}>Visualizing blocked attack attempts across regions</Text>
                                 </Box>
                                 <HStack spacing={4}>
                                     <HStack spacing={2}>
                                         <Box w={2} h={2} bg={ACCENT} borderRadius="full" />
-                                        <Text fontSize="xs" color="gray.400">Attacks</Text>
+                                        <Text fontSize="xs" color="gray.400">Threat Hotspots</Text>
                                     </HStack>
-                                    <IconButton size="xs" variant="ghost" color="gray.500" _hover={{ color: 'white' }} icon={<RefreshCcw size={13} />} />
                                 </HStack>
                             </HStack>
                             <Box height="280px">
-                                <ReactECharts option={chartOptions} style={{ height: '100%', width: '100%' }} />
+                                {worldJson ? (
+                                    <ReactECharts
+                                        echarts={echarts}
+                                        option={mapOptions}
+                                        style={{ height: '100%', width: '100%' }}
+                                    />
+                                ) : (
+                                    <Flex align="center" justify="center" h="100%">
+                                        <VStack spacing={3}>
+                                            <Progress size="xs" isIndeterminate w="150px" colorScheme="brand" bg="rgba(255,255,255,0.05)" />
+                                            <Text fontSize="xs" color="gray.600">Loading Geospatial Data...</Text>
+                                        </VStack>
+                                    </Flex>
+                                )}
                             </Box>
                         </Box>
 
@@ -261,7 +273,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                 <VStack align="start" spacing={3}>
                                     <Box p={3} bg="rgba(0,0,0,0.3)" borderRadius="md" borderLeft="3px solid" borderLeftColor={ACCENT}>
                                         <Text fontSize="xs" color="gray.300" fontWeight="medium">
-                                            {threatsByCountry.length > 0 
+                                            {threatsByCountry.length > 0
                                                 ? `High activity detected from ${threatsByCountry[0]?.country_code}. Consider enabling regional lock for this zone.`
                                                 : "Security parameters look stable. No immediate action required."}
                                         </Text>
@@ -392,8 +404,13 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                     </Td>
                                     <Td px={4} py={3}>
                                         <VStack align="start" spacing={1}>
-                                            <Text fontSize="sm" fontWeight="medium" color="#22c55e">99.9%</Text>
-                                            <Progress value={99.9} size="xs" colorScheme="green"
+                                            <Text fontSize="sm" fontWeight="medium" color={site.uptime_percentage > 9900 ? '#22c55e' : '#f38020'}>
+                                                {(site.uptime_percentage / 100).toFixed(1)}%
+                                            </Text>
+                                            <Progress
+                                                value={site.uptime_percentage / 100}
+                                                size="xs"
+                                                colorScheme={site.uptime_percentage > 9900 ? 'green' : 'orange'}
                                                 w="50px" bg="#2a2a2a" borderRadius="full" />
                                         </VStack>
                                     </Td>
@@ -526,7 +543,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                 </HStack>
                             </Stack>
                         </ModalBody>
-                         <Flex px={6} py={4} borderTop="1px solid" borderColor={BORDER} justify="flex-end" gap={3}>
+                        <Flex px={6} py={4} borderTop="1px solid" borderColor={BORDER} justify="flex-end" gap={3}>
                             <Button variant="ghost" color="gray.400" onClick={onClose} leftIcon={<Icon as={X} size={16} />}>Cancel</Button>
                             <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} leftIcon={<Icon as={CheckCircle} size={16} />}>
                                 Create Site

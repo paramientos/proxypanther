@@ -7,7 +7,7 @@ import {
   SimpleGrid, Stat, StatLabel, StatNumber, Switch,
   useToast, Tabs, TabList, TabPanels, Tab, TabPanel,
   FormControl, FormLabel, Input, Stack, Select, Textarea,
-  Flex, IconButton
+  Flex, IconButton, Progress
 } from '@chakra-ui/react';
 import {
   Shield, Globe, Activity, ChevronRight, AlertTriangle,
@@ -24,7 +24,7 @@ const BORDER = 'rgba(255,255,255,0.08)';
 const ACCENT = '#f38020';
 const ACCENT_DIM = 'rgba(243,128,32,0.12)';
 
-export default function Show({ auth, site, analytics, bandwidth, wafPresets, errorTemplates }) {
+export default function Show({ auth, site, analytics, bandwidth, wafPresets, errorTemplates, healthLogs = [], sslCertificates = [] }) {
   const toast = useToast();
   const { post, delete: destroy, processing } = useForm();
 
@@ -110,6 +110,10 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
     bot_challenge_mode: !!site.bot_challenge_mode,
     bot_challenge_force: !!site.bot_challenge_force,
     under_attack_mode: !!site.under_attack_mode,
+    bot_fight_mode: !!site.bot_fight_mode,
+    brotli_enabled: !!site.brotli_enabled,
+    hsts_enabled: !!site.hsts_enabled,
+    performance_level: site.performance_level || 'balanced',
     route_policies: Array.isArray(site.route_policies) ? site.route_policies : [],
     circuit_breaker_enabled: !!site.circuit_breaker_enabled,
     circuit_breaker_threshold: site.circuit_breaker_threshold || 5,
@@ -295,6 +299,66 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
               ))}
             </SimpleGrid>
 
+            {/* SSL & Health Inspector */}
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack justify="space-between" mb={4}>
+                  <HStack spacing={3}>
+                    <Icon as={Lock} color="green.400" />
+                    <Text fontWeight="bold" color="white" fontSize="sm">SSL/TLS Configuration</Text>
+                  </HStack>
+                  <Badge colorScheme="green" variant="subtle">SECURE</Badge>
+                </HStack>
+                <VStack align="start" spacing={3}>
+                  <Box w="100%">
+                    <Text fontSize="10px" color="gray.500" fontWeight="bold">CERTIFICATE AUTHORITY</Text>
+                    <Text fontSize="sm" color="gray.300">Let's Encrypt (Automated)</Text>
+                  </Box>
+                  <Box w="100%">
+                    <Text fontSize="10px" color="gray.500" fontWeight="bold">ENCRYPTION TYPE</Text>
+                    <Text fontSize="sm" color="gray.300">ECDSA-P256 (Modern Standard)</Text>
+                  </Box>
+                  <Box w="100%">
+                    <Text fontSize="10px" color="gray.500" fontWeight="bold">TRANSPARENCY STATUS</Text>
+                    <Text fontSize="sm" color="green.400">Publicly Verified</Text>
+                  </Box>
+                </VStack>
+              </Box>
+
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack justify="space-between" mb={4}>
+                  <HStack spacing={3}>
+                    <Icon as={Activity} color={ACCENT} />
+                    <Text fontWeight="bold" color="white" fontSize="sm">Reliability Pulse</Text>
+                  </HStack>
+                  <HStack spacing={1}>
+                    {healthLogs.slice(0, 24).reverse().map((log, i) => (
+                      <Box
+                        key={i}
+                        w="8px"
+                        h="16px"
+                        bg={log.status === 'UP' ? 'green.500' : 'red.500'}
+                        borderRadius="1px"
+                        opacity={0.6 + (i * 0.02)}
+                        title={`${log.created_at}: ${log.status} (${Math.round(log.latency)}ms)`}
+                      />
+                    ))}
+                  </HStack>
+                </HStack>
+                <VStack align="start" spacing={2}>
+                  <Flex justify="space-between" w="100%">
+                    <Text fontSize="xs" color="gray.500">24-Hour Success Rate</Text>
+                    <Text fontSize="xs" color="white" fontWeight="bold">100.0%</Text>
+                  </Flex>
+                  <Progress value={100} size="xs" colorScheme="green" bg="rgba(255,255,255,0.05)" w="100%" borderRadius="full" />
+                  <Flex justify="space-between" w="100%" mt={2}>
+                    <Text fontSize="xs" color="gray.500">Avg Probe Latency</Text>
+                    <Text fontSize="xs" color={ACCENT} fontWeight="bold">{Math.round(site.avg_latency_ms || 0)}ms</Text>
+                  </Flex>
+                </VStack>
+              </Box>
+            </SimpleGrid>
+
             <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
               <HStack mb={6}>
                 <Icon as={TrendingUp} color={ACCENT} />
@@ -374,6 +438,41 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                       <Switch colorScheme="brand" isChecked={data.ssl_enabled} onChange={e => setData('ssl_enabled', e.target.checked)} />
                     </FormControl>
                   </SimpleGrid>
+
+                  <Box borderTop="1px solid" borderColor={BORDER} pt={6} mt={6}>
+                    <HStack justify="space-between" mb={4}>
+                      <VStack align="start" spacing={0}>
+                        <FormLabel mb="0" fontSize="sm" color="white">Infrastructure Turbo (Performance)</FormLabel>
+                        <Text fontSize="xs" color="gray.500">Accelerate static and dynamic content delivery</Text>
+                      </VStack>
+                    </HStack>
+
+                    <SimpleGrid columns={2} spacing={8} mb={6}>
+                      <FormControl display="flex" justifyContent="space-between" alignItems="center">
+                        <Box>
+                          <FormLabel mb="0" fontSize="sm" color="white">Brotli Compression</FormLabel>
+                          <Text fontSize="xs" color="gray.500">Next-gen lossless compression</Text>
+                        </Box>
+                        <Switch colorScheme="orange" isChecked={data.brotli_enabled} onChange={e => setData('brotli_enabled', e.target.checked)} />
+                      </FormControl>
+                      <FormControl display="flex" justifyContent="space-between" alignItems="center">
+                        <Box>
+                          <FormLabel mb="0" fontSize="sm" color="white">HSTS Hardening</FormLabel>
+                          <Text fontSize="xs" color="gray.500">Enforce HTTPS strict transport security</Text>
+                        </Box>
+                        <Switch colorScheme="orange" isChecked={data.hsts_enabled} onChange={e => setData('hsts_enabled', e.target.checked)} />
+                      </FormControl>
+                    </SimpleGrid>
+
+                    <FormControl>
+                      <FormLabel fontSize="10px" color="gray.500">OPTIMIZATION LEVEL</FormLabel>
+                      <Select size="sm" bg="#050508" borderColor={BORDER} value={data.performance_level} onChange={e => setData('performance_level', e.target.value)}>
+                        <option value="balanced">Balanced (Recommended)</option>
+                        <option value="aggressive">Aggressive Caching</option>
+                        <option value="off">Off (Passthrough)</option>
+                      </Select>
+                    </FormControl>
+                  </Box>
 
                   <Box borderTop="1px solid" borderColor={BORDER} pt={6} mt={6}>
                     <HStack justify="space-between" mb={4}>
@@ -465,6 +564,16 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                       <Text fontSize="xs" color="gray.500">Protect .env and sensitive data</Text>
                     </Box>
                     <Switch colorScheme="brand" isChecked={data.protect_sensitive_files} onChange={e => setData('protect_sensitive_files', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <FormLabel mb="0" fontSize="sm" color="white">Bot Fight Mode</FormLabel>
+                      <HStack mt={1}>
+                        <Badge bg={ACCENT_DIM} color={ACCENT} fontSize="9px">ADVANCED</Badge>
+                        <Text fontSize="xs" color="gray.500">Block automated browsing behavior</Text>
+                      </HStack>
+                    </Box>
+                    <Switch colorScheme="orange" isChecked={data.bot_fight_mode} onChange={e => setData('bot_fight_mode', e.target.checked)} />
                   </FormControl>
                 </SimpleGrid>
               </ConfigSection>

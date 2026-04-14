@@ -54,6 +54,10 @@ class ProxySite extends Model
         'bot_challenge_mode',
         'bot_challenge_force',
         'under_attack_mode',
+        'bot_fight_mode',
+        'brotli_enabled',
+        'hsts_enabled',
+        'performance_level',
         'route_policies',
         'circuit_breaker_enabled',
         'circuit_breaker_threshold',
@@ -85,6 +89,9 @@ class ProxySite extends Model
         'bot_challenge_mode' => 'boolean',
         'bot_challenge_force' => 'boolean',
         'under_attack_mode' => 'boolean',
+        'bot_fight_mode' => 'boolean',
+        'brotli_enabled' => 'boolean',
+        'hsts_enabled' => 'boolean',
         'route_policies' => 'array',
         'custom_waf_rules' => 'array',
         'env_vars' => 'array',
@@ -129,5 +136,10 @@ class ProxySite extends Model
         static::deleted(function ($site) {
             app(CaddyService::class)->sync();
         });
+    }
+
+    public function healthCheckLogs(): HasMany
+    {
+        return $this->hasMany(HealthCheckLog::class);
     }
 }
