@@ -118,6 +118,12 @@ export default function Show({ auth, site, analytics }) {
     ip_allowlist: Array.isArray(site.ip_allowlist) ? site.ip_allowlist.join(', ') : '',
     ip_denylist: Array.isArray(site.ip_denylist) ? site.ip_denylist.join(', ') : '',
     block_common_bad_bots: !!site.block_common_bad_bots,
+    bot_challenge_mode: !!site.bot_challenge_mode,
+    bot_challenge_force: !!site.bot_challenge_force,
+    route_policies: Array.isArray(site.route_policies) ? site.route_policies : [],
+    circuit_breaker_enabled: !!site.circuit_breaker_enabled,
+    circuit_breaker_threshold: site.circuit_breaker_threshold || 5,
+    circuit_breaker_retry_seconds: site.circuit_breaker_retry_seconds || 30,
   });
 
   const toggleStatus = () => {
@@ -149,6 +155,33 @@ export default function Show({ auth, site, analytics }) {
     const rules = [...data.custom_waf_rules];
     rules[index][field] = value;
     setData('custom_waf_rules', rules);
+  };
+
+  const addRoutePolicy = () => {
+    setData('route_policies', [
+      ...data.route_policies,
+      { path: '/api/*', bot_challenge_mode: false, rate_limit_rps: 10, waf_enabled: true }
+    ]);
+  };
+
+  const removeRoutePolicy = (index) => {
+    const policies = [...data.route_policies];
+    policies.splice(index, 1);
+    setData('route_policies', policies);
+  };
+
+  const updateRoutePolicy = (index, field, value) => {
+    const policies = [...data.route_policies];
+    policies[index][field] = value;
+    setData('route_policies', policies);
+  };
+
+  const rollbackAudit = (auditId) => {
+    post(route('sites.audits.rollback', [site.id, auditId]), {
+      onSuccess: () => {
+        toast({ title: 'Rollback completed', status: 'success' });
+      },
+    });
   };
 
   const submitUpdate = (e) => {
@@ -214,6 +247,7 @@ export default function Show({ auth, site, analytics }) {
           <Tab><Icon as={Activity} size={14} mr={2} /> Overview</Tab>
           <Tab><Icon as={Settings} size={14} mr={2} /> Settings</Tab>
           <Tab><Icon as={Shield} size={14} mr={2} /> Security Logs</Tab>
+          <Tab><Icon as={Clock} size={14} mr={2} /> Audit & Rollback</Tab>
         </TabList>
 
         <TabPanels>
@@ -328,6 +362,30 @@ export default function Show({ auth, site, analytics }) {
                       <FormLabel mb="0">Block Common Bad Bots</FormLabel>
                       <Switch isChecked={data.block_common_bad_bots} onChange={e => setData('block_common_bad_bots', e.target.checked)} />
                     </FormControl>
+                    <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Bot Challenge Mode</FormLabel>
+                      <Switch isChecked={data.bot_challenge_mode} onChange={e => setData('bot_challenge_mode', e.target.checked)} />
+                    </FormControl>
+                    <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Force Challenge (All Requests)</FormLabel>
+                      <Switch isChecked={data.bot_challenge_force} onChange={e => setData('bot_challenge_force', e.target.checked)} />
+                    </FormControl>
+                    <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Circuit Breaker</FormLabel>
+                      <Switch isChecked={data.circuit_breaker_enabled} onChange={e => setData('circuit_breaker_enabled', e.target.checked)} />
+                    </FormControl>
+                    {data.circuit_breaker_enabled && (
+                      <FormControl>
+                        <FormLabel>Breaker Threshold (fails)</FormLabel>
+                        <Input type="number" min={1} max={20} value={data.circuit_breaker_threshold} onChange={e => setData('circuit_breaker_threshold', Number(e.target.value))} />
+                      </FormControl>
+                    )}
+                    {data.circuit_breaker_enabled && (
+                      <FormControl>
+                        <FormLabel>Breaker Retry (seconds)</FormLabel>
+                        <Input type="number" min={5} max={600} value={data.circuit_breaker_retry_seconds} onChange={e => setData('circuit_breaker_retry_seconds', Number(e.target.value))} />
+                      </FormControl>
+                    )}
                     {data.is_maintenance && (
                       <FormControl colSpan={2}>
                         <FormLabel>Maintenance Message (Simple Text)</FormLabel>
@@ -377,6 +435,38 @@ export default function Show({ auth, site, analytics }) {
                       </Box>
                     ))}
                     <Button leftIcon={<Plus size={14} />} size="sm" variant="outline" onClick={addWafRule}>Add Rule</Button>
+                  </VStack>
+
+                  <Divider />
+
+                  <Heading size="md"><Icon as={Settings} size={18} mr={2} /> Per-Route Policy</Heading>
+                  <VStack align="stretch" spacing={4}>
+                    {data.route_policies.map((policy, index) => (
+                      <Box key={index} p={4} border="1px" borderColor="gray.200" rounded="md" position="relative">
+                        <Button size="xs" colorScheme="red" variant="ghost" position="absolute" top={2} right={2} onClick={() => removeRoutePolicy(index)}>
+                          <X size={14} />
+                        </Button>
+                        <SimpleGrid columns={4} spacing={4}>
+                          <FormControl>
+                            <FormLabel fontSize="xs">Path</FormLabel>
+                            <Input size="sm" value={policy.path || ''} onChange={e => updateRoutePolicy(index, 'path', e.target.value)} placeholder="/admin/*" />
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel fontSize="xs">Rate Limit RPS</FormLabel>
+                            <Input size="sm" type="number" min={0} value={policy.rate_limit_rps || 0} onChange={e => updateRoutePolicy(index, 'rate_limit_rps', Number(e.target.value))} />
+                          </FormControl>
+                          <FormControl display="flex" alignItems="center" pt={6}>
+                            <FormLabel fontSize="xs" mb="0">Bot Challenge</FormLabel>
+                            <Switch isChecked={!!policy.bot_challenge_mode} onChange={e => updateRoutePolicy(index, 'bot_challenge_mode', e.target.checked)} />
+                          </FormControl>
+                          <FormControl display="flex" alignItems="center" pt={6}>
+                            <FormLabel fontSize="xs" mb="0">WAF</FormLabel>
+                            <Switch isChecked={policy.waf_enabled !== false} onChange={e => updateRoutePolicy(index, 'waf_enabled', e.target.checked)} />
+                          </FormControl>
+                        </SimpleGrid>
+                      </Box>
+                    ))}
+                    <Button leftIcon={<Plus size={14} />} size="sm" variant="outline" onClick={addRoutePolicy}>Add Route Policy</Button>
                   </VStack>
 
                   <Divider />
@@ -489,6 +579,40 @@ export default function Show({ auth, site, analytics }) {
                       <Td colSpan={5} textAlign="center" py={10}>
                         No security events recorded. Site is clean!
                       </Td>
+                    </Tr>
+                  )}
+                </Tbody>
+              </Table>
+            </Box>
+          </TabPanel>
+
+          <TabPanel px={0} py={6}>
+            <Box bg={useColorModeValue('white', 'gray.800')} shadow="base" rounded="lg" overflow="hidden">
+              <Table variant="simple">
+                <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
+                  <Tr>
+                    <Th>Time</Th>
+                    <Th>User</Th>
+                    <Th>Action</Th>
+                    <Th textAlign="right">Rollback</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {(site.config_audits || []).map((audit) => (
+                    <Tr key={audit.id}>
+                      <Td fontSize="xs">{new Date(audit.created_at).toLocaleString()}</Td>
+                      <Td fontSize="sm">{audit.user?.name || 'System'}</Td>
+                      <Td><Badge colorScheme="blue">{audit.action}</Badge></Td>
+                      <Td textAlign="right">
+                        <Button size="xs" colorScheme="orange" variant="outline" onClick={() => rollbackAudit(audit.id)}>
+                          Rollback
+                        </Button>
+                      </Td>
+                    </Tr>
+                  ))}
+                  {(site.config_audits || []).length === 0 && (
+                    <Tr>
+                      <Td colSpan={4} textAlign="center" py={10}>No audit records yet.</Td>
                     </Tr>
                   )}
                 </Tbody>

@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/sites/{site}', [ProxySiteController::class, 'update'])->name('sites.update');
     Route::post('/sites/{site}/toggle', [ProxySiteController::class, 'toggle'])->name('sites.toggle');
     Route::post('/sites/{site}/check-health', [ProxySiteController::class, 'checkHealth'])->name('sites.check-health');
+    Route::post('/sites/{site}/audits/{audit}/rollback', [ProxySiteController::class, 'rollback'])->name('sites.audits.rollback');
     Route::delete('/sites/{site}', [ProxySiteController::class, 'destroy'])->name('sites.destroy');
     
     Route::get('/banned-ips', [BannedIpController::class, 'index'])->name('banned-ips.index');

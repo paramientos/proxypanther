@@ -143,6 +143,12 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
     ip_allowlist: '',
     ip_denylist: '',
     block_common_bad_bots: true,
+    bot_challenge_mode: false,
+    bot_challenge_force: false,
+    route_policies: [],
+    circuit_breaker_enabled: false,
+    circuit_breaker_threshold: 5,
+    circuit_breaker_retry_seconds: 30,
   });
 
   const submit = (e) => {
@@ -343,6 +349,25 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                   />
                   {errors.name && <Text color="red.500" fontSize="xs">{errors.name}</Text>}
                 </FormControl>
+
+                <FormControl>
+                  <FormLabel>Per-Route Policy (JSON)</FormLabel>
+                  <Textarea
+                    placeholder='[{"path":"/admin/*","rate_limit_rps":5,"bot_challenge_mode":true,"waf_enabled":true}]'
+                    size="sm"
+                    value={JSON.stringify(data.route_policies, null, 2)}
+                    onChange={(e) => {
+                      try {
+                        const parsed = JSON.parse(e.target.value || '[]');
+                        setData('route_policies', Array.isArray(parsed) ? parsed : []);
+                      } catch {
+                      }
+                    }}
+                  />
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Define path-based rules for bot challenge and rate policies.
+                  </Text>
+                </FormControl>
                 <FormControl isRequired isInvalid={errors.domain}>
                   <FormLabel>Domain</FormLabel>
                   <Input
@@ -420,7 +445,36 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                       <FormLabel mb="0">Block Bad Bots</FormLabel>
                       <Switch isChecked={data.block_common_bad_bots} onChange={(e) => setData('block_common_bad_bots', e.target.checked)} />
                    </FormControl>
+                   <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Bot Challenge Mode</FormLabel>
+                      <Switch isChecked={data.bot_challenge_mode} onChange={(e) => setData('bot_challenge_mode', e.target.checked)} />
+                   </FormControl>
+                   <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Force Challenge</FormLabel>
+                      <Switch isChecked={data.bot_challenge_force} onChange={(e) => setData('bot_challenge_force', e.target.checked)} />
+                   </FormControl>
+                   <FormControl display="flex" alignItems="center">
+                      <FormLabel mb="0">Circuit Breaker</FormLabel>
+                      <Switch isChecked={data.circuit_breaker_enabled} onChange={(e) => setData('circuit_breaker_enabled', e.target.checked)} />
+                   </FormControl>
                 </SimpleGrid>
+
+                {data.circuit_breaker_enabled && (
+                  <SimpleGrid columns={2} spacing={4}>
+                    <FormControl>
+                      <FormLabel>Circuit Breaker Threshold</FormLabel>
+                      <NumberInput min={1} max={20} value={data.circuit_breaker_threshold} onChange={(v) => setData('circuit_breaker_threshold', parseInt(v || '1', 10))}>
+                        <NumberInputField />
+                      </NumberInput>
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Circuit Breaker Retry (Sec)</FormLabel>
+                      <NumberInput min={5} max={600} value={data.circuit_breaker_retry_seconds} onChange={(v) => setData('circuit_breaker_retry_seconds', parseInt(v || '5', 10))}>
+                        <NumberInputField />
+                      </NumberInput>
+                    </FormControl>
+                  </SimpleGrid>
+                )}
 
                 <SimpleGrid columns={2} spacing={4}>
                   <FormControl>

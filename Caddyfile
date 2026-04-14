@@ -33,6 +33,10 @@ http://testme.com {
         header_regexp User-Agent "(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)"
     }
     respond @bad_bots "Access Denied" 403
+    # Force Challenge Mode - All Requests
+    header Retry-After "15"
+    header Content-Type "text/html; charset=utf-8"
+    respond `<html><head><title>Security Check</title></head><body style="text-align:center;padding:50px;font-family:sans-serif"><h1>Security Check Required</h1><p>This site is under enhanced protection.</p><p>Please retry after 15 seconds.</p></body></html>` 429
     # Advanced WAF Patterns
     @attacks {
         # SQL Injection Patterns

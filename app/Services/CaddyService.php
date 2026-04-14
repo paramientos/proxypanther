@@ -18,7 +18,7 @@ class CaddyService
 
     public function sync(): bool
     {
-        $sites = ProxySite::where('is_active', true)->get();
+        $sites = ProxySite::query()->where('is_active', true)->get(['*']);
         $bannedIps = BannedIp::all();
         $content = $this->generateCaddyfile($sites, $bannedIps);
 
@@ -97,6 +97,56 @@ class CaddyService
                     $caddyfile .= "        header_regexp User-Agent \"(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)\"\n";
                     $caddyfile .= "    }\n";
                     $caddyfile .= "    respond @bad_bots \"Access Denied\" 403\n";
+                }
+
+                if ($site->bot_challenge_force) {
+                    $caddyfile .= "    # Force Challenge Mode - All Requests\n";
+                    $caddyfile .= "    header Retry-After \"15\"\n";
+                    $caddyfile .= "    header Content-Type \"text/html; charset=utf-8\"\n";
+                    $html = <<<'HTML'
+<html><head><title>Security Check</title></head><body style="text-align:center;padding:50px;font-family:sans-serif"><h1>Security Check Required</h1><p>This site is under enhanced protection.</p><p>Please retry after 15 seconds.</p></body></html>
+HTML;
+                    $caddyfile .= "    respond `{$html}` 429\n";
+                } elseif ($site->bot_challenge_mode) {
+                    $caddyfile .= "    @bot_challenge {\n";
+                    $caddyfile .= "        header_regexp User-Agent \"(?i)(bot|crawler|spider|python-requests|curl|wget|scrapy|httpclient)\"\n";
+                    $caddyfile .= "    }\n";
+                    $caddyfile .= "    header @bot_challenge Retry-After \"15\"\n";
+                    $caddyfile .= "    header @bot_challenge Content-Type \"text/html; charset=utf-8\"\n";
+                    $html = <<<'HTML'
+<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>
+HTML;
+                    $caddyfile .= "    respond @bot_challenge `{$html}` 429\n";
+                }
+
+                if (is_array($site->route_policies) && count($site->route_policies) > 0) {
+                    foreach ($site->route_policies as $index => $policy) {
+                        $path = trim((string) ($policy['path'] ?? ''));
+                        if ($path === '') {
+                            continue;
+                        }
+
+                        $pathPattern = str_ends_with($path, '*') ? $path : "{$path}*";
+
+                        if (!empty($policy['bot_challenge_mode'])) {
+                            $matcher = "route_bot_{$index}";
+                            $caddyfile .= "    @{$matcher} {\n";
+                            $caddyfile .= "        path {$pathPattern}\n";
+                            $caddyfile .= "        header_regexp User-Agent \"(?i)(bot|crawler|spider|python-requests|curl|wget|scrapy|httpclient)\"\n";
+                            $caddyfile .= "    }\n";
+                            $caddyfile .= "    header @{$matcher} Retry-After \"15\"\n";
+                            $html = <<<'HTML'
+<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>
+HTML;
+                            $caddyfile .= "    respond @{$matcher} `{$html}` 429\n";
+                        }
+
+                        if (!empty($policy['rate_limit_rps'])) {
+                            $matcher = "route_rate_{$index}";
+                            $caddyfile .= "    @{$matcher} path {$pathPattern}\n";
+                            $caddyfile .= "    header @{$matcher} X-ProxyPanther-Policy-Limit \"{$policy['rate_limit_rps']}rps\"\n";
+                        }
+                    }
                 }
 
                 // Custom User-Defined WAF Rules
@@ -190,8 +240,9 @@ class CaddyService
                 $hasEnvVars = $site->env_vars && count($site->env_vars) > 0;
                 $hasBackup = !empty($site->backup_backend_url);
                 $hasMultiple = count($backends) > 1;
+                $hasCircuitBreaker = (bool) $site->circuit_breaker_enabled;
 
-                if ($hasEnvVars || $hasBackup || $hasMultiple) {
+                if ($hasEnvVars || $hasBackup || $hasMultiple || $hasCircuitBreaker) {
                     $caddyfile .= "    reverse_proxy {$backendStr} {\n";
                     
                     if ($hasMultiple) {
@@ -203,6 +254,16 @@ class CaddyService
                         $caddyfile .= "        fail_timeout 5s\n";
                         $caddyfile .= "        max_fails 2\n";
                         $caddyfile .= "        to {$site->backup_backend_url}\n";
+                    }
+
+                    if ($hasCircuitBreaker) {
+                        $threshold = max(1, (int) $site->circuit_breaker_threshold);
+                        $retrySeconds = max(5, (int) $site->circuit_breaker_retry_seconds);
+                        $caddyfile .= "        max_fails {$threshold}\n";
+                        $caddyfile .= "        fail_duration {$retrySeconds}s\n";
+                        $caddyfile .= "        unhealthy_status 500 502 503 504\n";
+                        $caddyfile .= "        health_interval 10s\n";
+                        $caddyfile .= "        health_timeout 3s\n";
                     }
 
                     if ($hasEnvVars) {

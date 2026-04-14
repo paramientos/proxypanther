@@ -42,6 +42,13 @@ class ProxySite extends Model
         'custom_waf_rules',
         'env_vars',
         'block_common_bad_bots',
+        'bot_challenge_mode',
+        'bot_challenge_force',
+        'route_policies',
+        'circuit_breaker_enabled',
+        'circuit_breaker_threshold',
+        'circuit_breaker_retry_seconds',
+        'circuit_breaker_opened_at',
         'hits_2xx',
         'hits_4xx',
         'hits_5xx',
@@ -57,12 +64,22 @@ class ProxySite extends Model
         'is_maintenance' => 'boolean',
         'cache_enabled' => 'boolean',
         'block_common_bad_bots' => 'boolean',
+        'bot_challenge_mode' => 'boolean',
+        'bot_challenge_force' => 'boolean',
+        'route_policies' => 'array',
         'custom_waf_rules' => 'array',
         'env_vars' => 'array',
+        'circuit_breaker_enabled' => 'boolean',
+        'circuit_breaker_opened_at' => 'datetime',
     ];
 
     public function securityEvents(): HasMany
     {
         return $this->hasMany(SecurityEvent::class);
+    }
+
+    public function configAudits(): HasMany
+    {
+        return $this->hasMany(ConfigAudit::class);
     }
 }
