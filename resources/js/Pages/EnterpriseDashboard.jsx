@@ -11,7 +11,7 @@ import {
 } from '@chakra-ui/react';
 import {
     Plus, Shield, Globe, RefreshCcw, MoreVertical,
-    CheckCircle, Zap, ArrowUp,
+    CheckCircle, Zap, ArrowUp, Settings, Trash2, Eye, X
 } from 'lucide-react';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
@@ -351,13 +351,43 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                                 <MenuButton as={IconButton} icon={<MoreVertical size={13} />}
                                                     variant="ghost" size="xs" color="gray.500"
                                                     _hover={{ color: 'white' }} />
-                                                <MenuList bg="#1a1a1a" borderColor="#2a2a2a" minW="140px">
-                                                    <MenuItem bg="transparent" _hover={{ bg: '#2a2a2a' }}
-                                                        fontSize="sm" color="gray.300">View Logs</MenuItem>
-                                                    <MenuItem bg="transparent" _hover={{ bg: '#2a2a2a' }}
-                                                        fontSize="sm" color="gray.300">Edit Config</MenuItem>
-                                                    <MenuItem bg="transparent" _hover={{ bg: '#2a1010' }}
-                                                        fontSize="sm" color="red.400">Delete</MenuItem>
+                                                <MenuList bg="#1a1a1a" borderColor="#2a2a2a" minW="160px" zIndex={10}>
+                                                    <MenuItem
+                                                        as={Link}
+                                                        href={route('sites.show', site.id)}
+                                                        bg="transparent"
+                                                        _hover={{ bg: '#2a2a2a' }}
+                                                        fontSize="sm"
+                                                        color="gray.300"
+                                                        icon={<Icon as={Zap} size={14} />}
+                                                    >
+                                                        View Logs
+                                                    </MenuItem>
+                                                    <MenuItem
+                                                        as={Link}
+                                                        href={route('sites.show', site.id)}
+                                                        bg="transparent"
+                                                        _hover={{ bg: '#2a2a2a' }}
+                                                        fontSize="sm"
+                                                        color="gray.300"
+                                                        icon={<Icon as={Settings} size={14} />}
+                                                    >
+                                                        Edit Config
+                                                    </MenuItem>
+                                                    <MenuItem
+                                                        onClick={() => {
+                                                            if (confirm('Are you sure you want to delete this site?')) {
+                                                                router.delete(route('sites.destroy', site.id));
+                                                            }
+                                                        }}
+                                                        bg="transparent"
+                                                        _hover={{ bg: '#2a1010' }}
+                                                        fontSize="sm"
+                                                        color="red.400"
+                                                        icon={<Icon as={Trash2} size={14} />}
+                                                    >
+                                                        Delete
+                                                    </MenuItem>
                                                 </MenuList>
                                             </Menu>
                                         </HStack>
@@ -434,9 +464,9 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                 </HStack>
                             </Stack>
                         </ModalBody>
-                        <Flex px={6} py={4} borderTop="1px solid" borderColor={BORDER} justify="flex-end" gap={3}>
-                            <Button variant="ghost" color="gray.400" onClick={onClose}>Cancel</Button>
-                            <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }}>
+                         <Flex px={6} py={4} borderTop="1px solid" borderColor={BORDER} justify="flex-end" gap={3}>
+                            <Button variant="ghost" color="gray.400" onClick={onClose} leftIcon={<Icon as={X} size={16} />}>Cancel</Button>
+                            <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} leftIcon={<Icon as={CheckCircle} size={16} />}>
                                 Create Site
                             </Button>
                         </Flex>
