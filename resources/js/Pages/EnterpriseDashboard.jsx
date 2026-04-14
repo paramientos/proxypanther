@@ -78,25 +78,36 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
             splitLine: { lineStyle: { color: '#1f1f1f' } },
             axisLabel: { color: '#666', fontSize: 11 },
         },
-        series: [{
-            name: 'Security Events',
-            type: 'line',
-            smooth: true,
-            data: (analytics || []).map(a => a.count),
-            itemStyle: { color: ACCENT },
-            lineStyle: { width: 2, color: ACCENT },
-            areaStyle: {
-                color: {
-                    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                    colorStops: [
-                        { offset: 0, color: 'rgba(243,128,32,0.25)' },
-                        { offset: 1, color: 'rgba(243,128,32,0)' },
-                    ],
-                },
+        series: [
+            {
+                name: 'Total Requests',
+                type: 'line',
+                smooth: true,
+                data: (analytics || []).map(a => a.total || a.total_requests),
+                itemStyle: { color: 'rgba(255,255,255,0.3)' },
+                lineStyle: { width: 2, color: 'rgba(255,255,255,0.3)', type: 'dashed' },
+                symbol: 'none',
             },
-            symbol: 'circle',
-            symbolSize: 5,
-        }],
+            {
+                name: 'Blocked Threats',
+                type: 'line',
+                smooth: true,
+                data: (analytics || []).map(a => a.blocked || a.blocked_requests),
+                itemStyle: { color: ACCENT },
+                lineStyle: { width: 3, color: ACCENT },
+                areaStyle: {
+                    color: {
+                        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [
+                            { offset: 0, color: 'rgba(243,128,32,0.3)' },
+                            { offset: 1, color: 'rgba(243,128,32,0)' },
+                        ],
+                    },
+                },
+                symbol: 'circle',
+                symbolSize: 6,
+            }
+        ],
     };
 
     const submit = (e) => {

@@ -19,7 +19,10 @@ class CaddyService
 
     public function sync(): bool
     {
-        $sites = ProxySite::query()->where('is_active', true)->get();
+        $sites = ProxySite::query()
+            ->with(['pageRules'])
+            ->where('is_active', true)
+            ->get();
         $bannedIps = BannedIp::all();
         $content = $this->generateCaddyfile($sites, $bannedIps);
 
@@ -56,6 +59,16 @@ class CaddyService
 
             // Infrastructure Debug Headers
             $out .= "    header X-ProxyPanther-Gateway \"Secure-Alpha\"\n";
+
+            // Emergency Shield - I'm Under Attack Mode
+            if ($site->under_attack_mode) {
+                $html = $this->getChallengeTemplate('Emergency Shield Active', 'High-level infrastructure protection is currently enforced.');
+                $out .= "    header Retry-After \"5\"\n";
+                $out .= "    header Content-Type \"text/html; charset=utf-8\"\n";
+                $out .= "    respond `{$html}` 429\n";
+                $out .= "}\n\n";
+                continue;
+            }
 
             // GeoIP - High Priority Shield
             if ($site->geoip_enabled) {
@@ -191,7 +204,37 @@ class CaddyService
                 $out .= "    basic_auth {\n        {$site->auth_user} {$hash}\n    }\n";
             }
 
-            // Redirect / Rewrite rules
+            // Cloudflare-style Page Rules (Redirect / Rewrite / Headers)
+            foreach ($site->pageRules as $idx => $rule) {
+                if (!$rule->is_active) continue;
+                
+                $mn = "pagerule_{$rule->id}";
+                $path = $rule->path;
+                
+                // Ensure path starts with / and add wildcard if not present for better matching
+                if (!str_starts_with($path, '/')) $path = "/{$path}";
+                $matcherPath = str_contains($path, '*') ? $path : "{$path}*";
+
+                switch ($rule->type) {
+                    case 'redirect':
+                        $out .= "    @{$mn} path {$matcherPath}\n";
+                        $out .= "    redir @{$mn} {$rule->value} 301\n";
+                        break;
+                    case 'rewrite':
+                        $out .= "    @{$mn} path {$matcherPath}\n";
+                        $out .= "    rewrite @{$mn} {$rule->value}\n";
+                        break;
+                    case 'header':
+                        // Format: "Header-Name: Header-Value"
+                        if (str_contains($rule->value, ':')) {
+                            [$hName, $hVal] = explode(':', $rule->value, 2);
+                            $out .= "    header " . trim($hName) . " \"" . trim($hVal) . "\"\n";
+                        }
+                        break;
+                }
+            }
+
+            // Legacy Redirect / Rewrite rules (for backward compatibility)
             if ($site->redirect_rules && \count($site->redirect_rules) > 0) {
                 foreach ($site->redirect_rules as $idx => $rule) {
                     $from = trim((string) ($rule['from'] ?? ''));

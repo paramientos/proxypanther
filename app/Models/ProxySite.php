@@ -100,6 +100,11 @@ class ProxySite extends Model
         return $this->hasMany(SecurityEvent::class);
     }
 
+    public function pageRules(): HasMany
+    {
+        return $this->hasMany(PageRule::class)->orderBy('priority', 'desc');
+    }
+
     public function configAudits(): HasMany
     {
         return $this->hasMany(ConfigAudit::class);

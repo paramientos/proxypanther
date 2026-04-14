@@ -49,23 +49,36 @@ export default function Show({ auth, site, analytics, bandwidth }) {
       splitLine: { lineStyle: { color: '#1f1f1f' } },
       axisLabel: { color: '#666', fontSize: 11 },
     },
-    series: [{
-      name: 'Blocked Attacks',
-      type: 'line',
-      smooth: true,
-      data: analytics.map(a => a.count),
-      itemStyle: { color: '#ef4444' },
-      lineStyle: { width: 2 },
-      areaStyle: {
-        color: {
-          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [
-            { offset: 0, color: 'rgba(239,68,68,0.2)' },
-            { offset: 1, color: 'rgba(239,68,68,0)' }
-          ]
-        }
+    series: [
+      {
+        name: 'Total Requests',
+        type: 'line',
+        smooth: true,
+        data: (analytics || []).map(a => a.total_requests),
+        itemStyle: { color: 'rgba(255,255,255,0.2)' },
+        lineStyle: { width: 1, color: 'rgba(255,255,255,0.2)', type: 'dashed' },
+        symbol: 'none',
       },
-    }],
+      {
+        name: 'Blocked Threats',
+        type: 'line',
+        smooth: true,
+        data: (analytics || []).map(a => a.blocked_requests),
+        itemStyle: { color: ACCENT },
+        lineStyle: { width: 2, color: ACCENT },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(243,128,32,0.2)' },
+              { offset: 1, color: 'rgba(243,128,32,0)' },
+            ],
+          },
+        },
+        symbol: 'circle',
+        symbolSize: 4,
+      }
+    ],
   };
 
   const { data, setData, post: update, processing: updateProcessing, errors } = useForm({
@@ -95,6 +108,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
     block_common_bad_bots: !!site.block_common_bad_bots,
     bot_challenge_mode: !!site.bot_challenge_mode,
     bot_challenge_force: !!site.bot_challenge_force,
+    under_attack_mode: !!site.under_attack_mode,
     route_policies: Array.isArray(site.route_policies) ? site.route_policies : [],
     circuit_breaker_enabled: !!site.circuit_breaker_enabled,
     circuit_breaker_threshold: site.circuit_breaker_threshold || 5,
@@ -104,6 +118,12 @@ export default function Show({ auth, site, analytics, bandwidth }) {
     geoip_denylist: Array.isArray(site.geoip_denylist) ? site.geoip_denylist.join(', ') : '',
     header_rules: Array.isArray(site.header_rules) ? site.header_rules : [],
     redirect_rules: Array.isArray(site.redirect_rules) ? site.redirect_rules : [],
+  });
+
+  const { data: newRule, setData: setNewRule, post: saveRule, reset: resetRule } = useForm({
+    path: '',
+    type: 'redirect',
+    value: '',
   });
 
   const submitUpdate = (e) => {
@@ -221,8 +241,8 @@ export default function Show({ auth, site, analytics, bandwidth }) {
             { n: 'Overview', i: Activity },
             { n: 'Configuration', i: Settings },
             { n: 'Security Shield', i: Shield },
+            { n: 'Page Rules', i: ArrowRightLeft },
             { n: 'Traffic Insights', i: BarChart2 },
-            { n: 'Routing & Headers', i: ArrowRightLeft },
             { n: 'Audit Logs', i: Clock },
           ].map(t => (
             <Tab key={t.n} py={2.5} px={5} borderRadius="lg" fontSize="sm" fontWeight="medium" color="gray.500"
@@ -374,6 +394,21 @@ export default function Show({ auth, site, analytics, bandwidth }) {
 
           <TabPanel p={0}>
               <Stack spacing={6}>
+                <Box bg="rgba(243,128,32,0.05)" p={6} borderRadius="xl" border="1px solid" borderColor="rgba(243,128,32,0.2)" position="relative" overflow="hidden">
+                    <HStack justify="space-between">
+                        <HStack spacing={4}>
+                            <Box p={2.5} bg="rgba(243,128,32,0.1)" borderRadius="lg" animation="pulse 2s infinite">
+                                <Icon as={AlertTriangle} boxSize={5} color={ACCENT} />
+                            </Box>
+                            <VStack align="start" spacing={0}>
+                                <Heading size="sm" color="white">Emergency Shield (Under Attack Mode)</Heading>
+                                <Text fontSize="xs" color="gray.500">Enforce interstitial waiting room for ALL visitors during active DDoS.</Text>
+                            </VStack>
+                        </HStack>
+                        <Switch size="lg" colorScheme="brand" isChecked={data.under_attack_mode} onChange={e => setData('under_attack_mode', e.target.checked)} />
+                    </HStack>
+                </Box>
+
                 <ConfigSection title="WAF Strategy" icon={Shield} description="Intelligent firewall policies">
                     <SimpleGrid columns={2} spacing={8}>
                         <FormControl display="flex" justifyContent="space-between" alignItems="center">
@@ -486,7 +521,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                                         <Input size="sm" w="180px" placeholder="Header Name" value={rule.header_name || ''} onChange={e => updateWafRule(idx, 'header_name', e.target.value)} />
                                     )}
                                     
-                                    <Input size="sm" placeholder="Regex Pattern (e.g. ^/admin/.*)" value={rule.pattern} onChange={e => updateWafRule(idx, 'pattern', e.target.value)} />
+                                    <Input size="sm" flex={1} placeholder="Regex Pattern (e.g. ^/admin/.*)" value={rule.pattern} onChange={e => updateWafRule(idx, 'pattern', e.target.value)} />
                                     
                                     <Badge colorScheme="red" variant="subtle" px={3} py={1} borderRadius="md" fontSize="10px">BLOCK</Badge>
                                     
@@ -529,6 +564,80 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                         Save Security Policy
                     </Button>
                 </Box>
+              </Stack>
+          </TabPanel>
+
+          {/* Page Rules TabPanel (Index 3) */}
+          <TabPanel p={0}>
+              <Stack spacing={6}>
+                  <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                      <HStack justify="space-between" mb={6}>
+                          <HStack spacing={4}>
+                              <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                                  <Icon as={ArrowRightLeft} boxSize={5} color={ACCENT} />
+                              </Box>
+                              <VStack align="start" spacing={0}>
+                                  <Heading size="sm" color="white">Create Page Rule</Heading>
+                                  <Text fontSize="xs" color="gray.500">Define a new routing or transformation policy</Text>
+                              </VStack>
+                          </HStack>
+                      </HStack>
+                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                          <FormControl>
+                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">MATCHING PATH</FormLabel>
+                              <Input size="sm" bg="#050508" borderColor={BORDER} placeholder="/old-path/*" value={newRule.path} onChange={e => setNewRule('path', e.target.value)} />
+                          </FormControl>
+                          <FormControl>
+                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">RULE TYPE</FormLabel>
+                              <Select size="sm" bg="#050508" borderColor={BORDER} value={newRule.type} onChange={e => setNewRule('type', e.target.value)}>
+                                  <option value="redirect">Permanent Redirect (301)</option>
+                                  <option value="rewrite">Internal Rewrite</option>
+                                  <option value="header">Inject Custom Header</option>
+                              </Select>
+                          </FormControl>
+                          <FormControl>
+                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">{newRule.type === 'header' ? 'HEADER: VALUE' : 'TARGET DESTINATION'}</FormLabel>
+                              <Input size="sm" bg="#050508" borderColor={BORDER} placeholder={newRule.type === 'header' ? 'X-Panther: Power' : 'https://backup.site.com'} value={newRule.value} onChange={e => setNewRule('value', e.target.value)} />
+                          </FormControl>
+                      </SimpleGrid>
+                      <Box mt={6} display="flex" justifyContent="flex-end">
+                          <Button size="sm" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} leftIcon={<Plus size={14} />} onClick={() => saveRule(route('sites.page-rules.store', site.id), { onSuccess: () => resetRule() })}>
+                              Add Page Rule
+                          </Button>
+                      </Box>
+                  </Box>
+
+                  <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
+                      <Table variant="unstyled" size="sm">
+                          <Thead bg="rgba(255,255,255,0.02)">
+                              <Tr>
+                                  <Th color="gray.500" py={3}>PATH PATTERN</Th>
+                                  <Th color="gray.500" py={3}>ACTION</Th>
+                                  <Th color="gray.500" py={3}>VALUE</Th>
+                                  <Th color="gray.500" py={3}></Th>
+                              </Tr>
+                          </Thead>
+                          <Tbody>
+                              {(site.page_rules || []).map(rule => (
+                                  <Tr key={rule.id} borderTop="1px solid" borderColor={BORDER} _hover={{ bg: 'rgba(255,255,255,0.01)' }}>
+                                      <Td py={4}><Code bg="transparent" color={ACCENT}>{rule.path}</Code></Td>
+                                      <Td py={4}>
+                                          <Badge variant="subtle" colorScheme={rule.type === 'redirect' ? 'orange' : rule.type === 'rewrite' ? 'purple' : 'green'} fontSize="10px">
+                                              {rule.type.toUpperCase()}
+                                          </Badge>
+                                      </Td>
+                                      <Td py={4} fontSize="xs" color="gray.400">{rule.value}</Td>
+                                      <Td py={4} textAlign="right">
+                                          <IconButton size="xs" variant="ghost" colorScheme="red" icon={<Trash2 size={14} />} onClick={() => destroy(route('sites.page-rules.destroy', [site.id, rule.id]), { preserveScroll: true })} />
+                                      </Td>
+                                  </Tr>
+                              ))}
+                              {(site.page_rules || []).length === 0 && (
+                                  <Tr><Td colSpan={4} py={8} textAlign="center" color="gray.600" fontSize="sm">No custom rules defined for this site.</Td></Tr>
+                              )}
+                          </Tbody>
+                      </Table>
+                  </Box>
               </Stack>
           </TabPanel>
 
@@ -580,7 +689,57 @@ export default function Show({ auth, site, analytics, bandwidth }) {
 
           {/* Other Tabs Simplified for brevity, following the same pattern */}
           <TabPanel p={0}><Text color="gray.500">Advanced routing module is fully operational.</Text></TabPanel>
-          <TabPanel p={0}><Text color="gray.500">Audit logs are synced with global SOC.</Text></TabPanel>
+          <TabPanel p={0}>
+              <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
+                  <Table variant="unstyled" size="sm">
+                      <Thead bg="rgba(255,255,255,0.02)">
+                          <Tr>
+                              <Th color="gray.500" py={3}>TIME & EVENT</Th>
+                              <Th color="gray.500" py={3}>AUTHENTICATED USER</Th>
+                              <Th color="gray.500" py={3}>ACTION TYPE</Th>
+                              <Th color="gray.500" py={3}></Th>
+                          </Tr>
+                      </Thead>
+                      <Tbody>
+                          {(site.config_audits || []).sort((a,b) => b.id - a.id).map(audit => (
+                              <Tr key={audit.id} borderTop="1px solid" borderColor={BORDER} _hover={{ bg: 'rgba(255,255,255,0.01)' }}>
+                                  <Td py={4}>
+                                      <VStack align="start" spacing={0}>
+                                          <Text fontSize="xs" fontWeight="bold" color="white">
+                                              {new Date(audit.created_at).toLocaleString()}
+                                          </Text>
+                                          <Text fontSize="10px" color="gray.500">SYSTEM SNAPSHOT #{audit.id}</Text>
+                                      </VStack>
+                                  </Td>
+                                  <Td py={4}>
+                                      <HStack spacing={2}>
+                                          <Box boxSize={6} bg={ACCENT_DIM} borderRadius="full" display="flex" alignItems="center" justifyContent="center">
+                                              <Text fontSize="10px" fontWeight="bold" color={ACCENT}>{audit.user?.name?.charAt(0) || 'S'}</Text>
+                                          </Box>
+                                          <Text fontSize="xs" color="gray.300">{audit.user?.name || 'System Auto'}</Text>
+                                      </HStack>
+                                  </Td>
+                                  <Td py={4}>
+                                      <Badge variant="outline" colorScheme={audit.action === 'rollback' ? 'orange' : 'blue'} fontSize="10px">
+                                          {audit.action.toUpperCase()}
+                                      </Badge>
+                                  </Td>
+                                  <Td py={4} textAlign="right">
+                                      {audit.action !== 'rollback' && (
+                                          <Button size="xs" variant="ghost" color={ACCENT} _hover={{ bg: ACCENT_DIM }} leftIcon={<RefreshCcw size={12} />} onClick={() => router.post(route('sites.audits.rollback', [site.id, audit.id]))}>
+                                              Restore State
+                                          </Button>
+                                      )}
+                                  </Td>
+                              </Tr>
+                          ))}
+                          {(site.config_audits || []).length === 0 && (
+                              <Tr><Td colSpan={4} py={12} textAlign="center" color="gray.600" fontSize="sm">No deployment history found.</Td></Tr>
+                          )}
+                      </Tbody>
+                  </Table>
+              </Box>
+          </TabPanel>
         </TabPanels>
       </Tabs>
     </EnterpriseLayout>

@@ -104,6 +104,19 @@ class LogParserService
             $site->update(['avg_latency_ms' => ($currentAvg + $newAvg) / 2]);
         }
 
+        // Update Daily Metrics
+        $today = now()->format('Y-m-d');
+        \App\Models\DailyMetric::updateOrCreate(
+            ['proxy_site_id' => $site->id, 'date' => $today],
+            [
+                'total_requests'   => \Illuminate\Support\Facades\DB::raw("total_requests + {$totalRequests}"),
+                'blocked_requests' => \Illuminate\Support\Facades\DB::raw("blocked_requests + {$blockedRequests}"),
+                'hits_2xx'         => \Illuminate\Support\Facades\DB::raw("hits_2xx + {$hits2xx}"),
+                'hits_4xx'         => \Illuminate\Support\Facades\DB::raw("hits_4xx + {$hits4xx}"),
+                'hits_5xx'         => \Illuminate\Support\Facades\DB::raw("hits_5xx + {$hits5xx}"),
+            ]
+        );
+
         // Auto-Ban IPs that exceeded threshold (e.g., 3 attacks in one batch)
         foreach ($ipAttackCounts as $ip => $count) {
             if ($count >= 3) {

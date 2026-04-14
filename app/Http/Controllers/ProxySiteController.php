@@ -24,8 +24,8 @@ class ProxySiteController extends Controller
     {
         $this->logParser->parseAll();
 
-        $analytics = SecurityEvent::selectRaw('DATE(created_at) as date, count(*) as count')
-            ->where('created_at', '>=', now()->subDays(7))
+        $analytics = \App\Models\DailyMetric::selectRaw('date, sum(total_requests) as total, sum(blocked_requests) as blocked')
+            ->where('date', '>=', now()->subDays(30))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -52,12 +52,11 @@ class ProxySiteController extends Controller
 
     public function show(ProxySite $site)
     {
+        $site->load(['pageRules', 'configAudits.user']);
         $this->logParser->parseForSite($site);
 
-        $analytics = SecurityEvent::selectRaw('DATE(created_at) as date, count(*) as count')
-            ->where('proxy_site_id', $site->id)
-            ->where('created_at', '>=', now()->subDays(7))
-            ->groupBy('date')
+        $analytics = \App\Models\DailyMetric::where('proxy_site_id', $site->id)
+            ->where('date', '>=', now()->subDays(30))
             ->orderBy('date')
             ->get();
 
@@ -144,6 +143,29 @@ class ProxySiteController extends Controller
         $this->caddy->sync();
 
         return redirect()->route('dashboard');
+    }
+
+    public function storePageRule(Request $request, ProxySite $site)
+    {
+        $request->validate([
+            'path'  => 'required|string',
+            'type'  => 'required|in:redirect,rewrite,header',
+            'value' => 'required|string',
+        ]);
+
+        $site->pageRules()->create($request->all());
+
+        $this->caddy->sync();
+
+        return back()->with('success', 'Page rule created successfully.');
+    }
+
+    public function destroyPageRule(ProxySite $site, PageRule $rule)
+    {
+        $rule->delete();
+        $this->caddy->sync();
+
+        return back()->with('success', 'Page rule deleted successfully.');
     }
 
     public function checkHealth(ProxySite $site)
