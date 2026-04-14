@@ -56,8 +56,6 @@ class CaddyService
 
             // Infrastructure Debug Headers
             $out .= "    header X-ProxyPanther-Gateway \"Secure-Alpha\"\n";
-            $out .= "    header X-ProxyPanther-Version \"".now()->toIso8601String()."\"\n";
-            $out .= "    header X-ProxyPanther-Remote-IP \"{remote_host}\"\n";
 
             // GeoIP - High Priority Shield
             if ($site->geoip_enabled) {
