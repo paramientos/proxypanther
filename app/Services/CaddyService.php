@@ -54,10 +54,33 @@ class CaddyService
             $prefix = $site->ssl_enabled ? '' : 'http://';
             $out .= "{$prefix}{$site->domain} {\n";
 
+            // Infrastructure Debug Headers
+            $out .= "    header X-ProxyPanther-Gateway \"Secure-Alpha\"\n";
+            if ($site->geoip_enabled) {
+                $out .= "    header X-ProxyPanther-Country \"{maxmind_geolocation.country_code}\"\n";
+            }
+
+            // GeoIP - High Priority Shield
+            if ($site->geoip_enabled) {
+                if ($site->geoip_denylist && \count($site->geoip_denylist) > 0) {
+                    $countries = implode(' ', array_map('strtoupper', $site->geoip_denylist));
+                    $out .= "    @geo_blocked {\n        maxmind_geolocation {\n";
+                    $out .= "            db_path /etc/caddy/GeoLite2-Country.mmdb\n";
+                    $out .= "            deny_countries {$countries}\n        }\n    }\n";
+                    $out .= "    respond @geo_blocked \"Access Denied: Your region ({maxmind_geolocation.country_code}) is blocked by ProxyPanther Global SOC.\" 403\n\n";
+                }
+                if ($site->geoip_allowlist && \count($site->geoip_allowlist) > 0) {
+                    $countries = implode(' ', array_map('strtoupper', $site->geoip_allowlist));
+                    $out .= "    @geo_not_allowed {\n        not maxmind_geolocation {\n";
+                    $out .= "            db_path /etc/caddy/GeoLite2-Country.mmdb\n";
+                    $out .= "            allow_countries {$countries}\n        }\n    }\n";
+                    $out .= "    respond @geo_not_allowed \"Access Denied: Your region ({maxmind_geolocation.country_code}) is not authorized.\" 403\n\n";
+                }
+            }
+
             if ($site->is_maintenance) {
                 $msg = $site->maintenance_message ?: 'Site is under maintenance. Please try again later.';
                 $out .= "    respond \"{$msg}\" 503\n}\n\n";
-
                 continue;
             }
 
@@ -75,24 +98,6 @@ class CaddyService
                 $out .= "        path /.env* /.git* /.svn* /wp-config.php /config.php /composer.json /composer.lock\n";
                 $out .= "    }\n";
                 $out .= "    respond @sensitive_paths \"Access to sensitive system files is forbidden.\" 403\n\n";
-            }
-
-            // GeoIP - Requires custom Caddy build with 'maxmind_geolocation' module
-            if ($site->geoip_enabled) {
-                if ($site->geoip_denylist && \count($site->geoip_denylist) > 0) {
-                    $countries = implode(' ', array_map('strtoupper', $site->geoip_denylist));
-                    $out .= "    @geo_blocked {\n        maxmind_geolocation {\n";
-                    $out .= "            db_path /etc/caddy/GeoLite2-Country.mmdb\n";
-                    $out .= "            deny_countries {$countries}\n        }\n    }\n";
-                    $out .= "    respond @geo_blocked \"Access Denied: Your region is blocked.\" 403\n";
-                }
-                if ($site->geoip_allowlist && \count($site->geoip_allowlist) > 0) {
-                    $countries = implode(' ', array_map('strtoupper', $site->geoip_allowlist));
-                    $out .= "    @geo_not_allowed {\n        not maxmind_geolocation {\n";
-                    $out .= "            db_path /etc/caddy/GeoLite2-Country.mmdb\n";
-                    $out .= "            allow_countries {$countries}\n        }\n    }\n";
-                    $out .= "    respond @geo_not_allowed \"Access Denied: Your region is not allowed.\" 403\n";
-                }
             }
 
             // WAF

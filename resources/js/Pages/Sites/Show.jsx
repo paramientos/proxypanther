@@ -363,28 +363,28 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                     <SimpleGrid columns={2} spacing={8}>
                         <FormControl display="flex" justifyContent="space-between" alignItems="center">
                             <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">Active Protection</Box>
+                                <FormLabel mb="0" fontSize="sm" color="white">Active Protection</FormLabel>
                                 <Text fontSize="xs" color="gray.500">Enable real-time rule engine</Text>
                             </Box>
                             <Switch colorScheme="brand" isChecked={data.waf_enabled} onChange={e => setData('waf_enabled', e.target.checked)} />
                         </FormControl>
                         <FormControl display="flex" justifyContent="space-between" alignItems="center">
                             <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">Bot Defense</Box>
+                                <FormLabel mb="0" fontSize="sm" color="white">Bot Defense</FormLabel>
                                 <Text fontSize="xs" color="gray.500">Block known malicious crawlers</Text>
                             </Box>
                             <Switch colorScheme="brand" isChecked={data.block_common_bad_bots} onChange={e => setData('block_common_bad_bots', e.target.checked)} />
                         </FormControl>
                         <FormControl display="flex" justifyContent="space-between" alignItems="center">
                             <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">Bot Challenge Mode</Box>
+                                <FormLabel mb="0" fontSize="sm" color="white">Bot Challenge Mode</FormLabel>
                                 <Text fontSize="xs" color="gray.500">Force JS-challenge for suspected bots</Text>
                             </Box>
                             <Switch colorScheme="brand" isChecked={data.bot_challenge_mode} onChange={e => setData('bot_challenge_mode', e.target.checked)} />
                         </FormControl>
                         <FormControl display="flex" justifyContent="space-between" alignItems="center">
                             <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">File Shield</Box>
+                                <FormLabel mb="0" fontSize="sm" color="white">File Shield</FormLabel>
                                 <Text fontSize="xs" color="gray.500">Protect .env and sensitive data</Text>
                             </Box>
                             <Switch colorScheme="brand" isChecked={data.protect_sensitive_files} onChange={e => setData('protect_sensitive_files', e.target.checked)} />
