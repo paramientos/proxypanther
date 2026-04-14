@@ -7,10 +7,54 @@ import { createRoot, hydrateRoot } from 'react-dom/client';
 import { ChakraProvider, extendTheme, ColorModeScript } from '@chakra-ui/react';
 
 const theme = extendTheme({
-  config: {
-    initialColorMode: 'dark',
-    useSystemColorMode: false,
-  },
+    config: {
+        initialColorMode: 'dark',
+        useSystemColorMode: false,
+    },
+    colors: {
+        brand: {
+            50: '#fff7ed',
+            100: '#ffedd5',
+            200: '#fed7aa',
+            300: '#fdba74',
+            400: '#fb923c',
+            500: '#f97316',
+            600: '#ea580c',
+            700: '#c2410c',
+            800: '#9a3412',
+            900: '#7c2d12',
+        },
+    },
+    semanticTokens: {
+        colors: {
+            'chakra-body-bg': { _dark: '#0f0f0f' },
+        },
+    },
+    styles: {
+        global: {
+            body: {
+                bg: 'gray.950',
+                color: 'gray.100',
+            },
+        },
+    },
+    components: {
+        Button: {
+            defaultProps: { colorScheme: 'brand' },
+        },
+        Badge: {
+            defaultProps: { colorScheme: 'brand' },
+        },
+        Progress: {
+            defaultProps: { colorScheme: 'brand' },
+        },
+        Switch: {
+            defaultProps: { colorScheme: 'brand' },
+        },
+        Tabs: {
+            defaultProps: { colorScheme: 'brand' },
+        },
+    },
 });
 
 const appName = import.meta.env.VITE_APP_NAME || 'ProxyPanther';

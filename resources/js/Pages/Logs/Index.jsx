@@ -45,16 +45,17 @@ export default function Index({ auth, events, filters, sites, types }) {
 
       <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
         <Box>
-          <Heading size="lg">Log Explorer</Heading>
-          <Text color="gray.500">Analyze and export security events across all proxy sites.</Text>
+          <Heading size="lg" color="white">Log Explorer</Heading>
+          <Text color="gray.500" fontSize="sm">Analyze and export security events across all proxy sites.</Text>
         </Box>
-        <Button as="a" href={exportUrl()} leftIcon={<Download size={16} />} colorScheme="green" size="sm">
+        <Button as="a" href={exportUrl()} leftIcon={<Download size={16} />}
+          bg="#16a34a" color="white" _hover={{ bg: '#15803d' }} size="sm">
           Export CSV
         </Button>
       </Box>
 
       {/* Filters */}
-      <Box bg={bg} p={4} rounded="lg" shadow="base" mb={6}>
+      <Box bg="#161616" p={4} rounded="lg" border="1px solid" borderColor="#242424" mb={6}>
         <SimpleGrid columns={{ base: 1, md: 3, lg: 5 }} spacing={4}>
           <FormControl>
             <FormLabel fontSize="xs">Search</FormLabel>
@@ -97,8 +98,8 @@ export default function Index({ auth, events, filters, sites, types }) {
         </SimpleGrid>
 
         <HStack mt={3} spacing={2}>
-          <Button size="sm" colorScheme="blue" onClick={() => apply()}>Apply Filters</Button>
-          <Button size="sm" variant="ghost" onClick={() => {
+          <Button size="sm" bg="#f97316" color="white" _hover={{ bg: '#ea580c' }} onClick={() => apply()}>Apply Filters</Button>
+          <Button size="sm" variant="ghost" color="gray.500" onClick={() => {
             setForm({ search: '', site_id: '', type: '', from: '', to: '' });
             router.get(route('logs.index'));
           }}>Clear</Button>
@@ -106,55 +107,50 @@ export default function Index({ auth, events, filters, sites, types }) {
       </Box>
 
       {/* Table */}
-      <Box bg={bg} shadow="base" rounded="lg" overflow="hidden">
-        <Table variant="simple" size="sm">
-          <Thead bg={headBg}>
-            <Tr>
-              <Th>Time</Th>
-              <Th>Site</Th>
-              <Th>IP Address</Th>
-              <Th>Type</Th>
-              <Th>Method / Path</Th>
-              <Th>User Agent</Th>
-              <Th></Th>
+      <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" overflow="hidden">
+        <Table variant="unstyled" size="sm">
+          <Thead>
+            <Tr borderBottom="1px solid" borderColor="#242424">
+              {['Time', 'Site', 'IP Address', 'Type', 'Method / Path', 'User Agent', ''].map(h => (
+                <Th key={h} py={3} px={4} fontSize="10px" color="gray.600" fontWeight="semibold" letterSpacing="wider">{h}</Th>
+              ))}
             </Tr>
           </Thead>
           <Tbody>
             {events.data.map((event) => (
-              <Tr key={event.id}>
-                <Td fontSize="xs" whiteSpace="nowrap">{new Date(event.created_at).toLocaleString()}</Td>
-                <Td fontSize="xs" fontWeight="bold">{event.proxy_site?.name ?? '—'}</Td>
-                <Td fontSize="xs">
+              <Tr key={event.id} borderBottom="1px solid" borderColor="#1a1a1a" _hover={{ bg: '#1c1c1c' }}>
+                <Td px={4} py={2.5} fontSize="xs" whiteSpace="nowrap" color="gray.500">{new Date(event.created_at).toLocaleString()}</Td>
+                <Td px={4} py={2.5} fontSize="xs" fontWeight="bold" color="white">{event.proxy_site?.name ?? '—'}</Td>
+                <Td px={4} py={2.5} fontSize="xs">
                   <HStack spacing={1}>
-                    <Text>{event.ip_address}</Text>
+                    <Text color="gray.300">{event.ip_address}</Text>
                     <Button
                       as={Link}
                       href={route('banned-ips.store')}
                       method="post"
                       data={{ ip_address: event.ip_address, reason: `Manual ban from Log Explorer for ${event.type}` }}
-                      size="xs"
-                      colorScheme="red"
-                      variant="ghost"
-                      title="Ban IP"
-                      px={1}
-                    >
+                      size="xs" colorScheme="red" variant="ghost" px={1}>
                       <Ban size={11} />
                     </Button>
                   </HStack>
                 </Td>
-                <Td>
-                  <Badge colorScheme={TYPE_COLORS[event.type] || 'gray'} fontSize="xs">{event.type}</Badge>
+                <Td px={4} py={2.5}>
+                  <Badge colorScheme={TYPE_COLORS[event.type] || 'gray'} fontSize="10px">{event.type}</Badge>
                 </Td>
-                <Td fontSize="xs" maxW="260px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
-                  <Code fontSize="xs" mr={1}>{event.request_method}</Code>{event.request_path}
+                <Td px={4} py={2.5} fontSize="xs" maxW="260px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
+                  <Box as="code" bg="#2a2a2a" px={1} py={0.5} borderRadius="sm" fontSize="10px" color="#f97316" mr={1}>
+                    {event.request_method}
+                  </Box>
+                  <Text as="span" color="gray.400">{event.request_path}</Text>
                 </Td>
-                <Td fontSize="xs" maxW="200px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" color="gray.500">
+                <Td px={4} py={2.5} fontSize="xs" maxW="200px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" color="gray.600">
                   {event.user_agent || '—'}
                 </Td>
-                <Td>
+                <Td px={4} py={2.5}>
                   {event.proxy_site_id && (
-                    <Button as={Link} href={route('sites.show', event.proxy_site_id)} size="xs" variant="ghost">
-                      Site
+                    <Button as={Link} href={route('sites.show', event.proxy_site_id)}
+                      size="xs" variant="ghost" color="#f97316" _hover={{ bg: 'rgba(249,115,22,0.1)' }}>
+                      Site →
                     </Button>
                   )}
                 </Td>
@@ -162,7 +158,7 @@ export default function Index({ auth, events, filters, sites, types }) {
             ))}
             {events.data.length === 0 && (
               <Tr>
-                <Td colSpan={7} textAlign="center" py={10} color="gray.500">
+                <Td colSpan={7} textAlign="center" py={12} color="gray.600">
                   No security events found.
                 </Td>
               </Tr>
@@ -171,8 +167,9 @@ export default function Index({ auth, events, filters, sites, types }) {
         </Table>
 
         {/* Pagination */}
-        <Box p={4} display="flex" justifyContent="space-between" alignItems="center">
-          <Text fontSize="xs" color="gray.500">
+        <Box p={4} display="flex" justifyContent="space-between" alignItems="center"
+          borderTop="1px solid" borderColor="#242424">
+          <Text fontSize="xs" color="gray.600">
             {events.from}–{events.to} of {events.total} events
           </Text>
           <HStack>
@@ -180,11 +177,13 @@ export default function Index({ auth, events, filters, sites, types }) {
               link.url ? (
                 <Button key={i} as={Link} href={link.url} size="xs"
                   variant={link.active ? 'solid' : 'ghost'}
-                  colorScheme={link.active ? 'blue' : 'gray'}>
+                  bg={link.active ? '#f97316' : 'transparent'}
+                  color={link.active ? 'white' : 'gray.500'}
+                  _hover={{ bg: link.active ? '#ea580c' : '#1c1c1c' }}>
                   {link.label.replace(/<[^>]*>/g, '')}
                 </Button>
               ) : (
-                <Button key={i} size="xs" variant="ghost" isDisabled>
+                <Button key={i} size="xs" variant="ghost" isDisabled color="gray.700">
                   {link.label.replace(/<[^>]*>/g, '')}
                 </Button>
               )

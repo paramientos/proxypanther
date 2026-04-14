@@ -1,126 +1,115 @@
 import React from 'react';
 import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
-    Box, Heading, Text, SimpleGrid, Badge, HStack, VStack,
-    Stat, StatLabel, StatNumber, StatHelpText,
-    Table, Thead, Tbody, Tr, Th, Td,
-    useColorModeValue, Icon, Alert, AlertIcon,
+    Box, Heading, Text, SimpleGrid, Badge, HStack,
+    Table, Thead, Tbody, Tr, Th, Td, Icon,
 } from '@chakra-ui/react';
-import { Lock, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Lock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Head, Link } from '@inertiajs/react';
 
 export default function Index({ auth, sites, certs }) {
-    const bg = useColorModeValue('white', 'gray.800');
-    const headBg = useColorModeValue('gray.50', 'gray.700');
-
     const sslSites = sites.filter(s => s.ssl_enabled !== false);
     const onlineSites = sslSites.filter(s => s.is_online);
+
+    const kpis = [
+        { label: 'SSL-Enabled Sites', value: sslSites.length, sub: 'Auto-managed by Caddy', color: '#f97316' },
+        { label: 'Online & Healthy', value: onlineSites.length, sub: 'Responding to health checks', color: '#22c55e' },
+        { label: 'HTTP-Only Sites', value: sites.filter(s => !s.ssl_enabled).length, sub: 'No SSL configured', color: '#f59e0b' },
+    ];
 
     return (
         <EnterpriseLayout user={auth.user}>
             <Head title="SSL Certificates" />
 
             <Box mb={6}>
-                <Heading size="lg">SSL Certificate Panel</Heading>
-                <Text color="gray.500">Caddy manages all certificates automatically via Let's Encrypt.</Text>
+                <Heading size="lg" color="white">SSL Certificate Panel</Heading>
+                <Text color="gray.500" fontSize="sm">Caddy manages all certificates automatically via Let's Encrypt.</Text>
             </Box>
 
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
-                <Stat px={5} py={4} bg={bg} shadow="base" rounded="lg">
-                    <StatLabel>SSL-Enabled Sites</StatLabel>
-                    <StatNumber>{sslSites.length}</StatNumber>
-                    <StatHelpText>Auto-managed by Caddy</StatHelpText>
-                </Stat>
-                <Stat px={5} py={4} bg={bg} shadow="base" rounded="lg">
-                    <StatLabel>Online & Healthy</StatLabel>
-                    <StatNumber color="green.400">{onlineSites.length}</StatNumber>
-                    <StatHelpText>Responding to health checks</StatHelpText>
-                </Stat>
-                <Stat px={5} py={4} bg={bg} shadow="base" rounded="lg">
-                    <StatLabel>HTTP-Only Sites</StatLabel>
-                    <StatNumber color="orange.400">{sites.filter(s => !s.ssl_enabled).length}</StatNumber>
-                    <StatHelpText>No SSL configured</StatHelpText>
-                </Stat>
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
+                {kpis.map(k => (
+                    <Box key={k.label} bg="#161616" p={5} rounded="lg" border="1px solid" borderColor="#242424">
+                        <Text fontSize="2xl" fontWeight="bold" color={k.color}>{k.value}</Text>
+                        <Text fontSize="sm" color="white" fontWeight="medium" mt={1}>{k.label}</Text>
+                        <Text fontSize="xs" color="gray.600" mt={0.5}>{k.sub}</Text>
+                    </Box>
+                ))}
             </SimpleGrid>
 
-            <Alert status="info" rounded="lg" mb={6}>
-                <AlertIcon />
-                Caddy automatically renews certificates 30 days before expiry. No manual action needed.
-                Certificate data is served from the Caddy Admin API at <Text as="span" fontFamily="mono" fontSize="sm">localhost:2019</Text>.
-            </Alert>
+            <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" p={4} mb={6}>
+                <HStack spacing={2}>
+                    <Icon as={Lock} color="#f97316" boxSize={4} />
+                    <Text fontSize="sm" color="gray.400">
+                        Caddy automatically renews certificates 30 days before expiry. Certificate data is served from the Caddy Admin API at{' '}
+                        <Box as="code" bg="#2a2a2a" px={1} borderRadius="sm" fontSize="xs" color="#f97316">localhost:2019</Box>.
+                    </Text>
+                </HStack>
+            </Box>
 
-            <Box bg={bg} shadow="base" rounded="lg" overflow="hidden">
-                <Box px={6} py={4} borderBottom="1px" borderColor={useColorModeValue('gray.100', 'gray.700')}>
+            <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" overflow="hidden">
+                <Box px={5} py={4} borderBottom="1px solid" borderColor="#242424">
                     <HStack>
-                        <Icon as={Lock} color="green.400" />
-                        <Heading size="sm">Site SSL Status</Heading>
+                        <Icon as={Lock} color="#f97316" boxSize={4} />
+                        <Text fontWeight="semibold" color="white" fontSize="sm">Site SSL Status</Text>
                     </HStack>
                 </Box>
-                <Table variant="simple" size="sm">
-                    <Thead bg={headBg}>
-                        <Tr>
-                            <Th>Domain</Th>
-                            <Th>SSL</Th>
-                            <Th>Backend Status</Th>
-                            <Th>Last Check</Th>
-                            <Th></Th>
+                <Table variant="unstyled" size="sm">
+                    <Thead>
+                        <Tr borderBottom="1px solid" borderColor="#242424">
+                            {['Domain', 'SSL', 'Backend Status', 'Last Check', ''].map(h => (
+                                <Th key={h} py={3} px={4} fontSize="10px" color="gray.600" fontWeight="semibold" letterSpacing="wider">{h}</Th>
+                            ))}
                         </Tr>
                     </Thead>
                     <Tbody>
                         {sites.map(site => (
-                            <Tr key={site.id}>
-                                <Td fontWeight="medium">{site.domain}</Td>
-                                <Td>
+                            <Tr key={site.id} borderBottom="1px solid" borderColor="#1a1a1a" _hover={{ bg: '#1c1c1c' }}>
+                                <Td px={4} py={3} fontWeight="medium" color="white" fontSize="sm">{site.domain}</Td>
+                                <Td px={4} py={3}>
                                     {site.ssl_enabled ? (
                                         <HStack spacing={1}>
-                                            <Icon as={CheckCircle} color="green.400" boxSize={4} />
-                                            <Badge colorScheme="green">HTTPS / Auto</Badge>
+                                            <Icon as={CheckCircle} color="#22c55e" boxSize={3.5} />
+                                            <Badge colorScheme="green" fontSize="10px">HTTPS / Auto</Badge>
                                         </HStack>
                                     ) : (
                                         <HStack spacing={1}>
-                                            <Icon as={AlertTriangle} color="orange.400" boxSize={4} />
-                                            <Badge colorScheme="orange">HTTP Only</Badge>
+                                            <Icon as={AlertTriangle} color="#f59e0b" boxSize={3.5} />
+                                            <Badge colorScheme="yellow" fontSize="10px">HTTP Only</Badge>
                                         </HStack>
                                     )}
                                 </Td>
-                                <Td>
-                                    <Badge colorScheme={site.is_online ? 'green' : 'red'}>
-                                        {site.is_online ? 'Online' : 'Offline'}
-                                    </Badge>
+                                <Td px={4} py={3}>
+                                    <HStack spacing={1.5}>
+                                        <Box w={1.5} h={1.5} borderRadius="full"
+                                            bg={site.is_online ? '#22c55e' : '#ef4444'}
+                                            boxShadow={site.is_online ? '0 0 5px rgba(34,197,94,0.7)' : '0 0 5px rgba(239,68,68,0.7)'} />
+                                        <Text fontSize="xs" color={site.is_online ? '#22c55e' : '#ef4444'}>
+                                            {site.is_online ? 'Online' : 'Offline'}
+                                        </Text>
+                                    </HStack>
                                 </Td>
-                                <Td fontSize="xs" color="gray.500">
+                                <Td px={4} py={3} fontSize="xs" color="gray.600">
                                     {site.last_check_at ? new Date(site.last_check_at).toLocaleString() : '—'}
                                 </Td>
-                                <Td>
-                                    <Text as={Link} href={route('sites.show', site.id)} fontSize="xs" color="blue.400">
+                                <Td px={4} py={3}>
+                                    <Button as={Link} href={route('sites.show', site.id)}
+                                        size="xs" variant="ghost" color="#f97316" _hover={{ bg: 'rgba(249,115,22,0.1)' }}>
                                         Configure →
-                                    </Text>
+                                    </Button>
                                 </Td>
                             </Tr>
                         ))}
                         {sites.length === 0 && (
-                            <Tr>
-                                <Td colSpan={5} textAlign="center" py={10} color="gray.500">
-                                    No proxy sites configured yet.
-                                </Td>
-                            </Tr>
+                            <Tr><Td colSpan={5} textAlign="center" py={12} color="gray.600">No proxy sites configured yet.</Td></Tr>
                         )}
                     </Tbody>
                 </Table>
             </Box>
 
             {certs && Object.keys(certs).length > 0 && (
-                <Box bg={bg} shadow="base" rounded="lg" p={6} mt={6}>
-                    <Heading size="sm" mb={4}>Caddy Admin API Response</Heading>
-                    <Box
-                        as="pre"
-                        fontSize="xs"
-                        bg={useColorModeValue('gray.50', 'gray.900')}
-                        p={4}
-                        rounded="md"
-                        overflow="auto"
-                        maxH="300px"
-                    >
+                <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" p={6} mt={4}>
+                    <Text fontWeight="semibold" color="white" fontSize="sm" mb={3}>Caddy Admin API Response</Text>
+                    <Box as="pre" fontSize="xs" bg="#0d0d0d" p={4} rounded="md" overflow="auto" maxH="300px" color="gray.400">
                         {JSON.stringify(certs, null, 2)}
                     </Box>
                 </Box>

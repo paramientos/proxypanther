@@ -46,6 +46,7 @@ enterprise bir hava olsun ui'da
 kod yazarken yorum satırı yazma
 
 tasarım olarak CISCO ISE gibi görünsün
+tasarım renkleri orange olsn cloudflare gibi
 
 kaliteli kod yaz. PSR kurallarına uy.
 N+1 işlemlerinden kaçın.
