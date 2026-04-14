@@ -1,18 +1,29 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ProxySiteController;
-use App\Http\Controllers\BannedIpController;
-use App\Http\Controllers\LogExplorerController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BannedIpController;
+use App\Http\Controllers\LogExplorerController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProxySiteController;
 use App\Http\Controllers\SslController;
-use App\Http\Controllers\UptimeController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\UptimeController;
+use App\Models\ProxySite;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', fn () => Inertia::render('Welcome'));
+
+Route::get('/debug-caddy', function () {
+    return ProxySite::all()->map(fn ($site) => [
+        'id' => $site->id,
+        'name' => $site->name,
+        'geoip' => $site->geoip_enabled,
+        'deny' => $site->geoip_denylist,
+        'domain' => $site->domain,
+    ]);
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
