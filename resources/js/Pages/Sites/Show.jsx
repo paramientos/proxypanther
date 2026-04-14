@@ -12,8 +12,9 @@ import {
 import {
   Shield, Globe, Activity, ChevronRight, AlertTriangle,
   Clock, Trash2, Power, Lock, Settings, TrendingUp,
-  Plus, X, Map, ArrowRightLeft, BarChart2, Zap, Save,
-  Server, Cpu, Database, Bell, ArrowUp, ArrowDown, RefreshCcw
+  Plus, X, Map, ArrowRightLeft, BarChart2, Zap, Save, Palette,
+  Server, Cpu, Database, Bell, ArrowUp, ArrowDown, RefreshCcw,
+  ShieldCheck, ShieldAlert, Terminal
 } from 'lucide-react';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
@@ -23,7 +24,7 @@ const BORDER = 'rgba(255,255,255,0.08)';
 const ACCENT = '#f38020';
 const ACCENT_DIM = 'rgba(243,128,32,0.12)';
 
-export default function Show({ auth, site, analytics, bandwidth }) {
+export default function Show({ auth, site, analytics, bandwidth, wafPresets, errorTemplates }) {
   const toast = useToast();
   const { post, delete: destroy, processing } = useForm();
 
@@ -263,6 +264,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
             { n: 'Security Shield', i: Shield },
             { n: 'Page Rules', i: ArrowRightLeft },
             { n: 'Traffic Insights', i: BarChart2 },
+            { n: 'Branding & Errors', i: Palette },
             { n: 'Audit Logs', i: Clock },
           ].map(t => (
             <Tab key={t.n} py={2.5} px={5} borderRadius="lg" fontSize="sm" fontWeight="medium" color="gray.500"
@@ -371,14 +373,35 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                       </Box>
                       <Switch colorScheme="brand" isChecked={data.ssl_enabled} onChange={e => setData('ssl_enabled', e.target.checked)} />
                     </FormControl>
-                    <FormControl display="flex" justifyContent="space-between" alignItems="center">
-                      <Box>
-                        <FormLabel mb="0" fontSize="sm" color="white">Rate Limiting</FormLabel>
-                        <Text fontSize="xs" color="gray.500">DDoS and abuse mitigation</Text>
-                      </Box>
-                      <Input w="100px" size="sm" type="number" value={data.rate_limit_rps} onChange={e => setData('rate_limit_rps', e.target.value)} />
                     </FormControl>
                   </SimpleGrid>
+
+                  <Box borderTop="1px solid" borderColor={BORDER} pt={6} mt={6}>
+                    <HStack justify="space-between" mb={4}>
+                      <VStack align="start" spacing={0}>
+                        <FormLabel mb="0" fontSize="sm" color="white">Advanced Rate Limiting (Leaky Bucket)</FormLabel>
+                        <Text fontSize="xs" color="gray.500">Intelligent traffic shaping and abuse mitigation</Text>
+                      </VStack>
+                    </HStack>
+                    
+                    <SimpleGrid columns={3} spacing={6}>
+                      <FormControl>
+                        <FormLabel fontSize="10px" color="gray.500">REQUESTS / SEC (RPS)</FormLabel>
+                        <Input size="sm" bg="#050508" borderColor={BORDER} type="number" value={data.rate_limit_rps} onChange={e => setData('rate_limit_rps', e.target.value)} />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="10px" color="gray.500">BURST CAPACITY</FormLabel>
+                        <Input size="sm" bg="#050508" borderColor={BORDER} type="number" value={data.rate_limit_burst} onChange={e => setData('rate_limit_burst', e.target.value)} />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="10px" color="gray.500">ENFORCEMENT ACTION</FormLabel>
+                        <Select size="sm" bg="#050508" borderColor={BORDER} value={data.rate_limit_action} onChange={e => setData('rate_limit_action', e.target.value)}>
+                          <option value="block">Hard Block (429)</option>
+                          <option value="delay">Smooth Delay (Queue)</option>
+                        </Select>
+                      </FormControl>
+                    </SimpleGrid>
+                  </Box>
                 </ConfigSection>
 
                 <ConfigSection title="Operation Center" icon={Bell} description="Maintenance and notifications">
@@ -496,6 +519,39 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                     </FormControl>
                   </SimpleGrid>
                 )}
+              </Box>
+
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack spacing={4} mb={6}>
+                  <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                    <Icon as={ShieldCheck} boxSize={5} color={ACCENT} />
+                  </Box>
+                  <VStack align="start" spacing={0}>
+                    <Heading size="sm" color="white">WAF Security Presets</Heading>
+                    <Text fontSize="xs" color="gray.500">One-click zırhlama (hardening) for common stacks</Text>
+                  </VStack>
+                </HStack>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                  {Object.entries(wafPresets || {}).map(([key, preset]) => {
+                    const IconComp = { ShieldCheck, ShieldAlert, Terminal }[preset.icon] || ShieldCheck;
+                    return (
+                      <Box key={key} p={4} borderRadius="lg" border="1px solid" borderColor={BORDER} transition="all 0.2s" _hover={{ borderColor: ACCENT, bg: 'rgba(255,255,255,0.02)' }}>
+                        <VStack align="start" spacing={3}>
+                          <HStack justify="space-between" w="100%">
+                            <Icon as={IconComp} color={ACCENT} boxSize={5} />
+                            <Button size="xs" colorScheme="brand" variant="ghost" onClick={() => router.post(route('sites.apply-preset', [site.id, key]))}>
+                              Apply
+                            </Button>
+                          </HStack>
+                          <VStack align="start" spacing={1}>
+                            <Text fontSize="sm" fontWeight="bold" color="white">{preset.name}</Text>
+                            <Text fontSize="11px" color="gray.500">{preset.description}</Text>
+                          </VStack>
+                        </VStack>
+                      </Box>
+                    );
+                  })}
+                </SimpleGrid>
               </Box>
 
               <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
@@ -693,7 +749,51 @@ export default function Show({ auth, site, analytics, bandwidth }) {
           </TabPanel>
 
           {/* Other Tabs Simplified for brevity, following the same pattern */}
-          <TabPanel p={0}><Text color="gray.500">Advanced routing module is fully operational.</Text></TabPanel>
+          <TabPanel p={0}>
+              <Stack spacing={6}>
+                  <ConfigSection title="Visual Identity" icon={Palette} description="Branded experience for visitors">
+                      <SimpleGrid columns={2} spacing={8}>
+                          <FormControl>
+                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">CUSTOM 403 (FORBIDDEN) PAGE HTML</FormLabel>
+                              <Textarea bg="#050508" borderColor={BORDER} rows={10} value={data.custom_error_403} onChange={e => setData('custom_error_403', e.target.value)} fontFamily="monospace" fontSize="xs" />
+                          </FormControl>
+                          <FormControl>
+                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">CUSTOM 503 (MAINTENANCE) PAGE HTML</FormLabel>
+                              <Textarea bg="#050508" borderColor={BORDER} rows={10} value={data.custom_error_503} onChange={e => setData('custom_error_503', e.target.value)} fontFamily="monospace" fontSize="xs" />
+                          </FormControl>
+                      </SimpleGrid>
+                  </ConfigSection>
+
+                  <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                      <HStack spacing={4} mb={6}>
+                          <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                              <Icon as={Palette} boxSize={5} color={ACCENT} />
+                          </Box>
+                          <VStack align="start" spacing={0}>
+                              <Heading size="sm" color="white">Stunning Error Templates</Heading>
+                              <Text fontSize="xs" color="gray.500">Pick a professional design to WOW your blocked visitors</Text>
+                          </VStack>
+                      </HStack>
+                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                          {Object.entries(errorTemplates || {}).map(([key, tpl]) => (
+                              <Box key={key} p={4} borderRadius="lg" border="1px solid" borderColor={BORDER} transition="all 0.2s" _hover={{ borderColor: ACCENT, bg: 'rgba(255,255,255,0.02)' }}>
+                                  <VStack align="start" spacing={3}>
+                                      <Text fontSize="sm" fontWeight="bold" color="white">{tpl.name}</Text>
+                                      <HStack spacing={2} w="100%">
+                                          <Button size="xs" colorScheme="orange" variant="outline" flex={1} onClick={() => router.post(route('sites.apply-error-template', site.id), { template: key, code: '403' })}>
+                                              Apply to 403
+                                          </Button>
+                                          <Button size="xs" colorScheme="orange" variant="outline" flex={1} onClick={() => router.post(route('sites.apply-error-template', site.id), { template: key, code: '503' })}>
+                                              Apply to 503
+                                          </Button>
+                                      </HStack>
+                                  </VStack>
+                              </Box>
+                          ))}
+                      </SimpleGrid>
+                  </Box>
+              </Stack>
+          </TabPanel>
           <TabPanel p={0}>
             <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
               <Table variant="unstyled" size="sm">

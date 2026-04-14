@@ -31,6 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/sites/{site}', [ProxySiteController::class, 'destroy'])->name('sites.destroy');
     Route::post('/sites/{site}/page-rules', [ProxySiteController::class, 'storePageRule'])->name('sites.page-rules.store');
     Route::delete('/sites/{site}/page-rules/{rule}', [ProxySiteController::class, 'destroyPageRule'])->name('sites.page-rules.destroy');
+    Route::post('/sites/{site}/apply-preset/{preset}', [ProxySiteController::class, 'applyWafPreset'])->name('sites.apply-preset');
+    Route::post('/sites/{site}/apply-error-template', [ProxySiteController::class, 'applyErrorTemplate'])->name('sites.apply-error-template');
 
     // Banned IPs
     Route::get('/banned-ips', [BannedIpController::class, 'index'])->name('banned-ips.index');

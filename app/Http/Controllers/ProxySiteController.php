@@ -8,7 +8,8 @@ use App\Models\BannedIp;
 use App\Models\SecurityEvent;
 use App\Services\CaddyService;
 use App\Services\LogParserService;
-use App\Services\HealthCheckService;
+use App\Services\WafPresetService;
+use App\Services\ErrorPageService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -17,7 +18,9 @@ class ProxySiteController extends Controller
     public function __construct(
         protected CaddyService $caddy,
         protected LogParserService $logParser,
-        protected HealthCheckService $healthCheck
+        protected HealthCheckService $healthCheck,
+        protected WafPresetService $presetService,
+        protected ErrorPageService $errorPageService
     ) {}
 
     public function index()
@@ -76,6 +79,8 @@ class ProxySiteController extends Controller
             ]),
             'analytics' => $analytics,
             'bandwidth' => $bandwidth,
+            'wafPresets' => $this->presetService->getPresets(),
+            'errorTemplates' => $this->errorPageService->getTemplates(),
         ]);
     }
 
@@ -135,6 +140,51 @@ class ProxySiteController extends Controller
         $this->caddy->sync();
 
         return redirect()->back();
+    }
+
+    public function applyWafPreset(ProxySite $site, string $preset)
+    {
+        $presets = $this->presetService->getPresets();
+        if (!isset($presets[$preset])) {
+            return back()->with('error', 'Invalid preset.');
+        }
+
+        $newRules = $presets[$preset]['rules'];
+        $existingRules = $site->custom_waf_rules ?: [];
+        
+        // Merge without duplicates (based on pattern)
+        $patterns = array_column($existingRules, 'pattern');
+        foreach ($newRules as $rule) {
+            if (!in_array($rule['pattern'], $patterns)) {
+                $existingRules[] = $rule;
+            }
+        }
+
+        $site->update(['custom_waf_rules' => $existingRules]);
+        $this->caddy->sync();
+
+        return back()->with('success', "{$presets[$preset]['name']} applied successfully.");
+    }
+
+    public function applyErrorTemplate(ProxySite $site, Request $request)
+    {
+        $request->validate([
+            'template' => 'required|string',
+            'code'     => 'required|in:403,503'
+        ]);
+
+        $templates = $this->errorPageService->getTemplates();
+        if (!isset($templates[$request->template])) {
+            return back()->with('error', 'Invalid template.');
+        }
+
+        $html = $templates[$request->template]['html'];
+        $field = "custom_error_{$request->code}";
+
+        $site->update([$field => $html]);
+        $this->caddy->sync();
+
+        return back()->with('success', "Template applied to {$request->code} successfully.");
     }
 
     public function destroy(ProxySite $site)
@@ -217,6 +267,8 @@ class ProxySiteController extends Controller
             'ssl_enabled'                 => 'boolean',
             'waf_enabled'                 => 'boolean',
             'rate_limit_rps'              => 'integer|min:1|max:10000',
+            'rate_limit_burst'            => 'integer|min:0|max:10000',
+            'rate_limit_action'           => 'required|string|in:block,delay',
             'auth_user'                   => 'nullable|string|max:255',
             'auth_password'               => 'nullable|string|max:255',
             'protect_sensitive_files'     => 'boolean',

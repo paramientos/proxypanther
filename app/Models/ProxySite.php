@@ -21,6 +21,8 @@ class ProxySite extends Model
         'ssl_enabled',
         'waf_enabled',
         'rate_limit_rps',
+        'rate_limit_burst',
+        'rate_limit_action',
         'is_active',
         'total_requests',
         'blocked_requests',

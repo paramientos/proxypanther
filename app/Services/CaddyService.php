@@ -70,6 +70,21 @@ class CaddyService
                 continue;
             }
 
+            // Advanced Rate Limiting (Leaky Bucket)
+            if ($site->rate_limit_rps > 0) {
+                $burst = $site->rate_limit_burst ?: 10;
+                $action = $site->rate_limit_action === 'delay' ? 'delay' : 'block';
+                $out .= "    # Priority: Advanced Rate Limiting\n";
+                $out .= "    rate_limit {\n";
+                $out .= "        zone site_{$site->id} {\n";
+                $out .= "            key {remote_host}\n";
+                $out .= "            events {$site->rate_limit_rps}\n";
+                $out .= "            window 1s\n";
+                $out .= "            burst {$burst}\n";
+                $out .= "        }\n";
+                $out .= "    }\n";
+            }
+
             // GeoIP - High Priority Shield
             if ($site->geoip_enabled) {
                 if ($site->geoip_denylist && \count($site->geoip_denylist) > 0) {
