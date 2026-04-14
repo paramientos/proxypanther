@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\CaddyService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,6 +51,7 @@ class ProxySite extends Model
         'block_common_bad_bots',
         'bot_challenge_mode',
         'bot_challenge_force',
+        'under_attack_mode',
         'route_policies',
         'circuit_breaker_enabled',
         'circuit_breaker_threshold',
@@ -80,6 +82,7 @@ class ProxySite extends Model
         'block_common_bad_bots' => 'boolean',
         'bot_challenge_mode' => 'boolean',
         'bot_challenge_force' => 'boolean',
+        'under_attack_mode' => 'boolean',
         'route_policies' => 'array',
         'custom_waf_rules' => 'array',
         'env_vars' => 'array',
@@ -118,11 +121,11 @@ class ProxySite extends Model
     protected static function booted(): void
     {
         static::saved(function ($site) {
-            app(\App\Services\CaddyService::class)->sync();
+            app(CaddyService::class)->sync();
         });
 
         static::deleted(function ($site) {
-            app(\App\Services\CaddyService::class)->sync();
+            app(CaddyService::class)->sync();
         });
     }
 }
