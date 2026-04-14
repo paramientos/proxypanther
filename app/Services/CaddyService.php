@@ -56,6 +56,8 @@ class CaddyService
 
             // Infrastructure Debug Headers
             $out .= "    header X-ProxyPanther-Gateway \"Secure-Alpha\"\n";
+            $out .= "    header X-ProxyPanther-Version \"".now()->toIso8601String()."\"\n";
+            $out .= "    header X-ProxyPanther-Remote-IP \"{remote_host}\"\n";
 
             // GeoIP - High Priority Shield
             if ($site->geoip_enabled) {
@@ -382,7 +384,12 @@ class CaddyService
 
     protected function reloadCaddy(): bool
     {
-        $result = Process::run("caddy reload --config {$this->caddyfilePath}");
+        // On Forge, we usually need the full path to caddy
+        $result = Process::run("/usr/bin/caddy reload --config {$this->caddyfilePath}");
+        
+        if (!$result->successful()) {
+            \Log::error("Caddy reload failed: " . $result->errorOutput());
+        }
 
         return $result->successful();
     }
