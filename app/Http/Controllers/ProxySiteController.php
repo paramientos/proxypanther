@@ -35,11 +35,18 @@ class ProxySiteController extends Controller
             ->limit(10)
             ->get();
 
+        $threatsByCountry = SecurityEvent::selectRaw('country_code, count(*) as count')
+            ->whereNotNull('country_code')
+            ->groupBy('country_code')
+            ->orderByDesc('count')
+            ->get();
+
         return Inertia::render('EnterpriseDashboard', [
             'sites'        => ProxySite::withCount('securityEvents')->get(),
             'bannedIps'    => BannedIp::all(),
             'analytics'    => $analytics,
             'recentEvents' => $recentEvents,
+            'threatsByCountry' => $threatsByCountry,
         ]);
     }
 

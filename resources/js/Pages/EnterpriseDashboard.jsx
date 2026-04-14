@@ -11,7 +11,8 @@ import {
 } from '@chakra-ui/react';
 import {
     Plus, Shield, Globe, RefreshCcw, MoreVertical,
-    CheckCircle, Zap, ArrowUp, Settings, Trash2, Eye, X
+    CheckCircle, Zap, ArrowUp, Settings, Trash2, Eye, X,
+    ChevronRight, MapPin
 } from 'lucide-react';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
@@ -19,10 +20,10 @@ import ReactECharts from 'echarts-for-react';
 const CARD_BG = '#0c0d12';
 const BORDER = 'rgba(255,255,255,0.08)';
 const ROW_HOVER = '#1c1c1c';
-const ACCENT = '#6366f1';
-const ACCENT_DIM = 'rgba(99,102,241,0.12)';
+const ACCENT = '#f38020';
+const ACCENT_DIM = 'rgba(243,128,32,0.12)';
 
-export default function EnterpriseDashboard({ auth, sites: initialSites, analytics }) {
+export default function EnterpriseDashboard({ auth, sites: initialSites, analytics, threatsByCountry = [] }) {
     const [sites, setSites] = React.useState(initialSites);
     const [liveStats, setLiveStats] = React.useState({});
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -88,8 +89,8 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                 color: {
                     type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
                     colorStops: [
-                        { offset: 0, color: 'rgba(99,102,241,0.25)' },
-                        { offset: 1, color: 'rgba(99,102,241,0)' },
+                        { offset: 0, color: 'rgba(243,128,32,0.25)' },
+                        { offset: 1, color: 'rgba(243,128,32,0)' },
                     ],
                 },
             },
@@ -215,24 +216,74 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                         ))}
                     </SimpleGrid>
 
-                    {/* Chart */}
-                    <Box bg={CARD_BG} p={6} borderRadius="lg" border="1px solid" borderColor={BORDER} mb={6}>
-                        <HStack justify="space-between" mb={5}>
-                            <Box>
-                                <Text fontWeight="semibold" color="white">Security Events Timeline</Text>
-                                <Text fontSize="xs" color="gray.500" mt={0.5}>Last 7 days threat activity</Text>
-                            </Box>
-                            <HStack spacing={2}>
-                                <Box w={2} h={2} bg={ACCENT} borderRadius="full" />
-                                <Text fontSize="xs" color="gray.500">Security Events</Text>
-                                <IconButton size="xs" variant="ghost" color="gray.500"
-                                    _hover={{ color: 'white' }} icon={<RefreshCcw size={13} />} />
+                    {/* Security Intel & AI Advisor */}
+                    <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} mb={6}>
+                        {/* Threat Timeline */}
+                        <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER} gridColumn={{ lg: "span 2" }}>
+                            <HStack justify="space-between" mb={5}>
+                                <Box>
+                                    <Text fontWeight="semibold" color="white" fontSize="lg">Security Events Timeline</Text>
+                                    <Text fontSize="xs" color="gray.500" mt={0.5}>Last 7 days global threat activity</Text>
+                                </Box>
+                                <HStack spacing={4}>
+                                    <HStack spacing={2}>
+                                        <Box w={2} h={2} bg={ACCENT} borderRadius="full" />
+                                        <Text fontSize="xs" color="gray.400">Attacks</Text>
+                                    </HStack>
+                                    <IconButton size="xs" variant="ghost" color="gray.500" _hover={{ color: 'white' }} icon={<RefreshCcw size={13} />} />
+                                </HStack>
                             </HStack>
-                        </HStack>
-                        <Box height="240px">
-                            <ReactECharts option={chartOptions} style={{ height: '100%', width: '100%' }} />
+                            <Box height="280px">
+                                <ReactECharts option={chartOptions} style={{ height: '100%', width: '100%' }} />
+                            </Box>
                         </Box>
-                    </Box>
+
+                        {/* AI Advisor & Regional Matrix */}
+                        <Stack spacing={6}>
+                            {/* AI Security Advisor */}
+                            <Box bg="linear-gradient(135deg, #0c0d12 0%, #1a1b26 100%)" p={5} borderRadius="xl" border="1px solid" borderColor="rgba(243,128,32,0.2)" position="relative" overflow="hidden">
+                                <Box position="absolute" top="-20px" right="-20px" w="100px" h="100px" bg={ACCENT_DIM} filter="blur(40px)" borderRadius="full" />
+                                <HStack mb={4}>
+                                    <Icon as={Shield} color={ACCENT} boxSize={5} />
+                                    <Text fontWeight="bold" color="white" fontSize="sm" letterSpacing="wide">AI SECURITY ADVISOR</Text>
+                                </HStack>
+                                <VStack align="start" spacing={3}>
+                                    <Box p={3} bg="rgba(0,0,0,0.3)" borderRadius="md" borderLeft="3px solid" borderLeftColor={ACCENT}>
+                                        <Text fontSize="xs" color="gray.300" fontWeight="medium">
+                                            {threatsByCountry.length > 0 
+                                                ? `High activity detected from ${threatsByCountry[0]?.country_code}. Consider enabling regional lock for this zone.`
+                                                : "Security parameters look stable. No immediate action required."}
+                                        </Text>
+                                    </Box>
+                                    <Button size="xs" variant="outline" colorScheme="brand" rightIcon={<ChevronRight size={12} />} borderColor="rgba(243,128,32,0.3)">
+                                        Optimize Policies
+                                    </Button>
+                                </VStack>
+                            </Box>
+
+                            {/* Regional Threat Intelligence */}
+                            <Box bg={CARD_BG} p={5} borderRadius="xl" border="1px solid" borderColor={BORDER} flex="1">
+                                <Text fontWeight="semibold" color="white" fontSize="sm" mb={4}>Regional Intelligence</Text>
+                                <Stack spacing={3}>
+                                    {threatsByCountry.slice(0, 5).map((threat, i) => (
+                                        <Box key={i}>
+                                            <Flex justify="space-between" mb={1}>
+                                                <HStack spacing={2}>
+                                                    <Text fontSize="10px" color="gray.400" fontWeight="bold">{threat.country_code}</Text>
+                                                    <Text fontSize="xs" color="white">{threat.country_code === 'TR' ? 'Turkey' : 'Global Origin'}</Text>
+                                                </HStack>
+                                                <Text fontSize="xs" fontWeight="bold" color={ACCENT}>{threat.count}</Text>
+                                            </Flex>
+                                            <Progress value={(threat.count / (threatsByCountry[0]?.count || 1)) * 100} size="xs" colorScheme="brand" bg="rgba(255,255,255,0.05)" borderRadius="full" />
+                                        </Box>
+                                    ))}
+                                    {threatsByCountry.length === 0 && (
+                                        <Text fontSize="xs" color="gray.600" textAlign="center" py={4}>No regional threats logged.</Text>
+                                    )}
+                                </Stack>
+                            </Box>
+                        </Stack>
+                    </SimpleGrid>
                 </>
             )}
 
@@ -306,7 +357,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                             {site.waf_enabled && (
                                                 <Badge fontSize="10px"
                                                     bg={ACCENT_DIM} color={ACCENT}
-                                                    border="1px solid" borderColor="rgba(99,102,241,0.3)">
+                                                    border="1px solid" borderColor="rgba(243,128,32,0.3)">
                                                     WAF
                                                 </Badge>
                                             )}

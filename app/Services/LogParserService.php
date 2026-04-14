@@ -60,17 +60,21 @@ class LogParserService
             if ($status === 403) {
                 $blockedRequests++;
                 $ip = $data['request']['remote_ip'] ?? 'unknown';
-                $attackType = $this->detectAttackType($data);
-                
+                // Resolve GeoIP
+                $geo = $this->resolveGeoIP($ip);
+
                 // Log as Security Event
                 $event = SecurityEvent::create([
                     'proxy_site_id' => $site->id,
-                    'type' => $attackType,
-                    'ip_address' => $ip,
-                    'request_method' => $data['request']['method'] ?? 'GET',
-                    'request_path' => $data['request']['uri'] ?? '/',
-                    'user_agent' => $data['request']['headers']['User-Agent'][0] ?? null,
-                    'payload' => json_encode($data['request']['headers'] ?? []),
+                    'type'          => $attackType,
+                    'ip_address'    => $ip,
+                    'country_code'  => $geo['country_code'] ?? null,
+                    'country_name'  => $geo['country'] ?? null,
+                    'city'          => $geo['city'] ?? null,
+                    'request_method'=> $data['request']['method'] ?? 'GET',
+                    'request_path'  => $data['request']['uri'] ?? '/',
+                    'user_agent'    => $data['request']['headers']['User-Agent'][0] ?? null,
+                    'payload'       => json_encode($data['request']['headers'] ?? []),
                 ]);
 
                 // Send notification if configured
@@ -133,7 +137,6 @@ class LogParserService
     {
         $uri = $data['request']['uri'] ?? '';
         $ua = $data['request']['headers']['User-Agent'][0] ?? '';
-        $query = $data['request']['headers']['Referer'][0] ?? ''; // Or better, extract actual query from URI
 
         if (str_contains($uri, 'union') || str_contains($uri, 'select') || str_contains($uri, 'information_schema') || str_contains($uri, 'sleep(')) return 'SQLi';
         if (str_contains($uri, '<script') || str_contains($uri, 'onerror=') || str_contains($uri, 'onload=')) return 'XSS';
@@ -142,5 +145,27 @@ class LogParserService
         if (str_contains($uri, '.env') || str_contains($uri, '.git')) return 'SensitivePath';
 
         return 'WAF_Block';
+    }
+
+    protected function resolveGeoIP(string $ip): array
+    {
+        if ($ip === 'unknown' || $ip === '127.0.0.1') return [];
+
+        return \Illuminate\Support\Facades\Cache::remember("geoip_{$ip}", 86400, function() use ($ip) {
+            try {
+                $response = Http::timeout(3)->get("http://ip-api.com/json/{$ip}");
+                if ($response->successful()) {
+                    $data = $response->json();
+                    return [
+                        'country_code' => $data['countryCode'] ?? null,
+                        'country'      => $data['country'] ?? null,
+                        'city'         => $data['city'] ?? null,
+                    ];
+                }
+            } catch (\Exception $e) {
+                // Silently skip on error
+            }
+            return [];
+        });
     }
 }

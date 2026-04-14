@@ -9,7 +9,6 @@ use App\Http\Controllers\ProxySiteController;
 use App\Http\Controllers\SslController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UptimeController;
-use App\Models\ProxySite;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 

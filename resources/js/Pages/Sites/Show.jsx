@@ -20,8 +20,8 @@ import ReactECharts from 'echarts-for-react';
 
 const CARD_BG = '#0c0d12';
 const BORDER = 'rgba(255,255,255,0.08)';
-const ACCENT = '#6366f1';
-const ACCENT_DIM = 'rgba(99,102,241,0.12)';
+const ACCENT = '#f38020';
+const ACCENT_DIM = 'rgba(243,128,32,0.12)';
 
 export default function Show({ auth, site, analytics, bandwidth }) {
   const toast = useToast();
@@ -111,6 +111,21 @@ export default function Show({ auth, site, analytics, bandwidth }) {
     update(route('sites.update', site.id), {
       onSuccess: () => toast({ title: 'Infrastructure configuration updated', status: 'success' }),
     });
+  };
+
+  const addWafRule = () => {
+    setData('custom_waf_rules', [...data.custom_waf_rules, { type: 'path', pattern: '', action: 'block', header_name: '' }]);
+  };
+
+  const removeWafRule = (index) => {
+    const rules = data.custom_waf_rules.filter((_, i) => i !== index);
+    setData('custom_waf_rules', rules);
+  };
+
+  const updateWafRule = (index, field, value) => {
+    const rules = [...data.custom_waf_rules];
+    rules[index][field] = value;
+    setData('custom_waf_rules', rules);
   };
 
   const toggleStatus = () => {
@@ -448,6 +463,48 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                         <HStack spacing={4}>
                             <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
                                 <Icon as={Shield} boxSize={5} color={ACCENT} />
+                            </Box>
+                            <VStack align="start" spacing={0}>
+                                <Heading size="sm" color="white">WAF Custom Rules Matrix</Heading>
+                                <Text fontSize="xs" color="gray.500">Define high-precision regular expression filters</Text>
+                            </VStack>
+                        </HStack>
+                        <Button size="sm" leftIcon={<Plus size={14} />} onClick={addWafRule} colorScheme="brand" variant="ghost">Add Rule</Button>
+                    </HStack>
+                    
+                    <Stack spacing={4}>
+                        {data.custom_waf_rules.map((rule, idx) => (
+                            <Box key={idx} p={4} bg="#050508" borderRadius="lg" border="1px solid" borderColor={BORDER}>
+                                <HStack spacing={4}>
+                                    <Select size="sm" w="150px" value={rule.type} onChange={e => updateWafRule(idx, 'type', e.target.value)}>
+                                        <option value="path">Path Pattern</option>
+                                        <option value="query">Query Parameter</option>
+                                        <option value="header">Request Header</option>
+                                    </Select>
+                                    
+                                    {rule.type === 'header' && (
+                                        <Input size="sm" w="180px" placeholder="Header Name" value={rule.header_name || ''} onChange={e => updateWafRule(idx, 'header_name', e.target.value)} />
+                                    )}
+                                    
+                                    <Input size="sm" placeholder="Regex Pattern (e.g. ^/admin/.*)" value={rule.pattern} onChange={e => updateWafRule(idx, 'pattern', e.target.value)} />
+                                    
+                                    <Badge colorScheme="red" variant="subtle" px={3} py={1} borderRadius="md" fontSize="10px">BLOCK</Badge>
+                                    
+                                    <IconButton size="sm" icon={<Trash2 size={14} />} colorScheme="red" variant="ghost" onClick={() => removeWafRule(idx)} />
+                                </HStack>
+                            </Box>
+                        ))}
+                        {data.custom_waf_rules.length === 0 && (
+                            <Text fontSize="xs" color="gray.600" textAlign="center" py={4}>No custom rules defined yet.</Text>
+                        )}
+                    </Stack>
+                </Box>
+
+                <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                    <HStack justify="space-between" mb={6}>
+                        <HStack spacing={4}>
+                            <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                                <Icon as={Lock} boxSize={5} color={ACCENT} />
                             </Box>
                             <VStack align="start" spacing={0}>
                                 <Heading size="sm" color="white">Network Access Control</Heading>
