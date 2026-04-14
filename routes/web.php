@@ -16,14 +16,18 @@ use Inertia\Inertia;
 Route::get('/', fn () => Inertia::render('Welcome'));
 
 Route::get('/debug-caddy', function () {
-    return ProxySite::all()->map(fn ($site) => [
-        'id' => $site->id,
-        'name' => $site->name,
-        'is_active' => $site->is_active,
-        'geoip' => $site->geoip_enabled,
-        'deny' => $site->geoip_denylist,
-        'domain' => $site->domain,
-    ]);
+    $path = base_path('Caddyfile');
+    return [
+        'sites' => ProxySite::all()->map(fn ($site) => [
+            'id' => $site->id,
+            'name' => $site->name,
+            'is_active' => $site->is_active,
+            'geoip' => $site->geoip_enabled,
+        ]),
+        'caddyfile_path' => $path,
+        'is_writable' => is_writable($path),
+        'content_preview' => file_exists($path) ? substr(file_get_contents($path), 0, 1000) : 'File not found',
+    ];
 });
 
 Route::middleware('guest')->group(function () {
