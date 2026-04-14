@@ -13,7 +13,7 @@ import {
   Shield, Globe, Activity, ChevronRight, AlertTriangle, 
   Clock, Trash2, Power, Lock, Settings, TrendingUp, 
   Plus, X, Map, ArrowRightLeft, BarChart2, Zap, Save,
-  Server, Cpu, Database, Bell
+  Server, Cpu, Database, Bell, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
@@ -429,7 +429,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
             <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
               {[
                 { l: 'TOTAL DATA IN', v: formatBytes(site.bytes_in), i: ArrowUp },
-                { l: 'TOTAL DATA OUT', v: formatBytes(site.bytes_out), i: ArrowUp },
+                { l: 'TOTAL DATA OUT', v: formatBytes(site.bytes_out), i: ArrowDown },
                 { l: 'AVG LATENCY', v: `${Math.round(site.avg_latency_ms || 0)}ms`, i: Clock },
                 { l: 'PEAK RPS', v: '24', i: Zap },
               ].map(s => (
