@@ -17,6 +17,7 @@ Route::get('/', fn () => Inertia::render('Welcome'));
 
 Route::get('/debug-caddy', function () {
     $path = base_path('Caddyfile');
+    $mmdbPath = "/etc/caddy/GeoLite2-Country.mmdb";
     return [
         'sites' => ProxySite::all()->map(fn ($site) => [
             'id' => $site->id,
@@ -25,8 +26,10 @@ Route::get('/debug-caddy', function () {
             'geoip' => $site->geoip_enabled,
         ]),
         'caddyfile_path' => $path,
-        'is_writable' => is_writable($path),
-        'content_preview' => file_exists($path) ? substr(file_get_contents($path), 0, 1000) : 'File not found',
+        'mmdb_exists' => file_exists($mmdbPath),
+        'mmdb_size' => file_exists($mmdbPath) ? filesize($mmdbPath) : 0,
+        'is_caddy_writable' => is_writable($path),
+        'content_preview' => file_exists($path) ? substr(file_get_contents($path), -1000) : 'File not found',
     ];
 });
 
