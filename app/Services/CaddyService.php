@@ -103,13 +103,15 @@ class CaddyService
                 }
 
                 if ($site->bot_challenge_force) {
-                    $html = '<html><head><title>Security Check</title></head><body style="text-align:center;padding:50px;font-family:sans-serif"><h1>Security Check Required</h1><p>Please retry after 15 seconds.</p></body></html>';
+                    $html = $this->getChallengeTemplate('Security Check Required', 'Performing high-level connection analysis.');
                     $out .= "    header Retry-After \"15\"\n";
+                    $out .= "    header Content-Type \"text/html; charset=utf-8\"\n";
                     $out .= "    respond `{$html}` 429\n";
                 } elseif ($site->bot_challenge_mode) {
-                    $html = '<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>';
+                    $html = $this->getChallengeTemplate('Bot Challenge', 'Verification required for potential automation.');
                     $out .= "    @bot_challenge {\n        header_regexp User-Agent \"(?i)(bot|crawler|spider|python-requests|curl|wget|scrapy|httpclient)\"\n    }\n";
                     $out .= "    header @bot_challenge Retry-After \"15\"\n";
+                    $out .= "    header @bot_challenge Content-Type \"text/html; charset=utf-8\"\n";
                     $out .= "    respond @bot_challenge `{$html}` 429\n";
                 }
 
@@ -121,9 +123,10 @@ class CaddyService
                         $pp = str_ends_with($path, '*') ? $path : "{$path}*";
 
                         if (!empty($policy['bot_challenge_mode'])) {
-                            $html = '<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>';
+                            $html = $this->getChallengeTemplate('Security Challenge', "Verification required for path: {$path}");
                             $out .= "    @route_bot_{$idx} {\n        path {$pp}\n        header_regexp User-Agent \"(?i)(bot|crawler|spider)\"\n    }\n";
                             $out .= "    header @route_bot_{$idx} Retry-After \"15\"\n";
+                            $out .= "    header @route_bot_{$idx} Content-Type \"text/html; charset=utf-8\"\n";
                             $out .= "    respond @route_bot_{$idx} `{$html}` 429\n";
                         }
                         if (!empty($policy['rate_limit_rps'])) {
@@ -298,6 +301,52 @@ class CaddyService
     /**
      * Fetch SSL certificate info from Caddy Admin API.
      */
+    private function getChallengeTemplate(string $title, string $message): string
+    {
+        return '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . $title . ' | ProxyPanther</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: #050508; color: #fff; font-family: \'Inter\', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .card { background: #0c0d12; border: 1px solid rgba(255,255,255,0.08); padding: 40px; border-radius: 20px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .icon { width: 64px; height: 64px; background: #6366f1; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; box-shadow: 0 0 30px rgba(99,102,241,0.4); }
+        h1 { font-size: 24px; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.02em; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin: 0 0 32px; }
+        .progress-container { background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden; position: relative; }
+        .progress-bar { background: #6366f1; height: 100%; width: 0%; transition: width 15s linear; }
+        .counter { font-size: 11px; color: #6366f1; font-weight: 700; margin-top: 16px; display: block; text-transform: uppercase; letter-spacing: 0.1em; }
+    </style>
+</head>
+<body onload="setTimeout(() => document.getElementById(\'bar\').style.width = \'100%\', 50)">
+    <div class="card">
+        <div class="icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h1>' . $title . '</h1>
+        <p>' . $message . '. Successive requests will be allowed shortly.</p>
+        <div class="progress-container">
+            <div id="bar" class="progress-bar"></div>
+        </div>
+        <span id="timer" class="counter">Analyzing Connection...</span>
+    </div>
+    <script>
+        let count = 15;
+        const int = setInterval(() => {
+            count--;
+            if(count <= 0) {
+                clearInterval(int);
+                window.location.reload();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>';
+    }
+
     public function getSslCertificates(): array
     {
         try {
