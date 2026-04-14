@@ -246,6 +246,7 @@ class ProxySiteController extends Controller
             'geoip_denylist'              => 'nullable|string',
             'geoip_enabled'               => 'boolean',
             'block_common_bad_bots'       => 'boolean',
+            'under_attack_mode'           => 'boolean',
         ];
     }
 
