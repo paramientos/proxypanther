@@ -9,11 +9,11 @@ import {
   FormControl, FormLabel, Input, Stack, Select, Textarea,
   Flex, IconButton
 } from '@chakra-ui/react';
-import { 
-  Shield, Globe, Activity, ChevronRight, AlertTriangle, 
-  Clock, Trash2, Power, Lock, Settings, TrendingUp, 
+import {
+  Shield, Globe, Activity, ChevronRight, AlertTriangle,
+  Clock, Trash2, Power, Lock, Settings, TrendingUp,
   Plus, X, Map, ArrowRightLeft, BarChart2, Zap, Save,
-  Server, Cpu, Database, Bell, ArrowUp, ArrowDown
+  Server, Cpu, Database, Bell, ArrowUp, ArrowDown, RefreshCcw
 } from 'lucide-react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
@@ -194,10 +194,10 @@ export default function Show({ auth, site, analytics, bandwidth }) {
         <VStack align="start" spacing={1}>
           <HStack spacing={3}>
             <Heading size="xl" color="white" fontWeight="900" letterSpacing="tight">{site.name}</Heading>
-            <Badge 
-              variant="solid" 
-              px={3} 
-              borderRadius="full" 
+            <Badge
+              variant="solid"
+              px={3}
+              borderRadius="full"
               fontSize="10px"
               bg={site.is_active ? 'green.500' : 'red.500'}
             >
@@ -345,18 +345,18 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                       <Switch colorScheme="brand" isChecked={data.cache_enabled} onChange={e => setData('cache_enabled', e.target.checked)} />
                     </FormControl>
                     <FormControl display="flex" justifyContent="space-between" alignItems="center">
-                        <Box>
-                            <FormLabel mb="0" fontSize="sm" color="white">Auto-SSL Delivery</FormLabel>
-                            <Text fontSize="xs" color="gray.500">Managed certificates via Let's Encrypt</Text>
-                        </Box>
+                      <Box>
+                        <FormLabel mb="0" fontSize="sm" color="white">Auto-SSL Delivery</FormLabel>
+                        <Text fontSize="xs" color="gray.500">Managed certificates via Let's Encrypt</Text>
+                      </Box>
                       <Switch colorScheme="brand" isChecked={data.ssl_enabled} onChange={e => setData('ssl_enabled', e.target.checked)} />
                     </FormControl>
                     <FormControl display="flex" justifyContent="space-between" alignItems="center">
-                        <Box>
-                            <FormLabel mb="0" fontSize="sm" color="white">Rate Limiting</FormLabel>
-                            <Text fontSize="xs" color="gray.500">DDoS and abuse mitigation</Text>
-                        </Box>
-                        <Input w="100px" size="sm" type="number" value={data.rate_limit_rps} onChange={e => setData('rate_limit_rps', e.target.value)} />
+                      <Box>
+                        <FormLabel mb="0" fontSize="sm" color="white">Rate Limiting</FormLabel>
+                        <Text fontSize="xs" color="gray.500">DDoS and abuse mitigation</Text>
+                      </Box>
+                      <Input w="100px" size="sm" type="number" value={data.rate_limit_rps} onChange={e => setData('rate_limit_rps', e.target.value)} />
                     </FormControl>
                   </SimpleGrid>
                 </ConfigSection>
@@ -382,263 +382,263 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                     </FormControl>
                   </Stack>
                 </ConfigSection>
-                
+
                 <Box pt={4} display="flex" justifyContent="flex-end">
-                    <Button bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} size="lg" type="submit" isLoading={updateProcessing} leftIcon={<Save size={18} />}>
-                        Deploy Changes
-                    </Button>
+                  <Button bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} size="lg" type="submit" isLoading={updateProcessing} leftIcon={<Save size={18} />}>
+                    Deploy Changes
+                  </Button>
                 </Box>
               </Stack>
             </form>
           </TabPanel>
 
           <TabPanel p={0}>
-              <Stack spacing={6}>
-                <Box bg="rgba(243,128,32,0.05)" p={6} borderRadius="xl" border="1px solid" borderColor="rgba(243,128,32,0.2)" position="relative" overflow="hidden">
-                    <HStack justify="space-between">
-                        <HStack spacing={4}>
-                            <Box p={2.5} bg="rgba(243,128,32,0.1)" borderRadius="lg" animation="pulse 2s infinite">
-                                <Icon as={AlertTriangle} boxSize={5} color={ACCENT} />
-                            </Box>
-                            <VStack align="start" spacing={0}>
-                                <Heading size="sm" color="white">Emergency Shield (Under Attack Mode)</Heading>
-                                <Text fontSize="xs" color="gray.500">Enforce interstitial waiting room for ALL visitors during active DDoS.</Text>
-                            </VStack>
-                        </HStack>
-                        <Switch size="lg" colorScheme="brand" isChecked={data.under_attack_mode} onChange={e => setData('under_attack_mode', e.target.checked)} />
-                    </HStack>
-                </Box>
+            <Stack spacing={6}>
+              <Box bg="rgba(243,128,32,0.05)" p={6} borderRadius="xl" border="1px solid" borderColor="rgba(243,128,32,0.2)" position="relative" overflow="hidden">
+                <HStack justify="space-between">
+                  <HStack spacing={4}>
+                    <Box p={2.5} bg="rgba(243,128,32,0.1)" borderRadius="lg" animation="pulse 2s infinite">
+                      <Icon as={AlertTriangle} boxSize={5} color={ACCENT} />
+                    </Box>
+                    <VStack align="start" spacing={0}>
+                      <Heading size="sm" color="white">Emergency Shield (Under Attack Mode)</Heading>
+                      <Text fontSize="xs" color="gray.500">Enforce interstitial waiting room for ALL visitors during active DDoS.</Text>
+                    </VStack>
+                  </HStack>
+                  <Switch size="lg" colorScheme="brand" isChecked={data.under_attack_mode} onChange={e => setData('under_attack_mode', e.target.checked)} />
+                </HStack>
+              </Box>
 
-                <ConfigSection title="WAF Strategy" icon={Shield} description="Intelligent firewall policies">
-                    <SimpleGrid columns={2} spacing={8}>
-                        <FormControl display="flex" justifyContent="space-between" alignItems="center">
-                            <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">Active Protection</FormLabel>
-                                <Text fontSize="xs" color="gray.500">Enable real-time rule engine</Text>
-                            </Box>
-                            <Switch colorScheme="brand" isChecked={data.waf_enabled} onChange={e => setData('waf_enabled', e.target.checked)} />
-                        </FormControl>
-                        <FormControl display="flex" justifyContent="space-between" alignItems="center">
-                            <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">Bot Defense</FormLabel>
-                                <Text fontSize="xs" color="gray.500">Block known malicious crawlers</Text>
-                            </Box>
-                            <Switch colorScheme="brand" isChecked={data.block_common_bad_bots} onChange={e => setData('block_common_bad_bots', e.target.checked)} />
-                        </FormControl>
-                        <FormControl display="flex" justifyContent="space-between" alignItems="center">
-                            <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">Bot Challenge Mode</FormLabel>
-                                <Text fontSize="xs" color="gray.500">Force JS-challenge for suspected bots</Text>
-                            </Box>
-                            <Switch colorScheme="brand" isChecked={data.bot_challenge_mode} onChange={e => setData('bot_challenge_mode', e.target.checked)} />
-                        </FormControl>
-                        <FormControl display="flex" justifyContent="space-between" alignItems="center">
-                            <Box>
-                                <FormLabel mb="0" fontSize="sm" color="white">File Shield</FormLabel>
-                                <Text fontSize="xs" color="gray.500">Protect .env and sensitive data</Text>
-                            </Box>
-                            <Switch colorScheme="brand" isChecked={data.protect_sensitive_files} onChange={e => setData('protect_sensitive_files', e.target.checked)} />
-                        </FormControl>
-                    </SimpleGrid>
-                </ConfigSection>
+              <ConfigSection title="WAF Strategy" icon={Shield} description="Intelligent firewall policies">
+                <SimpleGrid columns={2} spacing={8}>
+                  <FormControl display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <FormLabel mb="0" fontSize="sm" color="white">Active Protection</FormLabel>
+                      <Text fontSize="xs" color="gray.500">Enable real-time rule engine</Text>
+                    </Box>
+                    <Switch colorScheme="brand" isChecked={data.waf_enabled} onChange={e => setData('waf_enabled', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <FormLabel mb="0" fontSize="sm" color="white">Bot Defense</FormLabel>
+                      <Text fontSize="xs" color="gray.500">Block known malicious crawlers</Text>
+                    </Box>
+                    <Switch colorScheme="brand" isChecked={data.block_common_bad_bots} onChange={e => setData('block_common_bad_bots', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <FormLabel mb="0" fontSize="sm" color="white">Bot Challenge Mode</FormLabel>
+                      <Text fontSize="xs" color="gray.500">Force JS-challenge for suspected bots</Text>
+                    </Box>
+                    <Switch colorScheme="brand" isChecked={data.bot_challenge_mode} onChange={e => setData('bot_challenge_mode', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <FormLabel mb="0" fontSize="sm" color="white">File Shield</FormLabel>
+                      <Text fontSize="xs" color="gray.500">Protect .env and sensitive data</Text>
+                    </Box>
+                    <Switch colorScheme="brand" isChecked={data.protect_sensitive_files} onChange={e => setData('protect_sensitive_files', e.target.checked)} />
+                  </FormControl>
+                </SimpleGrid>
+              </ConfigSection>
 
-                <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                    <HStack justify="space-between" mb={6}>
-                        <HStack spacing={4}>
-                            <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
-                                <Icon as={Lock} boxSize={5} color={ACCENT} />
-                            </Box>
-                            <VStack align="start" spacing={0}>
-                                <Heading size="sm" color="white">Identity Vault</Heading>
-                                <Text fontSize="xs" color="gray.500">Enforce Basic Authentication for all requests</Text>
-                            </VStack>
-                        </HStack>
-                    </HStack>
-                    <SimpleGrid columns={2} spacing={6}>
-                        <FormControl>
-                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">VAULT USERNAME</FormLabel>
-                            <Input bg="#050508" borderColor={BORDER} value={data.auth_user} onChange={e => setData('auth_user', e.target.value)} placeholder="e.g. admin" />
-                        </FormControl>
-                        <FormControl>
-                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">VAULT PASSWORD</FormLabel>
-                            <Input type="password" bg="#050508" borderColor={BORDER} value={data.auth_password} onChange={e => setData('auth_password', e.target.value)} placeholder="••••••••" />
-                        </FormControl>
-                    </SimpleGrid>
-                </Box>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack justify="space-between" mb={6}>
+                  <HStack spacing={4}>
+                    <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                      <Icon as={Lock} boxSize={5} color={ACCENT} />
+                    </Box>
+                    <VStack align="start" spacing={0}>
+                      <Heading size="sm" color="white">Identity Vault</Heading>
+                      <Text fontSize="xs" color="gray.500">Enforce Basic Authentication for all requests</Text>
+                    </VStack>
+                  </HStack>
+                </HStack>
+                <SimpleGrid columns={2} spacing={6}>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">VAULT USERNAME</FormLabel>
+                    <Input bg="#050508" borderColor={BORDER} value={data.auth_user} onChange={e => setData('auth_user', e.target.value)} placeholder="e.g. admin" />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">VAULT PASSWORD</FormLabel>
+                    <Input type="password" bg="#050508" borderColor={BORDER} value={data.auth_password} onChange={e => setData('auth_password', e.target.value)} placeholder="••••••••" />
+                  </FormControl>
+                </SimpleGrid>
+              </Box>
 
-                <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                    <HStack justify="space-between" mb={6}>
-                        <HStack spacing={4}>
-                            <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
-                                <Icon as={Map} boxSize={5} color={ACCENT} />
-                            </Box>
-                            <VStack align="start" spacing={0}>
-                                <Heading size="sm" color="white">Regional Defense (GeoIP)</Heading>
-                                <Text fontSize="xs" color="gray.500">Restrict access by geographic location (ISO Codes)</Text>
-                            </VStack>
-                        </HStack>
-                        <Switch colorScheme="brand" isChecked={data.geoip_enabled} onChange={e => setData('geoip_enabled', e.target.checked)} />
-                    </HStack>
-                    {data.geoip_enabled && (
-                        <SimpleGrid columns={2} spacing={6}>
-                            <FormControl>
-                                <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">ALLOWED COUNTRIES (ISO)</FormLabel>
-                                <Input bg="#050508" borderColor={BORDER} value={data.geoip_allowlist} onChange={e => setData('geoip_allowlist', e.target.value)} placeholder="e.g. TR, US, GB" />
-                            </FormControl>
-                            <FormControl>
-                                <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">BLOCKED COUNTRIES (ISO)</FormLabel>
-                                <Input bg="#050508" borderColor={BORDER} value={data.geoip_denylist} onChange={e => setData('geoip_denylist', e.target.value)} placeholder="e.g. RU, CN, KP" />
-                            </FormControl>
-                        </SimpleGrid>
-                    )}
-                </Box>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack justify="space-between" mb={6}>
+                  <HStack spacing={4}>
+                    <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                      <Icon as={Map} boxSize={5} color={ACCENT} />
+                    </Box>
+                    <VStack align="start" spacing={0}>
+                      <Heading size="sm" color="white">Regional Defense (GeoIP)</Heading>
+                      <Text fontSize="xs" color="gray.500">Restrict access by geographic location (ISO Codes)</Text>
+                    </VStack>
+                  </HStack>
+                  <Switch colorScheme="brand" isChecked={data.geoip_enabled} onChange={e => setData('geoip_enabled', e.target.checked)} />
+                </HStack>
+                {data.geoip_enabled && (
+                  <SimpleGrid columns={2} spacing={6}>
+                    <FormControl>
+                      <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">ALLOWED COUNTRIES (ISO)</FormLabel>
+                      <Input bg="#050508" borderColor={BORDER} value={data.geoip_allowlist} onChange={e => setData('geoip_allowlist', e.target.value)} placeholder="e.g. TR, US, GB" />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">BLOCKED COUNTRIES (ISO)</FormLabel>
+                      <Input bg="#050508" borderColor={BORDER} value={data.geoip_denylist} onChange={e => setData('geoip_denylist', e.target.value)} placeholder="e.g. RU, CN, KP" />
+                    </FormControl>
+                  </SimpleGrid>
+                )}
+              </Box>
 
-                <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                    <HStack justify="space-between" mb={6}>
-                        <HStack spacing={4}>
-                            <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
-                                <Icon as={Shield} boxSize={5} color={ACCENT} />
-                            </Box>
-                            <VStack align="start" spacing={0}>
-                                <Heading size="sm" color="white">WAF Custom Rules Matrix</Heading>
-                                <Text fontSize="xs" color="gray.500">Define high-precision regular expression filters</Text>
-                            </VStack>
-                        </HStack>
-                        <Button size="sm" leftIcon={<Plus size={14} />} onClick={addWafRule} colorScheme="brand" variant="ghost">Add Rule</Button>
-                    </HStack>
-                    
-                    <Stack spacing={4}>
-                        {data.custom_waf_rules.map((rule, idx) => (
-                            <Box key={idx} p={4} bg="#050508" borderRadius="lg" border="1px solid" borderColor={BORDER}>
-                                <HStack spacing={4}>
-                                    <Select size="sm" w="150px" value={rule.type} onChange={e => updateWafRule(idx, 'type', e.target.value)}>
-                                        <option value="path">Path Pattern</option>
-                                        <option value="query">Query Parameter</option>
-                                        <option value="header">Request Header</option>
-                                    </Select>
-                                    
-                                    {rule.type === 'header' && (
-                                        <Input size="sm" w="180px" placeholder="Header Name" value={rule.header_name || ''} onChange={e => updateWafRule(idx, 'header_name', e.target.value)} />
-                                    )}
-                                    
-                                    <Input size="sm" flex={1} placeholder="Regex Pattern (e.g. ^/admin/.*)" value={rule.pattern} onChange={e => updateWafRule(idx, 'pattern', e.target.value)} />
-                                    
-                                    <Badge colorScheme="red" variant="subtle" px={3} py={1} borderRadius="md" fontSize="10px">BLOCK</Badge>
-                                    
-                                    <IconButton size="sm" icon={<Trash2 size={14} />} colorScheme="red" variant="ghost" onClick={() => removeWafRule(idx)} />
-                                </HStack>
-                            </Box>
-                        ))}
-                        {data.custom_waf_rules.length === 0 && (
-                            <Text fontSize="xs" color="gray.600" textAlign="center" py={4}>No custom rules defined yet.</Text>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack justify="space-between" mb={6}>
+                  <HStack spacing={4}>
+                    <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                      <Icon as={Shield} boxSize={5} color={ACCENT} />
+                    </Box>
+                    <VStack align="start" spacing={0}>
+                      <Heading size="sm" color="white">WAF Custom Rules Matrix</Heading>
+                      <Text fontSize="xs" color="gray.500">Define high-precision regular expression filters</Text>
+                    </VStack>
+                  </HStack>
+                  <Button size="sm" leftIcon={<Plus size={14} />} onClick={addWafRule} colorScheme="brand" variant="ghost">Add Rule</Button>
+                </HStack>
+
+                <Stack spacing={4}>
+                  {data.custom_waf_rules.map((rule, idx) => (
+                    <Box key={idx} p={4} bg="#050508" borderRadius="lg" border="1px solid" borderColor={BORDER}>
+                      <HStack spacing={4}>
+                        <Select size="sm" w="150px" value={rule.type} onChange={e => updateWafRule(idx, 'type', e.target.value)}>
+                          <option value="path">Path Pattern</option>
+                          <option value="query">Query Parameter</option>
+                          <option value="header">Request Header</option>
+                        </Select>
+
+                        {rule.type === 'header' && (
+                          <Input size="sm" w="180px" placeholder="Header Name" value={rule.header_name || ''} onChange={e => updateWafRule(idx, 'header_name', e.target.value)} />
                         )}
-                    </Stack>
-                </Box>
 
-                <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                    <HStack justify="space-between" mb={6}>
-                        <HStack spacing={4}>
-                            <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
-                                <Icon as={Lock} boxSize={5} color={ACCENT} />
-                            </Box>
-                            <VStack align="start" spacing={0}>
-                                <Heading size="sm" color="white">Network Access Control</Heading>
-                                <Text fontSize="xs" color="gray.500">IP-level address filtering rules</Text>
-                            </VStack>
-                        </HStack>
-                    </HStack>
-                    <SimpleGrid columns={2} spacing={6}>
-                        <FormControl>
-                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">IP ALLOWLIST (Whitelist)</FormLabel>
-                            <Textarea bg="#050508" borderColor={BORDER} value={data.ip_allowlist} onChange={e => setData('ip_allowlist', e.target.value)} placeholder="One IP/CIDR per line" size="sm" />
-                        </FormControl>
-                        <FormControl>
-                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">IP DENYLIST (Blacklist)</FormLabel>
-                            <Textarea bg="#050508" borderColor={BORDER} value={data.ip_denylist} onChange={e => setData('ip_denylist', e.target.value)} placeholder="One IP/CIDR per line" size="sm" />
-                        </FormControl>
-                    </SimpleGrid>
-                </Box>
-                
-                <Box display="flex" justifyContent="flex-end">
-                    <Button bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} onClick={submitUpdate} isLoading={updateProcessing} leftIcon={<Shield size={18} />}>
-                        Save Security Policy
-                    </Button>
-                </Box>
-              </Stack>
+                        <Input size="sm" flex={1} placeholder="Regex Pattern (e.g. ^/admin/.*)" value={rule.pattern} onChange={e => updateWafRule(idx, 'pattern', e.target.value)} />
+
+                        <Badge colorScheme="red" variant="subtle" px={3} py={1} borderRadius="md" fontSize="10px">BLOCK</Badge>
+
+                        <IconButton size="sm" icon={<Trash2 size={14} />} colorScheme="red" variant="ghost" onClick={() => removeWafRule(idx)} />
+                      </HStack>
+                    </Box>
+                  ))}
+                  {data.custom_waf_rules.length === 0 && (
+                    <Text fontSize="xs" color="gray.600" textAlign="center" py={4}>No custom rules defined yet.</Text>
+                  )}
+                </Stack>
+              </Box>
+
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack justify="space-between" mb={6}>
+                  <HStack spacing={4}>
+                    <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                      <Icon as={Lock} boxSize={5} color={ACCENT} />
+                    </Box>
+                    <VStack align="start" spacing={0}>
+                      <Heading size="sm" color="white">Network Access Control</Heading>
+                      <Text fontSize="xs" color="gray.500">IP-level address filtering rules</Text>
+                    </VStack>
+                  </HStack>
+                </HStack>
+                <SimpleGrid columns={2} spacing={6}>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">IP ALLOWLIST (Whitelist)</FormLabel>
+                    <Textarea bg="#050508" borderColor={BORDER} value={data.ip_allowlist} onChange={e => setData('ip_allowlist', e.target.value)} placeholder="One IP/CIDR per line" size="sm" />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">IP DENYLIST (Blacklist)</FormLabel>
+                    <Textarea bg="#050508" borderColor={BORDER} value={data.ip_denylist} onChange={e => setData('ip_denylist', e.target.value)} placeholder="One IP/CIDR per line" size="sm" />
+                  </FormControl>
+                </SimpleGrid>
+              </Box>
+
+              <Box display="flex" justifyContent="flex-end">
+                <Button bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} onClick={submitUpdate} isLoading={updateProcessing} leftIcon={<Shield size={18} />}>
+                  Save Security Policy
+                </Button>
+              </Box>
+            </Stack>
           </TabPanel>
 
           {/* Page Rules TabPanel (Index 3) */}
           <TabPanel p={0}>
-              <Stack spacing={6}>
-                  <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                      <HStack justify="space-between" mb={6}>
-                          <HStack spacing={4}>
-                              <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
-                                  <Icon as={ArrowRightLeft} boxSize={5} color={ACCENT} />
-                              </Box>
-                              <VStack align="start" spacing={0}>
-                                  <Heading size="sm" color="white">Create Page Rule</Heading>
-                                  <Text fontSize="xs" color="gray.500">Define a new routing or transformation policy</Text>
-                              </VStack>
-                          </HStack>
-                      </HStack>
-                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-                          <FormControl>
-                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">MATCHING PATH</FormLabel>
-                              <Input size="sm" bg="#050508" borderColor={BORDER} placeholder="/old-path/*" value={newRule.path} onChange={e => setNewRule('path', e.target.value)} />
-                          </FormControl>
-                          <FormControl>
-                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">RULE TYPE</FormLabel>
-                              <Select size="sm" bg="#050508" borderColor={BORDER} value={newRule.type} onChange={e => setNewRule('type', e.target.value)}>
-                                  <option value="redirect">Permanent Redirect (301)</option>
-                                  <option value="rewrite">Internal Rewrite</option>
-                                  <option value="header">Inject Custom Header</option>
-                              </Select>
-                          </FormControl>
-                          <FormControl>
-                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">{newRule.type === 'header' ? 'HEADER: VALUE' : 'TARGET DESTINATION'}</FormLabel>
-                              <Input size="sm" bg="#050508" borderColor={BORDER} placeholder={newRule.type === 'header' ? 'X-Panther: Power' : 'https://backup.site.com'} value={newRule.value} onChange={e => setNewRule('value', e.target.value)} />
-                          </FormControl>
-                      </SimpleGrid>
-                      <Box mt={6} display="flex" justifyContent="flex-end">
-                          <Button size="sm" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} leftIcon={<Plus size={14} />} onClick={() => saveRule(route('sites.page-rules.store', site.id), { onSuccess: () => resetRule() })}>
-                              Add Page Rule
-                          </Button>
-                      </Box>
-                  </Box>
+            <Stack spacing={6}>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack justify="space-between" mb={6}>
+                  <HStack spacing={4}>
+                    <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                      <Icon as={ArrowRightLeft} boxSize={5} color={ACCENT} />
+                    </Box>
+                    <VStack align="start" spacing={0}>
+                      <Heading size="sm" color="white">Create Page Rule</Heading>
+                      <Text fontSize="xs" color="gray.500">Define a new routing or transformation policy</Text>
+                    </VStack>
+                  </HStack>
+                </HStack>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">MATCHING PATH</FormLabel>
+                    <Input size="sm" bg="#050508" borderColor={BORDER} placeholder="/old-path/*" value={newRule.path} onChange={e => setNewRule('path', e.target.value)} />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">RULE TYPE</FormLabel>
+                    <Select size="sm" bg="#050508" borderColor={BORDER} value={newRule.type} onChange={e => setNewRule('type', e.target.value)}>
+                      <option value="redirect">Permanent Redirect (301)</option>
+                      <option value="rewrite">Internal Rewrite</option>
+                      <option value="header">Inject Custom Header</option>
+                    </Select>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">{newRule.type === 'header' ? 'HEADER: VALUE' : 'TARGET DESTINATION'}</FormLabel>
+                    <Input size="sm" bg="#050508" borderColor={BORDER} placeholder={newRule.type === 'header' ? 'X-Panther: Power' : 'https://backup.site.com'} value={newRule.value} onChange={e => setNewRule('value', e.target.value)} />
+                  </FormControl>
+                </SimpleGrid>
+                <Box mt={6} display="flex" justifyContent="flex-end">
+                  <Button size="sm" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} leftIcon={<Plus size={14} />} onClick={() => saveRule(route('sites.page-rules.store', site.id), { onSuccess: () => resetRule() })}>
+                    Add Page Rule
+                  </Button>
+                </Box>
+              </Box>
 
-                  <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
-                      <Table variant="unstyled" size="sm">
-                          <Thead bg="rgba(255,255,255,0.02)">
-                              <Tr>
-                                  <Th color="gray.500" py={3}>PATH PATTERN</Th>
-                                  <Th color="gray.500" py={3}>ACTION</Th>
-                                  <Th color="gray.500" py={3}>VALUE</Th>
-                                  <Th color="gray.500" py={3}></Th>
-                              </Tr>
-                          </Thead>
-                          <Tbody>
-                              {(site.page_rules || []).map(rule => (
-                                  <Tr key={rule.id} borderTop="1px solid" borderColor={BORDER} _hover={{ bg: 'rgba(255,255,255,0.01)' }}>
-                                      <Td py={4}><Code bg="transparent" color={ACCENT}>{rule.path}</Code></Td>
-                                      <Td py={4}>
-                                          <Badge variant="subtle" colorScheme={rule.type === 'redirect' ? 'orange' : rule.type === 'rewrite' ? 'purple' : 'green'} fontSize="10px">
-                                              {rule.type.toUpperCase()}
-                                          </Badge>
-                                      </Td>
-                                      <Td py={4} fontSize="xs" color="gray.400">{rule.value}</Td>
-                                      <Td py={4} textAlign="right">
-                                          <IconButton size="xs" variant="ghost" colorScheme="red" icon={<Trash2 size={14} />} onClick={() => destroy(route('sites.page-rules.destroy', [site.id, rule.id]), { preserveScroll: true })} />
-                                      </Td>
-                                  </Tr>
-                              ))}
-                              {(site.page_rules || []).length === 0 && (
-                                  <Tr><Td colSpan={4} py={8} textAlign="center" color="gray.600" fontSize="sm">No custom rules defined for this site.</Td></Tr>
-                              )}
-                          </Tbody>
-                      </Table>
-                  </Box>
-              </Stack>
+              <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
+                <Table variant="unstyled" size="sm">
+                  <Thead bg="rgba(255,255,255,0.02)">
+                    <Tr>
+                      <Th color="gray.500" py={3}>PATH PATTERN</Th>
+                      <Th color="gray.500" py={3}>ACTION</Th>
+                      <Th color="gray.500" py={3}>VALUE</Th>
+                      <Th color="gray.500" py={3}></Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {(site.page_rules || []).map(rule => (
+                      <Tr key={rule.id} borderTop="1px solid" borderColor={BORDER} _hover={{ bg: 'rgba(255,255,255,0.01)' }}>
+                        <Td py={4}><Code bg="transparent" color={ACCENT}>{rule.path}</Code></Td>
+                        <Td py={4}>
+                          <Badge variant="subtle" colorScheme={rule.type === 'redirect' ? 'orange' : rule.type === 'rewrite' ? 'purple' : 'green'} fontSize="10px">
+                            {rule.type.toUpperCase()}
+                          </Badge>
+                        </Td>
+                        <Td py={4} fontSize="xs" color="gray.400">{rule.value}</Td>
+                        <Td py={4} textAlign="right">
+                          <IconButton size="xs" variant="ghost" colorScheme="red" icon={<Trash2 size={14} />} onClick={() => destroy(route('sites.page-rules.destroy', [site.id, rule.id]), { preserveScroll: true })} />
+                        </Td>
+                      </Tr>
+                    ))}
+                    {(site.page_rules || []).length === 0 && (
+                      <Tr><Td colSpan={4} py={8} textAlign="center" color="gray.600" fontSize="sm">No custom rules defined for this site.</Td></Tr>
+                    )}
+                  </Tbody>
+                </Table>
+              </Box>
+            </Stack>
           </TabPanel>
 
           {/* Traffic Insights */}
@@ -658,87 +658,87 @@ export default function Show({ auth, site, analytics, bandwidth }) {
             </SimpleGrid>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-               <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                 <Heading size="xs" color="white" mb={6} textTransform="uppercase" letterSpacing="widest">HTTP Distribution</Heading>
-                 <ReactECharts style={{ height: '250px' }} option={{
-                   backgroundColor: 'transparent',
-                   tooltip: { trigger: 'item' },
-                   series: [{
-                     type: 'pie', radius: ['40%', '70%'],
-                     data: [
-                       { value: site.hits_2xx || 1, name: '2xx Success', itemStyle: { color: '#22c55e' } },
-                       { value: site.hits_4xx || 0, name: '4xx Error', itemStyle: { color: '#f59e0b' } },
-                       { value: site.hits_5xx || 0, name: '5xx Error', itemStyle: { color: '#ef4444' } },
-                     ],
-                     label: { show: false },
-                   }],
-                 }} />
-               </Box>
-               <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                 <Heading size="xs" color="white" mb={6} textTransform="uppercase" letterSpacing="widest">30-Day Volume</Heading>
-                 <ReactECharts style={{ height: '250px' }} option={{
-                   backgroundColor: 'transparent',
-                   grid: { left: '3%', right: '3%', bottom: '3%', top: '3%', containLabel: true },
-                   xAxis: { type: 'category', data: (bandwidth || []).map(b => b.date), axisLine: { lineStyle: { color: '#333' } } },
-                   yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f1f1f' } } },
-                   series: [{ type: 'bar', data: (bandwidth || []).map(b => b.requests), itemStyle: { color: ACCENT } }],
-                 }} />
-               </Box>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <Heading size="xs" color="white" mb={6} textTransform="uppercase" letterSpacing="widest">HTTP Distribution</Heading>
+                <ReactECharts style={{ height: '250px' }} option={{
+                  backgroundColor: 'transparent',
+                  tooltip: { trigger: 'item' },
+                  series: [{
+                    type: 'pie', radius: ['40%', '70%'],
+                    data: [
+                      { value: site.hits_2xx || 1, name: '2xx Success', itemStyle: { color: '#22c55e' } },
+                      { value: site.hits_4xx || 0, name: '4xx Error', itemStyle: { color: '#f59e0b' } },
+                      { value: site.hits_5xx || 0, name: '5xx Error', itemStyle: { color: '#ef4444' } },
+                    ],
+                    label: { show: false },
+                  }],
+                }} />
+              </Box>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <Heading size="xs" color="white" mb={6} textTransform="uppercase" letterSpacing="widest">30-Day Volume</Heading>
+                <ReactECharts style={{ height: '250px' }} option={{
+                  backgroundColor: 'transparent',
+                  grid: { left: '3%', right: '3%', bottom: '3%', top: '3%', containLabel: true },
+                  xAxis: { type: 'category', data: (bandwidth || []).map(b => b.date), axisLine: { lineStyle: { color: '#333' } } },
+                  yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f1f1f' } } },
+                  series: [{ type: 'bar', data: (bandwidth || []).map(b => b.requests), itemStyle: { color: ACCENT } }],
+                }} />
+              </Box>
             </SimpleGrid>
           </TabPanel>
 
           {/* Other Tabs Simplified for brevity, following the same pattern */}
           <TabPanel p={0}><Text color="gray.500">Advanced routing module is fully operational.</Text></TabPanel>
           <TabPanel p={0}>
-              <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
-                  <Table variant="unstyled" size="sm">
-                      <Thead bg="rgba(255,255,255,0.02)">
-                          <Tr>
-                              <Th color="gray.500" py={3}>TIME & EVENT</Th>
-                              <Th color="gray.500" py={3}>AUTHENTICATED USER</Th>
-                              <Th color="gray.500" py={3}>ACTION TYPE</Th>
-                              <Th color="gray.500" py={3}></Th>
-                          </Tr>
-                      </Thead>
-                      <Tbody>
-                          {(site.config_audits || []).sort((a,b) => b.id - a.id).map(audit => (
-                              <Tr key={audit.id} borderTop="1px solid" borderColor={BORDER} _hover={{ bg: 'rgba(255,255,255,0.01)' }}>
-                                  <Td py={4}>
-                                      <VStack align="start" spacing={0}>
-                                          <Text fontSize="xs" fontWeight="bold" color="white">
-                                              {new Date(audit.created_at).toLocaleString()}
-                                          </Text>
-                                          <Text fontSize="10px" color="gray.500">SYSTEM SNAPSHOT #{audit.id}</Text>
-                                      </VStack>
-                                  </Td>
-                                  <Td py={4}>
-                                      <HStack spacing={2}>
-                                          <Box boxSize={6} bg={ACCENT_DIM} borderRadius="full" display="flex" alignItems="center" justifyContent="center">
-                                              <Text fontSize="10px" fontWeight="bold" color={ACCENT}>{audit.user?.name?.charAt(0) || 'S'}</Text>
-                                          </Box>
-                                          <Text fontSize="xs" color="gray.300">{audit.user?.name || 'System Auto'}</Text>
-                                      </HStack>
-                                  </Td>
-                                  <Td py={4}>
-                                      <Badge variant="outline" colorScheme={audit.action === 'rollback' ? 'orange' : 'blue'} fontSize="10px">
-                                          {audit.action.toUpperCase()}
-                                      </Badge>
-                                  </Td>
-                                  <Td py={4} textAlign="right">
-                                      {audit.action !== 'rollback' && (
-                                          <Button size="xs" variant="ghost" color={ACCENT} _hover={{ bg: ACCENT_DIM }} leftIcon={<RefreshCcw size={12} />} onClick={() => router.post(route('sites.audits.rollback', [site.id, audit.id]))}>
-                                              Restore State
-                                          </Button>
-                                      )}
-                                  </Td>
-                              </Tr>
-                          ))}
-                          {(site.config_audits || []).length === 0 && (
-                              <Tr><Td colSpan={4} py={12} textAlign="center" color="gray.600" fontSize="sm">No deployment history found.</Td></Tr>
-                          )}
-                      </Tbody>
-                  </Table>
-              </Box>
+            <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
+              <Table variant="unstyled" size="sm">
+                <Thead bg="rgba(255,255,255,0.02)">
+                  <Tr>
+                    <Th color="gray.500" py={3}>TIME & EVENT</Th>
+                    <Th color="gray.500" py={3}>AUTHENTICATED USER</Th>
+                    <Th color="gray.500" py={3}>ACTION TYPE</Th>
+                    <Th color="gray.500" py={3}></Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {(site.config_audits || []).sort((a, b) => b.id - a.id).map(audit => (
+                    <Tr key={audit.id} borderTop="1px solid" borderColor={BORDER} _hover={{ bg: 'rgba(255,255,255,0.01)' }}>
+                      <Td py={4}>
+                        <VStack align="start" spacing={0}>
+                          <Text fontSize="xs" fontWeight="bold" color="white">
+                            {new Date(audit.created_at).toLocaleString()}
+                          </Text>
+                          <Text fontSize="10px" color="gray.500">SYSTEM SNAPSHOT #{audit.id}</Text>
+                        </VStack>
+                      </Td>
+                      <Td py={4}>
+                        <HStack spacing={2}>
+                          <Box boxSize={6} bg={ACCENT_DIM} borderRadius="full" display="flex" alignItems="center" justifyContent="center">
+                            <Text fontSize="10px" fontWeight="bold" color={ACCENT}>{audit.user?.name?.charAt(0) || 'S'}</Text>
+                          </Box>
+                          <Text fontSize="xs" color="gray.300">{audit.user?.name || 'System Auto'}</Text>
+                        </HStack>
+                      </Td>
+                      <Td py={4}>
+                        <Badge variant="outline" colorScheme={audit.action === 'rollback' ? 'orange' : 'blue'} fontSize="10px">
+                          {audit.action.toUpperCase()}
+                        </Badge>
+                      </Td>
+                      <Td py={4} textAlign="right">
+                        {audit.action !== 'rollback' && (
+                          <Button size="xs" variant="ghost" color={ACCENT} _hover={{ bg: ACCENT_DIM }} leftIcon={<RefreshCcw size={12} />} onClick={() => router.post(route('sites.audits.rollback', [site.id, audit.id]))}>
+                            Restore State
+                          </Button>
+                        )}
+                      </Td>
+                    </Tr>
+                  ))}
+                  {(site.config_audits || []).length === 0 && (
+                    <Tr><Td colSpan={4} py={12} textAlign="center" color="gray.600" fontSize="sm">No deployment history found.</Td></Tr>
+                  )}
+                </Tbody>
+              </Table>
+            </Box>
           </TabPanel>
         </TabPanels>
       </Tabs>
