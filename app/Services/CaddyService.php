@@ -65,7 +65,7 @@ class CaddyService
                     $countries = implode(' ', array_map('strtoupper', $site->geoip_denylist));
                     $out .= "    @geo_blocked {\n        maxmind_geolocation {\n";
                     $out .= "            db_path \"/etc/caddy/GeoLite2-Country.mmdb\"\n";
-                    $out .= "            deny_countries {$countries}\n        }\n    }\n";
+                    $out .= "            allow_countries {$countries}\n        }\n    }\n";
                     $out .= "    respond @geo_blocked \"Access Denied: Your region is restricted by ProxyPanther Global SOC.\" 403\n\n";
                 }
                 if ($site->geoip_allowlist && \count($site->geoip_allowlist) > 0) {
