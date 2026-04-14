@@ -1,5 +1,5 @@
 import React from 'react';
-import AppLayout from '@/Layouts/AppLayout';
+import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
     Box, Heading, Text, Button, SimpleGrid, Badge, HStack, VStack,
     Table, Thead, Tbody, Tr, Th, Td,
@@ -55,7 +55,7 @@ export default function Index({ auth, teams, ownedTeams }) {
     const allTeams = [...ownedTeams, ...teams.filter(t => !ownedTeams.find(o => o.id === t.id))];
 
     return (
-        <AppLayout user={auth.user}>
+        <EnterpriseLayout user={auth.user}>
             <Head title="Teams" />
 
             <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
@@ -221,6 +221,6 @@ export default function Index({ auth, teams, ownedTeams }) {
                     </form>
                 </ModalContent>
             </Modal>
-        </AppLayout>
+        </EnterpriseLayout>
     );
 }

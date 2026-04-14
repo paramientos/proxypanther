@@ -1,7 +1,7 @@
 import React from 'react';
-import AppLayout from '@/Layouts/AppLayout';
+import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
-  Box, Heading, Text, Button, HStack, VStack,
+  Box, Heading, Text, Button, HStack,
   Table, Thead, Tbody, Tr, Th, Td,
   useColorModeValue, Input, Badge, Code,
   InputGroup, InputLeftElement, Select,
@@ -40,7 +40,7 @@ export default function Index({ auth, events, filters, sites, types }) {
   const headBg = useColorModeValue('gray.50', 'gray.700');
 
   return (
-    <AppLayout user={auth.user}>
+    <EnterpriseLayout user={auth.user}>
       <Head title="Security Logs" />
 
       <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
@@ -192,6 +192,6 @@ export default function Index({ auth, events, filters, sites, types }) {
           </HStack>
         </Box>
       </Box>
-    </AppLayout>
+    </EnterpriseLayout>
   );
 }

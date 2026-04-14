@@ -35,7 +35,7 @@ class ProxySiteController extends Controller
             ->limit(10)
             ->get();
 
-        return Inertia::render('Dashboard', [
+        return Inertia::render('EnterpriseDashboard', [
             'sites'        => ProxySite::withCount('securityEvents')->get(),
             'bannedIps'    => BannedIp::all(),
             'analytics'    => $analytics,

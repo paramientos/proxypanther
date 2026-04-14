@@ -1,5 +1,5 @@
 import React from 'react';
-import AppLayout from '@/Layouts/AppLayout';
+import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
   Box,
   Heading,
@@ -217,7 +217,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
   };
 
   return (
-    <AppLayout user={auth.user}>
+    <EnterpriseLayout user={auth.user}>
       <Head title={site.name} />
 
       <Breadcrumb spacing="8px" separator={<ChevronRight size={14} />} mb={4}>
@@ -815,7 +815,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
 
         </TabPanels>
       </Tabs>
-    </AppLayout>
+    </EnterpriseLayout>
   );
 }
 

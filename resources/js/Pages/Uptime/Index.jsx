@@ -1,5 +1,5 @@
 import React from 'react';
-import AppLayout from '@/Layouts/AppLayout';
+import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
     Box, Heading, Text, SimpleGrid, Badge, HStack, VStack,
     Stat, StatLabel, StatNumber, StatHelpText,
@@ -54,7 +54,7 @@ export default function Index({ auth, sites, events }) {
     };
 
     return (
-        <AppLayout user={auth.user}>
+        <EnterpriseLayout user={auth.user}>
             <Head title="Uptime / SLA" />
 
             <Box mb={6}>
@@ -159,6 +159,6 @@ export default function Index({ auth, sites, events }) {
                     </Tbody>
                 </Table>
             </Box>
-        </AppLayout>
+        </EnterpriseLayout>
     );
 }

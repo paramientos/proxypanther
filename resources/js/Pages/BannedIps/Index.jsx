@@ -1,5 +1,5 @@
 import React from 'react';
-import AppLayout from '@/Layouts/AppLayout';
+import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
   Box,
   Heading,
@@ -41,7 +41,7 @@ export default function Index({ auth, bannedIps }) {
   };
 
   return (
-    <AppLayout user={auth.user}>
+    <EnterpriseLayout user={auth.user}>
       <Head title="IP Blacklist" />
 
       <Box mb={8}>
@@ -123,6 +123,6 @@ export default function Index({ auth, bannedIps }) {
           </Tbody>
         </Table>
       </Box>
-    </AppLayout>
+    </EnterpriseLayout>
   );
 }
