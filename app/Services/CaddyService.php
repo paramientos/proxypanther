@@ -76,7 +76,8 @@ class CaddyService
                 $out .= "    respond @sensitive_paths \"Access to sensitive system files is forbidden.\" 403\n\n";
             }
 
-            // GeoIP
+            /*
+            // GeoIP - Requires custom Caddy build with 'maxmind_geolocation' module
             if ($site->geoip_enabled) {
                 if ($site->geoip_denylist && \count($site->geoip_denylist) > 0) {
                     $countries = implode(' ', array_map('strtoupper', $site->geoip_denylist));
@@ -93,6 +94,7 @@ class CaddyService
                     $out .= "    respond @geo_not_allowed \"Access Denied: Your region is not allowed.\" 403\n";
                 }
             }
+            */
 
             // WAF
             if ($site->waf_enabled) {
