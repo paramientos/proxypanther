@@ -19,6 +19,7 @@ Route::get('/debug-caddy', function () {
     return ProxySite::all()->map(fn ($site) => [
         'id' => $site->id,
         'name' => $site->name,
+        'is_active' => $site->is_active,
         'geoip' => $site->geoip_enabled,
         'deny' => $site->geoip_denylist,
         'domain' => $site->domain,
