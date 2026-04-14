@@ -109,4 +109,15 @@ class ProxySite extends Model
     {
         return $this->hasMany(UptimeEvent::class);
     }
+
+    protected static function booted(): void
+    {
+        static::saved(function ($site) {
+            app(\App\Services\CaddyService::class)->sync();
+        });
+
+        static::deleted(function ($site) {
+            app(\App\Services\CaddyService::class)->sync();
+        });
+    }
 }
