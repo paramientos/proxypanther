@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Events\SecurityEventOccurred;
+use App\Models\BannedIp;
+use App\Models\DailyMetric;
 use App\Models\ProxySite;
 use App\Models\SecurityEvent;
-use App\Models\BannedIp;
-use App\Events\SecurityEventOccurred;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 
@@ -24,7 +27,7 @@ class LogParserService
     {
         $logPath = storage_path("logs/caddy-{$site->id}.log");
 
-        if (!File::exists($logPath)) {
+        if (! File::exists($logPath)) {
             return;
         }
 
@@ -40,7 +43,9 @@ class LogParserService
 
         foreach ($lines as $line) {
             $data = json_decode($line, true);
-            if (!$data) continue;
+            if (! $data) {
+                continue;
+            }
 
             $totalRequests++;
 
@@ -51,30 +56,45 @@ class LogParserService
             }
 
             $status = $data['status'] ?? 200;
-            
+
             // Track Status Codes
-            if ($status >= 200 && $status < 300) $hits2xx++;
-            elseif ($status >= 400 && $status < 500) $hits4xx++;
-            elseif ($status >= 500) $hits5xx++;
+            if ($status >= 200 && $status < 300) {
+                $hits2xx++;
+            } elseif ($status >= 400 && $status < 500) {
+                $hits4xx++;
+            } elseif ($status >= 500) {
+                $hits5xx++;
+            }
 
             if ($status === 403) {
                 $blockedRequests++;
                 $ip = $data['request']['remote_ip'] ?? 'unknown';
+                $uri = $data['request']['uri'] ?? '/';
+
+                // Determine attack type based on common patterns or metadata
+                $attackType = 'WAF Block';
+                if (str_contains($uri, 'wp-admin') || str_contains($uri, '.php')) {
+                    $attackType = 'Exploit Attempt';
+                }
+                if (isset($data['request']['headers']['X-ProxyPanther-WAF'])) {
+                    $attackType = $data['request']['headers']['X-ProxyPanther-WAF'][0];
+                }
+
                 // Resolve GeoIP
                 $geo = $this->resolveGeoIP($ip);
 
                 // Log as Security Event
                 $event = SecurityEvent::create([
                     'proxy_site_id' => $site->id,
-                    'type'          => $attackType,
-                    'ip_address'    => $ip,
-                    'country_code'  => $geo['country_code'] ?? null,
-                    'country_name'  => $geo['country'] ?? null,
-                    'city'          => $geo['city'] ?? null,
-                    'request_method'=> $data['request']['method'] ?? 'GET',
-                    'request_path'  => $data['request']['uri'] ?? '/',
-                    'user_agent'    => $data['request']['headers']['User-Agent'][0] ?? null,
-                    'payload'       => json_encode($data['request']['headers'] ?? []),
+                    'type' => $attackType,
+                    'ip_address' => $ip,
+                    'country_code' => $geo['country_code'] ?? null,
+                    'country_name' => $geo['country'] ?? null,
+                    'city' => $geo['city'] ?? null,
+                    'request_method' => $data['request']['method'] ?? 'GET',
+                    'request_path' => $data['request']['uri'] ?? '/',
+                    'user_agent' => $data['request']['headers']['User-Agent'][0] ?? null,
+                    'payload' => json_encode($data['request']['headers'] ?? []),
                 ]);
 
                 // Send notification if configured
@@ -106,20 +126,30 @@ class LogParserService
 
         // Update Daily Metrics (Atomic & Race-condition safe)
         $today = now()->format('Y-m-d');
-        \Illuminate\Support\Facades\DB::table('daily_metrics')->insertOrIgnore([
+        DB::table('daily_metrics')->insertOrIgnore([
             'proxy_site_id' => $site->id,
-            'date'          => $today,
-            'created_at'    => now(),
-            'updated_at'    => now(),
+            'date' => $today,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
-        $metric = \App\Models\DailyMetric::where('proxy_site_id', $site->id)->where('date', $today)->first();
+        $metric = DailyMetric::where('proxy_site_id', $site->id)->where('date', $today)->first();
         if ($metric) {
-            if ($totalRequests > 0) $metric->increment('total_requests', $totalRequests);
-            if ($blockedRequests > 0) $metric->increment('blocked_requests', $blockedRequests);
-            if ($hits2xx > 0) $metric->increment('hits_2xx', $hits2xx);
-            if ($hits4xx > 0) $metric->increment('hits_4xx', $hits4xx);
-            if ($hits5xx > 0) $metric->increment('hits_5xx', $hits5xx);
+            if ($totalRequests > 0) {
+                $metric->increment('total_requests', $totalRequests);
+            }
+            if ($blockedRequests > 0) {
+                $metric->increment('blocked_requests', $blockedRequests);
+            }
+            if ($hits2xx > 0) {
+                $metric->increment('hits_2xx', $hits2xx);
+            }
+            if ($hits4xx > 0) {
+                $metric->increment('hits_4xx', $hits4xx);
+            }
+            if ($hits5xx > 0) {
+                $metric->increment('hits_5xx', $hits5xx);
+            }
         }
 
         // Auto-Ban IPs that exceeded threshold (e.g., 3 attacks in one batch)
@@ -140,11 +170,13 @@ class LogParserService
 
     protected function notify(ProxySite $site, SecurityEvent $event): void
     {
-        if (!$site->notification_webhook_url) return;
+        if (! $site->notification_webhook_url) {
+            return;
+        }
 
         try {
             Http::post($site->notification_webhook_url, [
-                'text' => "🚨 *ProxyPanther Alert*\n*Site:* {$site->domain}\n*Event:* {$event->type}\n*IP:* {$event->ip_address}\n*Path:* {$event->request_path}\n*Status:* Blocked"
+                'text' => "🚨 *ProxyPanther Alert*\n*Site:* {$site->domain}\n*Event:* {$event->type}\n*IP:* {$event->ip_address}\n*Path:* {$event->request_path}\n*Status:* Blocked",
             ]);
         } catch (\Exception $e) {
             // Silently fail notification
@@ -156,33 +188,47 @@ class LogParserService
         $uri = $data['request']['uri'] ?? '';
         $ua = $data['request']['headers']['User-Agent'][0] ?? '';
 
-        if (str_contains($uri, 'union') || str_contains($uri, 'select') || str_contains($uri, 'information_schema') || str_contains($uri, 'sleep(')) return 'SQLi';
-        if (str_contains($uri, '<script') || str_contains($uri, 'onerror=') || str_contains($uri, 'onload=')) return 'XSS';
-        if (str_contains($uri, '../') || str_contains($uri, '/etc/passwd')) return 'LFI';
-        if (preg_match('/(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)/i', $ua)) return 'Bot';
-        if (str_contains($uri, '.env') || str_contains($uri, '.git')) return 'SensitivePath';
+        if (str_contains($uri, 'union') || str_contains($uri, 'select') || str_contains($uri, 'information_schema') || str_contains($uri, 'sleep(')) {
+            return 'SQLi';
+        }
+        if (str_contains($uri, '<script') || str_contains($uri, 'onerror=') || str_contains($uri, 'onload=')) {
+            return 'XSS';
+        }
+        if (str_contains($uri, '../') || str_contains($uri, '/etc/passwd')) {
+            return 'LFI';
+        }
+        if (preg_match('/(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)/i', $ua)) {
+            return 'Bot';
+        }
+        if (str_contains($uri, '.env') || str_contains($uri, '.git')) {
+            return 'SensitivePath';
+        }
 
         return 'WAF_Block';
     }
 
     protected function resolveGeoIP(string $ip): array
     {
-        if ($ip === 'unknown' || $ip === '127.0.0.1') return [];
+        if ($ip === 'unknown' || $ip === '127.0.0.1') {
+            return [];
+        }
 
-        return \Illuminate\Support\Facades\Cache::remember("geoip_{$ip}", 86400, function() use ($ip) {
+        return Cache::remember("geoip_{$ip}", 86400, function () use ($ip) {
             try {
                 $response = Http::timeout(3)->get("http://ip-api.com/json/{$ip}");
                 if ($response->successful()) {
                     $data = $response->json();
+
                     return [
                         'country_code' => $data['countryCode'] ?? null,
-                        'country'      => $data['country'] ?? null,
-                        'city'         => $data['city'] ?? null,
+                        'country' => $data['country'] ?? null,
+                        'city' => $data['city'] ?? null,
                     ];
                 }
             } catch (\Exception $e) {
                 // Silently skip on error
             }
+
             return [];
         });
     }
