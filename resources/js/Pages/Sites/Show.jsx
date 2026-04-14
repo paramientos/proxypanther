@@ -226,8 +226,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                 setData('under_attack_mode', val);
                 router.post(route('sites.update', site.id), {
                     ...data,
-                    under_attack_mode: val,
-                    _method: 'PUT'
+                    under_attack_mode: val
                 }, { preserveScroll: true });
             }}
           >
