@@ -104,17 +104,23 @@ class LogParserService
             $site->update(['avg_latency_ms' => ($currentAvg + $newAvg) / 2]);
         }
 
-        // Update Daily Metrics
+        // Update Daily Metrics (Atomic & Race-condition safe)
         $today = now()->format('Y-m-d');
-        $metric = \App\Models\DailyMetric::firstOrCreate(
-            ['proxy_site_id' => $site->id, 'date' => $today]
-        );
+        \Illuminate\Support\Facades\DB::table('daily_metrics')->insertOrIgnore([
+            'proxy_site_id' => $site->id,
+            'date'          => $today,
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
 
-        $metric->increment('total_requests', $totalRequests);
-        $metric->increment('blocked_requests', $blockedRequests);
-        $metric->increment('hits_2xx', $hits2xx);
-        $metric->increment('hits_4xx', $hits4xx);
-        $metric->increment('hits_5xx', $hits5xx);
+        $metric = \App\Models\DailyMetric::where('proxy_site_id', $site->id)->where('date', $today)->first();
+        if ($metric) {
+            if ($totalRequests > 0) $metric->increment('total_requests', $totalRequests);
+            if ($blockedRequests > 0) $metric->increment('blocked_requests', $blockedRequests);
+            if ($hits2xx > 0) $metric->increment('hits_2xx', $hits2xx);
+            if ($hits4xx > 0) $metric->increment('hits_4xx', $hits4xx);
+            if ($hits5xx > 0) $metric->increment('hits_5xx', $hits5xx);
+        }
 
         // Auto-Ban IPs that exceeded threshold (e.g., 3 attacks in one batch)
         foreach ($ipAttackCounts as $ip => $count) {
