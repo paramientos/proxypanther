@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\ProxySite;
 use App\Models\BannedIp;
+use App\Models\ProxySite;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
@@ -19,9 +19,9 @@ class CaddyService
 
     public function sync(): bool
     {
-        $sites     = ProxySite::query()->where('is_active', true)->get();
+        $sites = ProxySite::query()->where('is_active', true)->get();
         $bannedIps = BannedIp::all();
-        $content   = $this->generateCaddyfile($sites, $bannedIps);
+        $content = $this->generateCaddyfile($sites, $bannedIps);
 
         File::put($this->caddyfilePath, $content);
 
@@ -43,7 +43,7 @@ class CaddyService
         $out .= "        -Server\n        -X-Powered-By\n    }\n}\n\n";
 
         if ($bannedIps->count() > 0) {
-            $ips  = $bannedIps->pluck('ip_address')->implode(' ');
+            $ips = $bannedIps->pluck('ip_address')->implode(' ');
             $out .= "(blacklist) {\n";
             $out .= "    @banned_ips remote_ip {$ips}\n";
             $out .= "    respond @banned_ips \"Access Denied by ProxyPanther Global Blacklist\" 403\n";
@@ -52,11 +52,12 @@ class CaddyService
 
         foreach ($sites as $site) {
             $prefix = $site->ssl_enabled ? '' : 'http://';
-            $out   .= "{$prefix}{$site->domain} {\n";
+            $out .= "{$prefix}{$site->domain} {\n";
 
             if ($site->is_maintenance) {
-                $msg  = $site->maintenance_message ?: 'Site is under maintenance. Please try again later.';
+                $msg = $site->maintenance_message ?: 'Site is under maintenance. Please try again later.';
                 $out .= "    respond \"{$msg}\" 503\n}\n\n";
+
                 continue;
             }
 
@@ -76,14 +77,13 @@ class CaddyService
                 $out .= "    respond @sensitive_paths \"Access to sensitive system files is forbidden.\" 403\n\n";
             }
 
-            /*
             // GeoIP - Requires custom Caddy build with 'maxmind_geolocation' module
             if ($site->geoip_enabled) {
                 if ($site->geoip_denylist && \count($site->geoip_denylist) > 0) {
                     $countries = implode(' ', array_map('strtoupper', $site->geoip_denylist));
-                    $out .= "    @geo_blocked {\n        not maxmind_geolocation {\n";
+                    $out .= "    @geo_blocked {\n        maxmind_geolocation {\n";
                     $out .= "            db_path /etc/caddy/GeoLite2-Country.mmdb\n";
-                    $out .= "            allow_countries {$countries}\n        }\n    }\n";
+                    $out .= "            deny_countries {$countries}\n        }\n    }\n";
                     $out .= "    respond @geo_blocked \"Access Denied: Your region is blocked.\" 403\n";
                 }
                 if ($site->geoip_allowlist && \count($site->geoip_allowlist) > 0) {
@@ -94,7 +94,6 @@ class CaddyService
                     $out .= "    respond @geo_not_allowed \"Access Denied: Your region is not allowed.\" 403\n";
                 }
             }
-            */
 
             // WAF
             if ($site->waf_enabled) {
@@ -121,17 +120,19 @@ class CaddyService
                 if (\is_array($site->route_policies)) {
                     foreach ($site->route_policies as $idx => $policy) {
                         $path = trim((string) ($policy['path'] ?? ''));
-                        if ($path === '') continue;
+                        if ($path === '') {
+                            continue;
+                        }
                         $pp = str_ends_with($path, '*') ? $path : "{$path}*";
 
-                        if (!empty($policy['bot_challenge_mode'])) {
+                        if (! empty($policy['bot_challenge_mode'])) {
                             $html = $this->getChallengeTemplate('Security Challenge', "Verification required for path: {$path}");
                             $out .= "    @route_bot_{$idx} {\n        path {$pp}\n        header_regexp User-Agent \"(?i)(bot|crawler|spider)\"\n    }\n";
                             $out .= "    header @route_bot_{$idx} Retry-After \"15\"\n";
                             $out .= "    header @route_bot_{$idx} Content-Type \"text/html; charset=utf-8\"\n";
                             $out .= "    respond @route_bot_{$idx} `{$html}` 429\n";
                         }
-                        if (!empty($policy['rate_limit_rps'])) {
+                        if (! empty($policy['rate_limit_rps'])) {
                             $out .= "    @route_rate_{$idx} path {$pp}\n";
                             $out .= "    header @route_rate_{$idx} X-ProxyPanther-Policy-Limit \"{$policy['rate_limit_rps']}rps\"\n";
                         }
@@ -141,7 +142,7 @@ class CaddyService
                 // Custom WAF rules
                 if ($site->custom_waf_rules && \count($site->custom_waf_rules) > 0) {
                     foreach ($site->custom_waf_rules as $idx => $rule) {
-                        $name    = 'custom_rule_' . ($idx + 1);
+                        $name = 'custom_rule_'.($idx + 1);
                         $pattern = addslashes($rule['pattern']);
                         $out .= "    @{$name} {\n";
                         if ($rule['type'] === 'path') {
@@ -172,11 +173,11 @@ class CaddyService
                 $out .= "    import common_security_headers\n";
 
                 if ($site->ip_denylist && \count($site->ip_denylist) > 0) {
-                    $ips  = implode(' ', $site->ip_denylist);
+                    $ips = implode(' ', $site->ip_denylist);
                     $out .= "    @denylist remote_ip {$ips}\n    abort @denylist\n";
                 }
                 if ($site->ip_allowlist && \count($site->ip_allowlist) > 0) {
-                    $ips  = implode(' ', $site->ip_allowlist);
+                    $ips = implode(' ', $site->ip_allowlist);
                     $out .= "    @allowlist not remote_ip {$ips}\n    abort @allowlist\n";
                 }
             }
@@ -191,17 +192,19 @@ class CaddyService
             if ($site->redirect_rules && \count($site->redirect_rules) > 0) {
                 foreach ($site->redirect_rules as $idx => $rule) {
                     $from = trim((string) ($rule['from'] ?? ''));
-                    $to   = trim((string) ($rule['to'] ?? ''));
-                    if ($from === '' || $to === '') continue;
+                    $to = trim((string) ($rule['to'] ?? ''));
+                    if ($from === '' || $to === '') {
+                        continue;
+                    }
                     $type = $rule['type'] ?? 'permanent';
-                    $mn   = "redirect_{$idx}";
+                    $mn = "redirect_{$idx}";
 
                     match ($type) {
-                        'permanent'    => $out .= "    @{$mn} path {$from}\n    redir @{$mn} {$to} 301\n",
-                        'temporary'    => $out .= "    @{$mn} path {$from}\n    redir @{$mn} {$to} 302\n",
-                        'rewrite'      => $out .= "    @{$mn} path {$from}\n    rewrite @{$mn} {$to}\n",
+                        'permanent' => $out .= "    @{$mn} path {$from}\n    redir @{$mn} {$to} 301\n",
+                        'temporary' => $out .= "    @{$mn} path {$from}\n    redir @{$mn} {$to} 302\n",
+                        'rewrite' => $out .= "    @{$mn} path {$from}\n    rewrite @{$mn} {$to}\n",
                         'strip_prefix' => $out .= "    handle_path {$from}* {\n        rewrite * {$to}{path}\n    }\n",
-                        default        => null,
+                        default => null,
                     };
                 }
             }
@@ -209,7 +212,7 @@ class CaddyService
             // Backend
             if ($site->backend_type === 'php_fpm') {
                 $backend = $site->backend_url;
-                if (str_starts_with($backend, '/') && !str_starts_with($backend, 'unix/')) {
+                if (str_starts_with($backend, '/') && ! str_starts_with($backend, 'unix/')) {
                     $backend = "unix/{$backend}";
                 }
                 $out .= "    root * {$site->root_path}\n";
@@ -221,15 +224,17 @@ class CaddyService
                 }
                 $out .= "    }\n";
             } else {
-                $backends  = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
+                $backends = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
                 $backendStr = implode(' ', $backends);
-                $hasEnv    = $site->env_vars && \count($site->env_vars) > 0;
-                $hasBackup = !empty($site->backup_backend_url);
-                $hasCB     = (bool) $site->circuit_breaker_enabled;
+                $hasEnv = $site->env_vars && \count($site->env_vars) > 0;
+                $hasBackup = ! empty($site->backup_backend_url);
+                $hasCB = (bool) $site->circuit_breaker_enabled;
 
                 if ($hasEnv || $hasBackup || \count($backends) > 1 || $hasCB) {
                     $out .= "    reverse_proxy {$backendStr} {\n";
-                    if (\count($backends) > 1) $out .= "        lb_policy random\n";
+                    if (\count($backends) > 1) {
+                        $out .= "        lb_policy random\n";
+                    }
                     if ($hasBackup) {
                         $out .= "        lb_policy first\n        fail_timeout 5s\n        max_fails 2\n";
                         $out .= "        to {$site->backup_backend_url}\n";
@@ -256,11 +261,13 @@ class CaddyService
             // Header manipulation rules
             if ($site->header_rules && \count($site->header_rules) > 0) {
                 foreach ($site->header_rules as $rule) {
-                    $action    = $rule['action'] ?? 'set';
+                    $action = $rule['action'] ?? 'set';
                     $direction = $rule['direction'] ?? 'response';
-                    $name      = trim((string) ($rule['name'] ?? ''));
-                    $value     = trim((string) ($rule['value'] ?? ''));
-                    if ($name === '') continue;
+                    $name = trim((string) ($rule['name'] ?? ''));
+                    $value = trim((string) ($rule['value'] ?? ''));
+                    if ($name === '') {
+                        continue;
+                    }
                     $directive = $direction === 'request' ? 'header_up' : 'header';
                     if ($action === 'remove') {
                         $out .= "    {$directive} -{$name}\n";
@@ -310,7 +317,7 @@ class CaddyService
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>' . $title . ' | ProxyPanther</title>
+    <title>'.$title.' | ProxyPanther</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { background: #050508; color: #fff; font-family: \'Inter\', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
@@ -328,8 +335,8 @@ class CaddyService
         <div class="icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
-        <h1>' . $title . '</h1>
-        <p>' . $message . '. Successive requests will be allowed shortly.</p>
+        <h1>'.$title.'</h1>
+        <p>'.$message.'. Successive requests will be allowed shortly.</p>
         <div class="progress-container">
             <div id="bar" class="progress-bar"></div>
         </div>
@@ -356,14 +363,16 @@ class CaddyService
             if ($response->successful()) {
                 return $response->json() ?? [];
             }
-        } catch (\Exception) {}
+        } catch (\Exception) {
+        }
 
         try {
             $config = Http::timeout(3)->get('http://localhost:2019/config/');
             if ($config->successful()) {
                 return ['raw_config' => $config->json()];
             }
-        } catch (\Exception) {}
+        } catch (\Exception) {
+        }
 
         return [];
     }
@@ -371,6 +380,7 @@ class CaddyService
     protected function reloadCaddy(): bool
     {
         $result = Process::run("caddy reload --config {$this->caddyfilePath}");
+
         return $result->successful();
     }
 }
