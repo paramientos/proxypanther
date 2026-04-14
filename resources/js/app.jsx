@@ -66,6 +66,31 @@ const theme = extendTheme({
         Switch: {
             defaultProps: { colorScheme: 'brand' },
         },
+        Button: {
+            defaultProps: { colorScheme: 'brand' },
+            baseStyle: {
+                borderRadius: 'lg',
+                fontWeight: '600',
+                _focus: { boxShadow: 'none' },
+            },
+            variants: {
+                solid: {
+                    h: '9', // 40px refined standard
+                    px: '5',
+                    fontSize: 'sm',
+                },
+                outline: {
+                    h: '9',
+                    px: '5',
+                    fontSize: 'sm',
+                },
+                ghost: {
+                    h: '9',
+                    px: '5',
+                    fontSize: 'sm',
+                },
+            },
+        },
         Tabs: {
             defaultProps: { colorScheme: 'brand' },
             baseStyle: {

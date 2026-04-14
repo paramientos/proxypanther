@@ -222,7 +222,7 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
       <Box bg={useColorModeValue('white', 'gray.800')} shadow="base" rounded="lg" overflow="hidden" mb={8}>
         <Box p={4} borderBottomWidth="1px" display="flex" justifyContent="space-between" alignItems="center">
           <Heading size="md"><Icon as={AlertTriangle} color="red.500" mr={2} /> Recent Security Events</Heading>
-          <Button as={Link} href={route('banned-ips.index')} size="sm" variant="ghost">View Blacklist</Button>
+          <Button as={Link} href={route('banned-ips.index')} size="sm" variant="ghost" leftIcon={<Shield size={14} />}>View Blacklist</Button>
         </Box>
         <Table variant="simple" size="sm">
           <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
@@ -321,7 +321,7 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                     as={Link}
                     href={route('sites.show', site.id)}
                     size="sm"
-                    rightIcon={<ExternalLink size={14} />}
+                    leftIcon={<ExternalLink size={14} />}
                     variant="ghost"
                   >
                     Manage
@@ -585,10 +585,10 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
               </Stack>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} leftIcon={<X size={18} />}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit" isLoading={processing}>
+              <Button colorScheme="blue" type="submit" isLoading={processing} leftIcon={<CheckCircle size={18} />}>
                 Save Site
               </Button>
             </ModalFooter>

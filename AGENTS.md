@@ -44,6 +44,8 @@ tasarım için chakra ui kullan
 dizayna sadık kal
 enterprise bir hava olsun uida
 schedule command çağırırken command ismini değil class ismini yaz
+cıvık renkler kullanma enterprise-grade ürün yap
+tüm butonlar aynı boyutta olmalı ve kesinlikle ikonlu olmalı
 
 kod yazarken yorum satırı yazma
 

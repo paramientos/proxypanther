@@ -98,15 +98,6 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
               <Button as={Link} href={route('login')} variant="ghost" size="md">
                 Sign In
               </Button>
-              <Button
-                as={Link}
-                href={route('register')}
-                colorScheme="blue"
-                variant="solid"
-                size="md"
-              >
-                Get Started
-              </Button>
             </>
           )}
         </Stack>
@@ -166,7 +157,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
             >
               <Button
                 as={Link}
-                href={auth.user ? route('dashboard') : route('register')}
+                href={auth.user ? route('dashboard') : route('login')}
                 size={'lg'}
                 fontWeight={'semibold'}
                 px={8}
@@ -393,7 +384,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
             <HStack spacing={4}>
               <Button
                 as={Link}
-                href={auth.user ? route('dashboard') : route('register')}
+                href={auth.user ? route('dashboard') : route('login')}
                 size="lg"
                 colorScheme="blue"
                 leftIcon={<Zap size={20} />}

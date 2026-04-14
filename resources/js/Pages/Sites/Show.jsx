@@ -559,7 +559,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                   </FormControl>
 
                   <Box pt={4}>
-                    <Button colorScheme="blue" type="submit" isLoading={updateProcessing}>Save All Changes</Button>
+                    <Button colorScheme="blue" type="submit" isLoading={updateProcessing} leftIcon={<Activity size={18} />}>Save All Changes</Button>
                   </Box>
                 </Stack>
               </form>
@@ -590,7 +590,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                         <Code colorScheme="gray">{event.request_method}</Code> {event.request_path}
                       </Td>
                       <Td textAlign="right">
-                        <Button size="xs" variant="ghost">Details</Button>
+                        <Button size="xs" variant="ghost" leftIcon={<Globe size={12} />}>Details</Button>
                       </Td>
                     </Tr>
                   ))}
@@ -761,7 +761,7 @@ export default function Show({ auth, site, analytics, bandwidth }) {
               </VStack>
 
               <Box pt={6}>
-                <Button colorScheme="blue" isLoading={updateProcessing} onClick={submitUpdate}>Save Headers & Redirects</Button>
+                <Button colorScheme="blue" isLoading={updateProcessing} onClick={submitUpdate} leftIcon={<ArrowRightLeft size={18} />}>Save Headers & Redirects</Button>
               </Box>
             </Box>
           </TabPanel>
