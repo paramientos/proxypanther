@@ -17,8 +17,18 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
+    })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        // Health checks every minute
+        $schedule->command('health:check')->everyMinute();
 
-        //
+        // Parse Caddy logs every minute for real-time stats
+        $schedule->call(function () {
+            app(\App\Services\LogParserService::class)->parseAll();
+        })->everyMinute()->name('parse-caddy-logs')->withoutOverlapping();
+
+        // Sync Caddy config every 5 minutes (catch any drift)
+        $schedule->command('caddy:sync')->everyFiveMinutes()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

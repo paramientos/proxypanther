@@ -111,13 +111,23 @@ class HealthCheckService
 
     private function checkHttp($url)
     {
+        // Ensure URL has protocol
+        if (!preg_match('~^(?:f|ht)tps?://~i', $url)) {
+            $url = "http://" . $url;
+        }
+
         try {
-            $response = Http::timeout(5)->get($url);
+            // Use a shorter timeout and allow for various failure modes
+            $response = Http::timeout(3)
+                ->connectTimeout(2)
+                ->get($url);
+            
             return [
-                'online' => $response->successful() || $response->status() === 503 || $response->status() === 401,
-                'error' => $response->successful() ? null : "HTTP Status: " . $response->status(),
+                'online' => $response->successful() || $response->status() === 503 || $response->status() === 401 || $response->status() === 403,
+                'error' => $response->successful() ? null : "HTTP Response: " . $response->status(),
             ];
         } catch (\Exception $e) {
+            Log::warning("Health check failed for $url: " . $e->getMessage());
             return [
                 'online' => false,
                 'error' => $e->getMessage(),

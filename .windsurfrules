@@ -41,7 +41,8 @@ socket olacaksa laravel reverb kullan
 queue işlemleri için redis + horizon kullan
 tasarım için chakra ui kullan
 dizayna sadık kal
-enterprise bir hava olsun ui'da
+enterprise bir hava olsun uida
+schedule command çağırırken command ismini değil class ismini yaz
 
 kod yazarken yorum satırı yazma
 

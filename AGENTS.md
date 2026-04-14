@@ -31,6 +31,7 @@ Nginx Proxy Manager: Sadece trafiği yönlendirir, güvenliği (WAF) zayıftır,
 Cloudflare: Harikadır ama verin onların elindedir ve her şeyi kontrol edemezsin.
 ProxyPanther: Cloudflare'in gücünü kendi sunucuna (On-Prem) getirir. Hem her şey senin kontrolündedir hem de en modern teknolojiyi (Caddy) kullanırsın.
 Senaryo: PingPanther'i kuran birisi, hemen yanına ProxyPanther'i de kurar. Böylece hem servislerini izler (Ping), hem de onları dış dünyaya güvenli ve hızlı bir şekilde açar (Proxy).
+schedule command çağırırken command ismini değil class ismini yaz
 
 Bu fikir, özellikle "Siber Güvenlik" ve "Altyapı" konularına önem veren profesyonel kullanıcı kitlesini kendine çeker. 
 
@@ -41,7 +42,8 @@ socket olacaksa laravel reverb kullan
 queue işlemleri için redis + horizon kullan
 tasarım için chakra ui kullan
 dizayna sadık kal
-enterprise bir hava olsun ui'da
+enterprise bir hava olsun uida
+schedule command çağırırken command ismini değil class ismini yaz
 
 kod yazarken yorum satırı yazma
 
