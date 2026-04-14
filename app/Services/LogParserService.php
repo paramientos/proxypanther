@@ -106,16 +106,15 @@ class LogParserService
 
         // Update Daily Metrics
         $today = now()->format('Y-m-d');
-        \App\Models\DailyMetric::updateOrCreate(
-            ['proxy_site_id' => $site->id, 'date' => $today],
-            [
-                'total_requests'   => \Illuminate\Support\Facades\DB::raw("total_requests + {$totalRequests}"),
-                'blocked_requests' => \Illuminate\Support\Facades\DB::raw("blocked_requests + {$blockedRequests}"),
-                'hits_2xx'         => \Illuminate\Support\Facades\DB::raw("hits_2xx + {$hits2xx}"),
-                'hits_4xx'         => \Illuminate\Support\Facades\DB::raw("hits_4xx + {$hits4xx}"),
-                'hits_5xx'         => \Illuminate\Support\Facades\DB::raw("hits_5xx + {$hits5xx}"),
-            ]
+        $metric = \App\Models\DailyMetric::firstOrCreate(
+            ['proxy_site_id' => $site->id, 'date' => $today]
         );
+
+        $metric->increment('total_requests', $totalRequests);
+        $metric->increment('blocked_requests', $blockedRequests);
+        $metric->increment('hits_2xx', $hits2xx);
+        $metric->increment('hits_4xx', $hits4xx);
+        $metric->increment('hits_5xx', $hits5xx);
 
         // Auto-Ban IPs that exceeded threshold (e.g., 3 attacks in one batch)
         foreach ($ipAttackCounts as $ip => $count) {
