@@ -223,12 +223,12 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
             boxShadow={data.under_attack_mode ? `0 0 20px ${ACCENT}` : 'none'}
             animation={data.under_attack_mode ? 'pulse 2s infinite' : 'none'}
             onClick={() => {
-                const val = !data.under_attack_mode;
-                setData('under_attack_mode', val);
-                router.post(route('sites.update', site.id), {
-                    ...data,
-                    under_attack_mode: val
-                }, { preserveScroll: true });
+              const val = !data.under_attack_mode;
+              setData('under_attack_mode', val);
+              router.post(route('sites.update', site.id), {
+                ...data,
+                under_attack_mode: val
+              }, { preserveScroll: true });
             }}
           >
             {data.under_attack_mode ? 'UNDER ATTACK' : 'PANIC BUTTON'}
@@ -373,7 +373,6 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                       </Box>
                       <Switch colorScheme="brand" isChecked={data.ssl_enabled} onChange={e => setData('ssl_enabled', e.target.checked)} />
                     </FormControl>
-                    </FormControl>
                   </SimpleGrid>
 
                   <Box borderTop="1px solid" borderColor={BORDER} pt={6} mt={6}>
@@ -383,7 +382,7 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                         <Text fontSize="xs" color="gray.500">Intelligent traffic shaping and abuse mitigation</Text>
                       </VStack>
                     </HStack>
-                    
+
                     <SimpleGrid columns={3} spacing={6}>
                       <FormControl>
                         <FormLabel fontSize="10px" color="gray.500">REQUESTS / SEC (RPS)</FormLabel>
@@ -436,8 +435,8 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
           </TabPanel>
 
           <TabPanel p={0}>
-              <Stack spacing={6}>
-                <ConfigSection title="WAF Strategy" icon={Shield} description="Intelligent firewall policies">
+            <Stack spacing={6}>
+              <ConfigSection title="WAF Strategy" icon={Shield} description="Intelligent firewall policies">
                 <SimpleGrid columns={2} spacing={8}>
                   <FormControl display="flex" justifyContent="space-between" alignItems="center">
                     <Box>
@@ -750,49 +749,49 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
 
           {/* Other Tabs Simplified for brevity, following the same pattern */}
           <TabPanel p={0}>
-              <Stack spacing={6}>
-                  <ConfigSection title="Visual Identity" icon={Palette} description="Branded experience for visitors">
-                      <SimpleGrid columns={2} spacing={8}>
-                          <FormControl>
-                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">CUSTOM 403 (FORBIDDEN) PAGE HTML</FormLabel>
-                              <Textarea bg="#050508" borderColor={BORDER} rows={10} value={data.custom_error_403} onChange={e => setData('custom_error_403', e.target.value)} fontFamily="monospace" fontSize="xs" />
-                          </FormControl>
-                          <FormControl>
-                              <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">CUSTOM 503 (MAINTENANCE) PAGE HTML</FormLabel>
-                              <Textarea bg="#050508" borderColor={BORDER} rows={10} value={data.custom_error_503} onChange={e => setData('custom_error_503', e.target.value)} fontFamily="monospace" fontSize="xs" />
-                          </FormControl>
-                      </SimpleGrid>
-                  </ConfigSection>
+            <Stack spacing={6}>
+              <ConfigSection title="Visual Identity" icon={Palette} description="Branded experience for visitors">
+                <SimpleGrid columns={2} spacing={8}>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">CUSTOM 403 (FORBIDDEN) PAGE HTML</FormLabel>
+                    <Textarea bg="#050508" borderColor={BORDER} rows={10} value={data.custom_error_403} onChange={e => setData('custom_error_403', e.target.value)} fontFamily="monospace" fontSize="xs" />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">CUSTOM 503 (MAINTENANCE) PAGE HTML</FormLabel>
+                    <Textarea bg="#050508" borderColor={BORDER} rows={10} value={data.custom_error_503} onChange={e => setData('custom_error_503', e.target.value)} fontFamily="monospace" fontSize="xs" />
+                  </FormControl>
+                </SimpleGrid>
+              </ConfigSection>
 
-                  <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
-                      <HStack spacing={4} mb={6}>
-                          <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
-                              <Icon as={Palette} boxSize={5} color={ACCENT} />
-                          </Box>
-                          <VStack align="start" spacing={0}>
-                              <Heading size="sm" color="white">Stunning Error Templates</Heading>
-                              <Text fontSize="xs" color="gray.500">Pick a professional design to WOW your blocked visitors</Text>
-                          </VStack>
-                      </HStack>
-                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-                          {Object.entries(errorTemplates || {}).map(([key, tpl]) => (
-                              <Box key={key} p={4} borderRadius="lg" border="1px solid" borderColor={BORDER} transition="all 0.2s" _hover={{ borderColor: ACCENT, bg: 'rgba(255,255,255,0.02)' }}>
-                                  <VStack align="start" spacing={3}>
-                                      <Text fontSize="sm" fontWeight="bold" color="white">{tpl.name}</Text>
-                                      <HStack spacing={2} w="100%">
-                                          <Button size="xs" colorScheme="orange" variant="outline" flex={1} onClick={() => router.post(route('sites.apply-error-template', site.id), { template: key, code: '403' })}>
-                                              Apply to 403
-                                          </Button>
-                                          <Button size="xs" colorScheme="orange" variant="outline" flex={1} onClick={() => router.post(route('sites.apply-error-template', site.id), { template: key, code: '503' })}>
-                                              Apply to 503
-                                          </Button>
-                                      </HStack>
-                                  </VStack>
-                              </Box>
-                          ))}
-                      </SimpleGrid>
+              <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                <HStack spacing={4} mb={6}>
+                  <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                    <Icon as={Palette} boxSize={5} color={ACCENT} />
                   </Box>
-              </Stack>
+                  <VStack align="start" spacing={0}>
+                    <Heading size="sm" color="white">Stunning Error Templates</Heading>
+                    <Text fontSize="xs" color="gray.500">Pick a professional design to WOW your blocked visitors</Text>
+                  </VStack>
+                </HStack>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                  {Object.entries(errorTemplates || {}).map(([key, tpl]) => (
+                    <Box key={key} p={4} borderRadius="lg" border="1px solid" borderColor={BORDER} transition="all 0.2s" _hover={{ borderColor: ACCENT, bg: 'rgba(255,255,255,0.02)' }}>
+                      <VStack align="start" spacing={3}>
+                        <Text fontSize="sm" fontWeight="bold" color="white">{tpl.name}</Text>
+                        <HStack spacing={2} w="100%">
+                          <Button size="xs" colorScheme="orange" variant="outline" flex={1} onClick={() => router.post(route('sites.apply-error-template', site.id), { template: key, code: '403' })}>
+                            Apply to 403
+                          </Button>
+                          <Button size="xs" colorScheme="orange" variant="outline" flex={1} onClick={() => router.post(route('sites.apply-error-template', site.id), { template: key, code: '503' })}>
+                            Apply to 503
+                          </Button>
+                        </HStack>
+                      </VStack>
+                    </Box>
+                  ))}
+                </SimpleGrid>
+              </Box>
+            </Stack>
           </TabPanel>
           <TabPanel p={0}>
             <Box bg={CARD_BG} p={0} borderRadius="xl" border="1px solid" borderColor={BORDER} overflow="hidden">
