@@ -43,12 +43,12 @@ import { Link as InertiaLink, router } from '@inertiajs/react';
 
 const NAV_ITEMS = [
     { name: 'Dashboard', icon: LayoutDashboard, route: 'dashboard' },
-    { name: 'Proxy Sites', icon: Globe, route: 'dashboard' },
+    { name: 'Proxy Sites', icon: Globe, route: 'dashboard', params: { view: 'sites' } },
     { name: 'Security Logs', icon: FileText, route: 'logs.index' },
     { name: 'IP Blacklist', icon: Shield, route: 'banned-ips.index' },
     { name: 'SSL Certificates', icon: Lock, route: 'ssl.index' },
     { name: 'Uptime & SLA', icon: TrendingUp, route: 'uptime.index' },
-    { name: 'Analytics', icon: BarChart3, route: 'dashboard' },
+    { name: 'Analytics', icon: BarChart3, route: 'logs.index' },
     { name: 'Teams', icon: Users, route: 'teams.index' },
 ];
 
@@ -56,9 +56,9 @@ const SIDEBAR_BG = '#111111';
 const SIDEBAR_BORDER = '#1f1f1f';
 const TOPBAR_BG = '#0a0a0a';
 const CONTENT_BG = '#0d0d0d';
-const ACTIVE_BG = '#f97316';
+const ACTIVE_BG = '#F68220';
 const HOVER_BG = '#1a1a1a';
-const ACCENT = '#f97316';
+const ACCENT = '#F68220';
 
 function SidebarContent({ onClose }) {
     return (
@@ -113,12 +113,14 @@ function SidebarContent({ onClose }) {
             {/* Navigation */}
             <VStack spacing={0.5} align="stretch" px={3}>
                 {NAV_ITEMS.map((item) => {
-                    const isActive = route().current(item.route);
+                    const currentView = new URLSearchParams(window.location.search).get('view');
+                    const itemView = item.params?.view;
+                    const isActive = route().current(item.route) && (itemView === currentView || (!itemView && !currentView));
                     return (
                         <Tooltip key={item.name} label={item.name} placement="right" hasArrow>
                             <Box
                                 as={InertiaLink}
-                                href={route(item.route)}
+                                href={route(item.route, item.params || {})}
                                 display="flex"
                                 alignItems="center"
                                 px={3}

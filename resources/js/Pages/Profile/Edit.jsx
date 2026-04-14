@@ -1,39 +1,59 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import React from 'react';
+import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
+import {
+  Box,
+  Container,
+  Stack,
+  Heading,
+  useColorModeValue,
+} from '@chakra-ui/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({ auth, mustVerifyEmail, status }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    Profile
-                </h2>
-            }
-        >
+        <AppLayout user={auth.user}>
             <Head title="Profile" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+            <Container maxW="container.xl" py={8}>
+                <Stack spacing={8}>
+                    <Box>
+                        <Heading size="lg">Profile</Heading>
+                    </Box>
+
+                    <Box 
+                        p={{ base: 4, sm: 8 }} 
+                        bg={useColorModeValue('white', 'gray.800')} 
+                        shadow="base" 
+                        rounded="lg"
+                    >
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
-                            className="max-w-xl"
                         />
-                    </div>
+                    </Box>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
-                        <UpdatePasswordForm className="max-w-xl" />
-                    </div>
+                    <Box 
+                        p={{ base: 4, sm: 8 }} 
+                        bg={useColorModeValue('white', 'gray.800')} 
+                        shadow="base" 
+                        rounded="lg"
+                    >
+                        <UpdatePasswordForm />
+                    </Box>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
-                        <DeleteUserForm className="max-w-xl" />
-                    </div>
-                </div>
-            </div>
-        </AuthenticatedLayout>
+                    <Box 
+                        p={{ base: 4, sm: 8 }} 
+                        bg={useColorModeValue('white', 'gray.800')} 
+                        shadow="base" 
+                        rounded="lg"
+                    >
+                        <DeleteUserForm />
+                    </Box>
+                </Stack>
+            </Container>
+        </AppLayout>
     );
 }

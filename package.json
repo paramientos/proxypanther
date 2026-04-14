@@ -18,7 +18,7 @@
         "axios": ">=1.11.0 <=1.14.0",
         "concurrently": "^9.0.1",
         "laravel-echo": "^2.3.4",
-        "laravel-vite-plugin": "^3.0.0",
+        "laravel-vite-plugin": "1.1.1",
         "postcss": "^8.4.31",
         "pusher-js": "^8.5.0",
         "react": "^18.2.0",

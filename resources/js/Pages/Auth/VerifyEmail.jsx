@@ -1,50 +1,72 @@
-import PrimaryButton from '@/Components/PrimaryButton';
-import GuestLayout from '@/Layouts/GuestLayout';
+import React from 'react';
+import {
+    Box,
+    Button,
+    Container,
+    Heading,
+    Stack,
+    Text,
+    useColorModeValue,
+    Icon,
+    Alert,
+    AlertIcon,
+} from '@chakra-ui/react';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { MailCheck } from 'lucide-react';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route('verification.send'));
     };
 
     return (
-        <GuestLayout>
+        <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')} display="flex" alignItems="center" justifyContent="center">
             <Head title="Email Verification" />
-
-            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                Thanks for signing up! Before getting started, could you verify
-                your email address by clicking on the link we just emailed to
-                you? If you didn't receive the email, we will gladly send you
-                another.
-            </div>
-
-            {status === 'verification-link-sent' && (
-                <div className="mb-4 text-sm font-medium text-green-600 dark:text-green-400">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
-                </div>
-            )}
-
-            <form onSubmit={submit}>
-                <div className="mt-4 flex items-center justify-between">
-                    <PrimaryButton disabled={processing}>
-                        Resend Verification Email
-                    </PrimaryButton>
-
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
+            <Container maxW="md" py={{ base: '12', md: '24' }} px={{ base: '0', sm: '8' }}>
+                <Stack spacing="8">
+                    <Stack spacing="6" align="center">
+                        <Icon as={MailCheck} w={10} h={10} color="orange.500" />
+                        <Stack spacing={{ base: '2', md: '3' }} textAlign="center">
+                            <Heading size={{ base: 'xs', md: 'sm' }}>Verify Email</Heading>
+                            <Text color="muted">Thanks for signing up! Please verify your email address by clicking the link we sent you.</Text>
+                        </Stack>
+                    </Stack>
+                    <Box
+                        py={{ base: '0', sm: '8' }}
+                        px={{ base: '4', sm: '10' }}
+                        bg={{ base: 'transparent', sm: useColorModeValue('white', 'gray.800') }}
+                        boxShadow={{ base: 'none', sm: 'md' }}
+                        borderRadius={{ base: 'none', sm: 'xl' }}
                     >
-                        Log Out
-                    </Link>
-                </div>
-            </form>
-        </GuestLayout>
+                        {status === 'verification-link-sent' && (
+                            <Alert status="success" mb={4} borderRadius="md">
+                                <AlertIcon />
+                                A new verification link has been sent to your email.
+                            </Alert>
+                        )}
+                        <form onSubmit={submit}>
+                            <Stack spacing="6">
+                                <Button type="submit" width="full" colorScheme="orange" isLoading={processing}>
+                                    Resend Verification Email
+                                </Button>
+                                <Button
+                                    as={Link}
+                                    href={route('logout')}
+                                    method="post"
+                                    variant="link"
+                                    width="full"
+                                    size="sm"
+                                >
+                                    Log Out
+                                </Button>
+                            </Stack>
+                        </form>
+                    </Box>
+                </Stack>
+            </Container>
+        </Box>
     );
 }

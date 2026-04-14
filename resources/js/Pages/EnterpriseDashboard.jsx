@@ -19,8 +19,8 @@ import ReactECharts from 'echarts-for-react';
 const CARD_BG = '#161616';
 const BORDER = '#242424';
 const ROW_HOVER = '#1c1c1c';
-const ACCENT = '#f97316';
-const ACCENT_DIM = 'rgba(249,115,22,0.12)';
+const ACCENT = '#F68220';
+const ACCENT_DIM = 'rgba(246,130,32,0.12)';
 
 export default function EnterpriseDashboard({ auth, sites: initialSites, analytics }) {
     const [sites, setSites] = React.useState(initialSites);
@@ -88,8 +88,8 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                 color: {
                     type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
                     colorStops: [
-                        { offset: 0, color: 'rgba(249,115,22,0.25)' },
-                        { offset: 1, color: 'rgba(249,115,22,0)' },
+                        { offset: 0, color: 'rgba(246,130,32,0.25)' },
+                        { offset: 1, color: 'rgba(246,130,32,0)' },
                     ],
                 },
             },
@@ -148,25 +148,28 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
         },
     ];
 
+    const view = new URLSearchParams(window.location.search).get('view');
+    const showAll = !view || view === 'dashboard';
+
     return (
         <EnterpriseLayout user={auth.user}>
-            <Head title="Dashboard" />
+            <Head title={view === 'sites' ? 'Proxy Sites' : 'Dashboard'} />
 
             {/* Header */}
             <Flex justify="space-between" align="center" mb={8}>
                 <Box>
                     <Heading size="lg" color="white" fontWeight="semibold">
-                        Security Operations Center
+                        {view === 'sites' ? 'Proxy Infrastructure' : 'Security Operations Center'}
                     </Heading>
                     <Text color="gray.500" fontSize="sm" mt={1}>
-                        Real-time monitoring and threat intelligence
+                        {view === 'sites' ? 'Manage and monitor your proxy sites' : 'Real-time monitoring and threat intelligence'}
                     </Text>
                 </Box>
                 <Button
                     leftIcon={<Plus size={16} />}
                     bg={ACCENT}
                     color="white"
-                    _hover={{ bg: '#ea580c' }}
+                    _hover={{ bg: '#e56b10' }}
                     size="md"
                     onClick={onOpen}
                     fontWeight="medium"
@@ -175,59 +178,63 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                 </Button>
             </Flex>
 
-            {/* KPI Cards */}
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={6}>
-                {kpis.map((kpi) => (
-                    <Box key={kpi.label} bg={CARD_BG} p={5} borderRadius="lg"
-                        border="1px solid" borderColor={BORDER}>
-                        <HStack justify="space-between" mb={4}>
-                            <Box p={2.5} bg={kpi.iconBg} borderRadius="md">
-                                <Icon as={kpi.icon} boxSize={5} color={kpi.iconColor} />
+            {showAll && (
+                <>
+                    {/* KPI Cards */}
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={6}>
+                        {kpis.map((kpi) => (
+                            <Box key={kpi.label} bg={CARD_BG} p={5} borderRadius="lg"
+                                border="1px solid" borderColor={BORDER}>
+                                <HStack justify="space-between" mb={4}>
+                                    <Box p={2.5} bg={kpi.iconBg} borderRadius="md">
+                                        <Icon as={kpi.icon} boxSize={5} color={kpi.iconColor} />
+                                    </Box>
+                                    <Badge
+                                        colorScheme={kpi.badgeColor}
+                                        fontSize="10px"
+                                        px={2}
+                                        borderRadius="full"
+                                    >
+                                        {kpi.badge === '+12%' || kpi.badge === '+8%'
+                                            ? <HStack spacing={0.5}><ArrowUp size={9} /><Text>{kpi.badge}</Text></HStack>
+                                            : kpi.badge
+                                        }
+                                    </Badge>
+                                </HStack>
+                                <Text fontSize="2xl" fontWeight="bold" color="white" mb={0.5}>
+                                    {kpi.value}
+                                </Text>
+                                <Text fontSize="xs" color="gray.500" mb={kpi.progress !== undefined ? 3 : 0}>
+                                    {kpi.label}
+                                </Text>
+                                {kpi.progress !== undefined && (
+                                    <Progress value={kpi.progress} size="xs" colorScheme="brand"
+                                        bg="#2a2a2a" borderRadius="full" />
+                                )}
                             </Box>
-                            <Badge
-                                colorScheme={kpi.badgeColor}
-                                fontSize="10px"
-                                px={2}
-                                borderRadius="full"
-                            >
-                                {kpi.badge === '+12%' || kpi.badge === '+8%'
-                                    ? <HStack spacing={0.5}><ArrowUp size={9} /><Text>{kpi.badge}</Text></HStack>
-                                    : kpi.badge
-                                }
-                            </Badge>
-                        </HStack>
-                        <Text fontSize="2xl" fontWeight="bold" color="white" mb={0.5}>
-                            {kpi.value}
-                        </Text>
-                        <Text fontSize="xs" color="gray.500" mb={kpi.progress !== undefined ? 3 : 0}>
-                            {kpi.label}
-                        </Text>
-                        {kpi.progress !== undefined && (
-                            <Progress value={kpi.progress} size="xs" colorScheme="brand"
-                                bg="#2a2a2a" borderRadius="full" />
-                        )}
-                    </Box>
-                ))}
-            </SimpleGrid>
+                        ))}
+                    </SimpleGrid>
 
-            {/* Chart */}
-            <Box bg={CARD_BG} p={6} borderRadius="lg" border="1px solid" borderColor={BORDER} mb={6}>
-                <HStack justify="space-between" mb={5}>
-                    <Box>
-                        <Text fontWeight="semibold" color="white">Security Events Timeline</Text>
-                        <Text fontSize="xs" color="gray.500" mt={0.5}>Last 7 days threat activity</Text>
+                    {/* Chart */}
+                    <Box bg={CARD_BG} p={6} borderRadius="lg" border="1px solid" borderColor={BORDER} mb={6}>
+                        <HStack justify="space-between" mb={5}>
+                            <Box>
+                                <Text fontWeight="semibold" color="white">Security Events Timeline</Text>
+                                <Text fontSize="xs" color="gray.500" mt={0.5}>Last 7 days threat activity</Text>
+                            </Box>
+                            <HStack spacing={2}>
+                                <Box w={2} h={2} bg={ACCENT} borderRadius="full" />
+                                <Text fontSize="xs" color="gray.500">Security Events</Text>
+                                <IconButton size="xs" variant="ghost" color="gray.500"
+                                    _hover={{ color: 'white' }} icon={<RefreshCcw size={13} />} />
+                            </HStack>
+                        </HStack>
+                        <Box height="240px">
+                            <ReactECharts option={chartOptions} style={{ height: '100%', width: '100%' }} />
+                        </Box>
                     </Box>
-                    <HStack spacing={2}>
-                        <Box w={2} h={2} bg={ACCENT} borderRadius="full" />
-                        <Text fontSize="xs" color="gray.500">Security Events</Text>
-                        <IconButton size="xs" variant="ghost" color="gray.500"
-                            _hover={{ color: 'white' }} icon={<RefreshCcw size={13} />} />
-                    </HStack>
-                </HStack>
-                <Box height="240px">
-                    <ReactECharts option={chartOptions} style={{ height: '100%', width: '100%' }} />
-                </Box>
-            </Box>
+                </>
+            )}
 
             {/* Sites Table */}
             <Box bg={CARD_BG} borderRadius="lg" border="1px solid" borderColor={BORDER} overflow="hidden">
@@ -299,7 +306,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                             {site.waf_enabled && (
                                                 <Badge fontSize="10px"
                                                     bg={ACCENT_DIM} color={ACCENT}
-                                                    border="1px solid" borderColor="rgba(249,115,22,0.3)">
+                                                    border="1px solid" borderColor="rgba(246,130,32,0.3)">
                                                     WAF
                                                 </Badge>
                                             )}
@@ -429,7 +436,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                         </ModalBody>
                         <Flex px={6} py={4} borderTop="1px solid" borderColor={BORDER} justify="flex-end" gap={3}>
                             <Button variant="ghost" color="gray.400" onClick={onClose}>Cancel</Button>
-                            <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#ea580c' }}>
+                            <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#e56b10' }}>
                                 Create Site
                             </Button>
                         </Flex>

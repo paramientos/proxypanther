@@ -1,8 +1,17 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import { Transition } from '@headlessui/react';
+import React from 'react';
+import {
+  Box,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  Stack,
+  Text,
+  useColorModeValue,
+  FormErrorMessage,
+  Heading,
+  Fade,
+} from '@chakra-ui/react';
 import { useForm } from '@inertiajs/react';
 import { useRef } from 'react';
 
@@ -45,98 +54,67 @@ export default function UpdatePasswordForm({ className = '' }) {
     };
 
     return (
-        <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Update Password
-                </h2>
+        <Box as="section" className={className}>
+            <Stack spacing={1} mb={6}>
+                <Heading size="md">Update Password</Heading>
+                <Text color="gray.500" fontSize="sm">
+                    Ensure your account is using a long, random password to stay secure.
+                </Text>
+            </Stack>
 
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Ensure your account is using a long, random password to stay
-                    secure.
-                </p>
-            </header>
+            <form onSubmit={updatePassword}>
+                <Stack spacing={6} maxW="xl">
+                    <FormControl isRequired isInvalid={errors.current_password}>
+                        <FormLabel htmlFor="current_password">Current Password</FormLabel>
+                        <Input
+                            id="current_password"
+                            ref={currentPasswordInput}
+                            value={data.current_password}
+                            onChange={(e) => setData('current_password', e.target.value)}
+                            type="password"
+                            autoComplete="current-password"
+                        />
+                        {errors.current_password && <FormErrorMessage>{errors.current_password}</FormErrorMessage>}
+                    </FormControl>
 
-            <form onSubmit={updatePassword} className="mt-6 space-y-6">
-                <div>
-                    <InputLabel
-                        htmlFor="current_password"
-                        value="Current Password"
-                    />
+                    <FormControl isRequired isInvalid={errors.password}>
+                        <FormLabel htmlFor="password">New Password</FormLabel>
+                        <Input
+                            id="password"
+                            ref={passwordInput}
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            type="password"
+                            autoComplete="new-password"
+                        />
+                        {errors.password && <FormErrorMessage>{errors.password}</FormErrorMessage>}
+                    </FormControl>
 
-                    <TextInput
-                        id="current_password"
-                        ref={currentPasswordInput}
-                        value={data.current_password}
-                        onChange={(e) =>
-                            setData('current_password', e.target.value)
-                        }
-                        type="password"
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                    />
+                    <FormControl isRequired isInvalid={errors.password_confirmation}>
+                        <FormLabel htmlFor="password_confirmation">Confirm Password</FormLabel>
+                        <Input
+                            id="password_confirmation"
+                            value={data.password_confirmation}
+                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                            type="password"
+                            autoComplete="new-password"
+                        />
+                        {errors.password_confirmation && <FormErrorMessage>{errors.password_confirmation}</FormErrorMessage>}
+                    </FormControl>
 
-                    <InputError
-                        message={errors.current_password}
-                        className="mt-2"
-                    />
-                </div>
+                    <Box display="flex" alignItems="center" gap={4}>
+                        <Button type="submit" colorScheme="orange" isLoading={processing}>
+                            Save
+                        </Button>
 
-                <div>
-                    <InputLabel htmlFor="password" value="New Password" />
-
-                    <TextInput
-                        id="password"
-                        ref={passwordInput}
-                        value={data.password}
-                        onChange={(e) => setData('password', e.target.value)}
-                        type="password"
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div>
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
-
-                    <TextInput
-                        id="password_confirmation"
-                        value={data.password_confirmation}
-                        onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
-                        }
-                        type="password"
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                    />
-
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
-
-                    <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
-                    >
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Saved.
-                        </p>
-                    </Transition>
-                </div>
+                        <Fade in={recentlySuccessful}>
+                            <Text fontSize="sm" color="gray.500">
+                                Saved.
+                            </Text>
+                        </Fade>
+                    </Box>
+                </Stack>
             </form>
-        </section>
+        </Box>
     );
 }

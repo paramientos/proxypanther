@@ -1,9 +1,20 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
+import React from 'react';
+import {
+    Box,
+    Button,
+    Container,
+    FormControl,
+    FormLabel,
+    Heading,
+    Input,
+    Stack,
+    Text,
+    useColorModeValue,
+    FormErrorMessage,
+    Icon,
+} from '@chakra-ui/react';
 import { Head, useForm } from '@inertiajs/react';
+import { Lock } from 'lucide-react';
 
 export default function ConfirmPassword() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -19,37 +30,45 @@ export default function ConfirmPassword() {
     };
 
     return (
-        <GuestLayout>
+        <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')} display="flex" alignItems="center" justifyContent="center">
             <Head title="Confirm Password" />
-
-            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                This is a secure area of the application. Please confirm your
-                password before continuing.
-            </div>
-
-            <form onSubmit={submit}>
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        isFocused={true}
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Confirm
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
+            <Container maxW="md" py={{ base: '12', md: '24' }} px={{ base: '0', sm: '8' }}>
+                <Stack spacing="8">
+                    <Stack spacing="6" align="center">
+                        <Icon as={Lock} w={10} h={10} color="orange.500" />
+                        <Stack spacing={{ base: '2', md: '3' }} textAlign="center">
+                            <Heading size={{ base: 'xs', md: 'sm' }}>Confirm Password</Heading>
+                            <Text color="muted">This is a secure area. Please confirm your password.</Text>
+                        </Stack>
+                    </Stack>
+                    <Box
+                        py={{ base: '0', sm: '8' }}
+                        px={{ base: '4', sm: '10' }}
+                        bg={{ base: 'transparent', sm: useColorModeValue('white', 'gray.800') }}
+                        boxShadow={{ base: 'none', sm: 'md' }}
+                        borderRadius={{ base: 'none', sm: 'xl' }}
+                    >
+                        <form onSubmit={submit}>
+                            <Stack spacing="6">
+                                <FormControl isRequired isInvalid={errors.password}>
+                                    <FormLabel htmlFor="password">Password</FormLabel>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        value={data.password}
+                                        onChange={(e) => setData('password', e.target.value)}
+                                        autoFocus
+                                    />
+                                    {errors.password && <FormErrorMessage>{errors.password}</FormErrorMessage>}
+                                </FormControl>
+                                <Button type="submit" width="full" colorScheme="orange" isLoading={processing}>
+                                    Confirm
+                                </Button>
+                            </Stack>
+                        </form>
+                    </Box>
+                </Stack>
+            </Container>
+        </Box>
     );
 }
