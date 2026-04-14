@@ -132,7 +132,7 @@ class CaddyService
                 if ($site->block_common_bad_bots) {
                     $out .= "    @bad_bots {\n";
                     $out .= "        header_regexp User-Agent \"(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)\"\n";
-                    $out .= "    }\n    respond @bad_bots \"Access Denied\" 403\n";
+                    $out .= "    }\n    error @bad_bots \"Access Denied\" 403\n";
                 }
 
                 if ($site->bot_challenge_force) {
@@ -184,7 +184,7 @@ class CaddyService
                         } elseif ($rule['type'] === 'header') {
                             $out .= "        header_regexp {$rule['header_name']} \"{$pattern}\"\n";
                         }
-                        $out .= "    }\n    respond @{$name} \"Blocked by Custom Security Rule\" 403\n";
+                        $out .= "    }\n    error @{$name} \"Blocked by Custom Security Rule\" 403\n";
                     }
                 }
 
@@ -200,7 +200,7 @@ class CaddyService
                 $out .= "        expression {query}.contains('../')\n";
                 $out .= "        expression {query}.contains('/etc/passwd')\n";
                 $out .= "        header_regexp User-Agent (?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)\n";
-                $out .= "    }\n    respond @attacks \"Access Denied by ProxyPanther Advanced WAF\" 403\n\n";
+                $out .= "    }\n    error @attacks \"Access Denied by ProxyPanther Advanced WAF\" 403\n\n";
 
                 $out .= "    import common_security_headers\n";
 
