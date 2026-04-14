@@ -68,6 +68,13 @@ const theme = extendTheme({
         },
         Tabs: {
             defaultProps: { colorScheme: 'brand' },
+            baseStyle: {
+                tab: {
+                    _focus: {
+                        boxShadow: 'none',
+                    },
+                },
+            },
         },
     },
 });

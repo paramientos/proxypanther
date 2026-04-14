@@ -56,8 +56,8 @@ const SIDEBAR_BG = '#08080a';
 const SIDEBAR_BORDER = 'rgba(255,255,255,0.05)';
 const TOPBAR_BG = '#0a0a0a';
 const CONTENT_BG = '#0d0d0d';
-const ACTIVE_BG = '#6366f1';
-const HOVER_BG = '#1a1a1a';
+const ACTIVE_BG = 'rgba(99, 102, 241, 0.12)';
+const HOVER_BG = 'rgba(255, 255, 255, 0.05)';
 const ACCENT = '#6366f1';
 
 function SidebarContent({ onClose }) {
@@ -124,29 +124,30 @@ function SidebarContent({ onClose }) {
                                 display="flex"
                                 alignItems="center"
                                 px={3}
-                                py={2.5}
+                                py={2}
                                 borderRadius="md"
                                 cursor="pointer"
                                 bg={isActive ? ACTIVE_BG : 'transparent'}
-                                color={isActive ? 'white' : 'gray.500'}
-                                _hover={{ bg: isActive ? ACTIVE_BG : HOVER_BG, color: 'white' }}
-                                transition="all 0.15s"
+                                color={isActive ? ACCENT : 'gray.500'}
+                                _hover={{ bg: isActive ? ACTIVE_BG : HOVER_BG, color: isActive ? ACCENT : 'gray.200' }}
+                                transition="all 0.2s"
                                 position="relative"
+                                fontWeight={isActive ? '600' : '500'}
                             >
                                 {isActive && (
                                     <Box
                                         position="absolute"
-                                        left={0}
+                                        left="-12px"
                                         top="20%"
                                         bottom="20%"
                                         w="3px"
-                                        bg="white"
+                                        bg={ACCENT}
                                         borderRadius="full"
-                                        opacity={0.6}
+                                        boxShadow={`0 0 10px ${ACCENT}`}
                                     />
                                 )}
-                                <Icon as={item.icon} boxSize={4} />
-                                <Text ml={3} fontSize="sm" fontWeight={isActive ? 'semibold' : 'normal'}>
+                                <Icon as={item.icon} boxSize={4.5} strokeWidth={isActive ? 2.5 : 2} />
+                                <Text ml={3} fontSize="13px">
                                     {item.name}
                                 </Text>
                             </Box>
