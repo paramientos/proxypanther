@@ -399,19 +399,70 @@ export default function Show({ auth, site, analytics, bandwidth }) {
                                 <Icon as={Lock} boxSize={5} color={ACCENT} />
                             </Box>
                             <VStack align="start" spacing={0}>
-                                <Heading size="sm" color="white">Access Control (IP List)</Heading>
-                                <Text fontSize="xs" color="gray.500">Define network-level access rules</Text>
+                                <Heading size="sm" color="white">Identity Vault</Heading>
+                                <Text fontSize="xs" color="gray.500">Enforce Basic Authentication for all requests</Text>
                             </VStack>
                         </HStack>
                     </HStack>
                     <SimpleGrid columns={2} spacing={6}>
                         <FormControl>
-                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">ALLOWLIST (Whitelist)</FormLabel>
-                            <Textarea bg="#050508" borderColor={BORDER} value={data.ip_allowlist} onChange={e => setData('ip_allowlist', e.target.value)} size="sm" />
+                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">VAULT USERNAME</FormLabel>
+                            <Input bg="#050508" borderColor={BORDER} value={data.auth_user} onChange={e => setData('auth_user', e.target.value)} placeholder="e.g. admin" />
                         </FormControl>
                         <FormControl>
-                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">DENYLIST (Blacklist)</FormLabel>
-                            <Textarea bg="#050508" borderColor={BORDER} value={data.ip_denylist} onChange={e => setData('ip_denylist', e.target.value)} size="sm" />
+                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">VAULT PASSWORD</FormLabel>
+                            <Input type="password" bg="#050508" borderColor={BORDER} value={data.auth_password} onChange={e => setData('auth_password', e.target.value)} placeholder="••••••••" />
+                        </FormControl>
+                    </SimpleGrid>
+                </Box>
+
+                <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                    <HStack justify="space-between" mb={6}>
+                        <HStack spacing={4}>
+                            <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                                <Icon as={Map} boxSize={5} color={ACCENT} />
+                            </Box>
+                            <VStack align="start" spacing={0}>
+                                <Heading size="sm" color="white">Regional Defense (GeoIP)</Heading>
+                                <Text fontSize="xs" color="gray.500">Restrict access by geographic location (ISO Codes)</Text>
+                            </VStack>
+                        </HStack>
+                        <Switch colorScheme="brand" isChecked={data.geoip_enabled} onChange={e => setData('geoip_enabled', e.target.checked)} />
+                    </HStack>
+                    {data.geoip_enabled && (
+                        <SimpleGrid columns={2} spacing={6}>
+                            <FormControl>
+                                <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">ALLOWED COUNTRIES (ISO)</FormLabel>
+                                <Input bg="#050508" borderColor={BORDER} value={data.geoip_allowlist} onChange={e => setData('geoip_allowlist', e.target.value)} placeholder="e.g. TR, US, GB" />
+                            </FormControl>
+                            <FormControl>
+                                <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">BLOCKED COUNTRIES (ISO)</FormLabel>
+                                <Input bg="#050508" borderColor={BORDER} value={data.geoip_denylist} onChange={e => setData('geoip_denylist', e.target.value)} placeholder="e.g. RU, CN, KP" />
+                            </FormControl>
+                        </SimpleGrid>
+                    )}
+                </Box>
+
+                <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER}>
+                    <HStack justify="space-between" mb={6}>
+                        <HStack spacing={4}>
+                            <Box p={2.5} bg={ACCENT_DIM} borderRadius="lg">
+                                <Icon as={Shield} boxSize={5} color={ACCENT} />
+                            </Box>
+                            <VStack align="start" spacing={0}>
+                                <Heading size="sm" color="white">Network Access Control</Heading>
+                                <Text fontSize="xs" color="gray.500">IP-level address filtering rules</Text>
+                            </VStack>
+                        </HStack>
+                    </HStack>
+                    <SimpleGrid columns={2} spacing={6}>
+                        <FormControl>
+                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">IP ALLOWLIST (Whitelist)</FormLabel>
+                            <Textarea bg="#050508" borderColor={BORDER} value={data.ip_allowlist} onChange={e => setData('ip_allowlist', e.target.value)} placeholder="One IP/CIDR per line" size="sm" />
+                        </FormControl>
+                        <FormControl>
+                            <FormLabel fontSize="xs" color="gray.500" fontWeight="bold">IP DENYLIST (Blacklist)</FormLabel>
+                            <Textarea bg="#050508" borderColor={BORDER} value={data.ip_denylist} onChange={e => setData('ip_denylist', e.target.value)} placeholder="One IP/CIDR per line" size="sm" />
                         </FormControl>
                     </SimpleGrid>
                 </Box>

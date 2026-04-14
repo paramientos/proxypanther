@@ -81,6 +81,7 @@ class CaddyService
             if ($site->is_maintenance) {
                 $msg = $site->maintenance_message ?: 'Site is under maintenance. Please try again later.';
                 $out .= "    respond \"{$msg}\" 503\n}\n\n";
+
                 continue;
             }
 
