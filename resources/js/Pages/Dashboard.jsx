@@ -49,33 +49,39 @@ import ReactECharts from 'echarts-for-react';
 
 export default function Dashboard({ auth, sites: initialSites, bannedIps, analytics, recentEvents }) {
   const [sites, setSites] = React.useState(initialSites);
+  const [liveStats, setLiveStats] = React.useState({});
   const { isOpen, onOpen, onClose } = useDisclosure();
-  
+
   React.useEffect(() => {
-    if (!window.Echo) {
-      console.warn('Echo is not initialized. Real-time updates will not work.');
-      return;
-    }
-    
-    const channel = window.Echo.channel('health-checks');
-    
-    channel.listen('BackendHealthUpdated', (e) => {
-      setSites(currentSites => currentSites.map(site => 
-        site.id === e.id ? { ...site, is_online: e.is_online, last_check_at: e.last_check_at, last_error: e.last_error } : site
+    if (!window.Echo) return;
+
+    // Health check updates (global channel)
+    const healthChannel = window.Echo.channel('health-checks');
+    healthChannel.listen('BackendHealthUpdated', (e) => {
+      setSites(cur => cur.map(s =>
+        s.id === e.id ? { ...s, is_online: e.is_online, last_check_at: e.last_check_at, last_error: e.last_error } : s
       ));
     });
 
+    // Per-site real-time traffic updates
+    const siteChannels = initialSites.map(site => {
+      const ch = window.Echo.channel(`site.${site.id}`);
+      ch.listen('.traffic.updated', (e) => {
+        setLiveStats(cur => ({ ...cur, [e.siteId]: e.stats }));
+      });
+      return ch;
+    });
+
     return () => {
-      if (window.Echo) {
-        window.Echo.leaveChannel('health-checks');
-      }
+      window.Echo.leaveChannel('health-checks');
+      initialSites.forEach(site => window.Echo.leaveChannel(`site.${site.id}`));
     };
   }, []);
 
   const handleManualCheck = (siteId) => {
     router.post(route('sites.check-health', siteId), {}, { preserveScroll: true });
   };
-  
+
   const chartOptions = {
     backgroundColor: 'transparent',
     tooltip: {
@@ -304,19 +310,22 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                   </HStack>
                 </Td>
                 <Td fontSize="sm">
-                   <Text>{site.total_requests} total</Text>
-                   <Text color="red.500" fontSize="xs">{site.blocked_requests} blocked</Text>
+                  <Text>{(liveStats[site.id]?.total_requests ?? site.total_requests).toLocaleString()} total</Text>
+                  <Text color="red.500" fontSize="xs">{(liveStats[site.id]?.blocked_requests ?? site.blocked_requests).toLocaleString()} blocked</Text>
+                  {liveStats[site.id] && (
+                    <Badge colorScheme="blue" fontSize="9px" mt={1}>LIVE</Badge>
+                  )}
                 </Td>
                 <Td textAlign="right">
-                   <Button
-                     as={Link}
-                     href={route('sites.show', site.id)}
-                     size="sm"
-                     rightIcon={<ExternalLink size={14} />}
-                     variant="ghost"
-                   >
-                     Manage
-                   </Button>
+                  <Button
+                    as={Link}
+                    href={route('sites.show', site.id)}
+                    size="sm"
+                    rightIcon={<ExternalLink size={14} />}
+                    variant="ghost"
+                  >
+                    Manage
+                  </Button>
                 </Td>
               </Tr>
             ))}
@@ -385,13 +394,13 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                     onChange={(e) => setData('backend_url', e.target.value)}
                   />
                   <Text fontSize="xs" color="gray.500" mt={1}>
-                    {data.backend_type === 'proxy' 
-                      ? 'Multiple URLs supported for Load Balancing (separate with comma or space).' 
+                    {data.backend_type === 'proxy'
+                      ? 'Multiple URLs supported for Load Balancing (separate with comma or space).'
                       : 'Enter path to PHP-FPM socket or TCP address.'}
                   </Text>
                   {errors.backend_url && <Text color="red.500" fontSize="xs">{errors.backend_url}</Text>}
                 </FormControl>
-                
+
                 <FormControl isInvalid={errors.backup_backend_url}>
                   <FormLabel>Backup Backend URL (Failover)</FormLabel>
                   <Input
@@ -404,7 +413,7 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                   </Text>
                   {errors.backup_backend_url && <Text color="red.500" fontSize="xs">{errors.backup_backend_url}</Text>}
                 </FormControl>
-                
+
                 <FormControl isRequired>
                   <FormLabel>Backend Type</FormLabel>
                   <Select value={data.backend_type} onChange={(e) => setData('backend_type', e.target.value)}>
@@ -425,38 +434,38 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                   </FormControl>
                 )}
                 <SimpleGrid columns={2} spacing={4}>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Enable SSL</FormLabel>
-                      <Switch isChecked={data.ssl_enabled} onChange={(e) => setData('ssl_enabled', e.target.checked)} />
-                   </FormControl>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Enable WAF</FormLabel>
-                      <Switch isChecked={data.waf_enabled} onChange={(e) => setData('waf_enabled', e.target.checked)} />
-                   </FormControl>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Enable Cache</FormLabel>
-                      <Switch isChecked={data.cache_enabled} onChange={(e) => setData('cache_enabled', e.target.checked)} />
-                   </FormControl>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Maintenance Mode</FormLabel>
-                      <Switch isChecked={data.is_maintenance} onChange={(e) => setData('is_maintenance', e.target.checked)} />
-                   </FormControl>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Block Bad Bots</FormLabel>
-                      <Switch isChecked={data.block_common_bad_bots} onChange={(e) => setData('block_common_bad_bots', e.target.checked)} />
-                   </FormControl>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Bot Challenge Mode</FormLabel>
-                      <Switch isChecked={data.bot_challenge_mode} onChange={(e) => setData('bot_challenge_mode', e.target.checked)} />
-                   </FormControl>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Force Challenge</FormLabel>
-                      <Switch isChecked={data.bot_challenge_force} onChange={(e) => setData('bot_challenge_force', e.target.checked)} />
-                   </FormControl>
-                   <FormControl display="flex" alignItems="center">
-                      <FormLabel mb="0">Circuit Breaker</FormLabel>
-                      <Switch isChecked={data.circuit_breaker_enabled} onChange={(e) => setData('circuit_breaker_enabled', e.target.checked)} />
-                   </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Enable SSL</FormLabel>
+                    <Switch isChecked={data.ssl_enabled} onChange={(e) => setData('ssl_enabled', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Enable WAF</FormLabel>
+                    <Switch isChecked={data.waf_enabled} onChange={(e) => setData('waf_enabled', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Enable Cache</FormLabel>
+                    <Switch isChecked={data.cache_enabled} onChange={(e) => setData('cache_enabled', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Maintenance Mode</FormLabel>
+                    <Switch isChecked={data.is_maintenance} onChange={(e) => setData('is_maintenance', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Block Bad Bots</FormLabel>
+                    <Switch isChecked={data.block_common_bad_bots} onChange={(e) => setData('block_common_bad_bots', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Bot Challenge Mode</FormLabel>
+                    <Switch isChecked={data.bot_challenge_mode} onChange={(e) => setData('bot_challenge_mode', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Force Challenge</FormLabel>
+                    <Switch isChecked={data.bot_challenge_force} onChange={(e) => setData('bot_challenge_force', e.target.checked)} />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel mb="0">Circuit Breaker</FormLabel>
+                    <Switch isChecked={data.circuit_breaker_enabled} onChange={(e) => setData('circuit_breaker_enabled', e.target.checked)} />
+                  </FormControl>
                 </SimpleGrid>
 
                 {data.circuit_breaker_enabled && (
@@ -479,8 +488,8 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                 <SimpleGrid columns={2} spacing={4}>
                   <FormControl>
                     <FormLabel>IP Allowlist</FormLabel>
-                    <Textarea 
-                      placeholder="Allow specific IPs only (comma or newline)" 
+                    <Textarea
+                      placeholder="Allow specific IPs only (comma or newline)"
                       size="sm"
                       value={data.ip_allowlist}
                       onChange={(e) => setData('ip_allowlist', e.target.value)}
@@ -488,8 +497,8 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
                   </FormControl>
                   <FormControl>
                     <FormLabel>IP Denylist</FormLabel>
-                    <Textarea 
-                      placeholder="Block specific IPs (comma or newline)" 
+                    <Textarea
+                      placeholder="Block specific IPs (comma or newline)"
                       size="sm"
                       value={data.ip_denylist}
                       onChange={(e) => setData('ip_denylist', e.target.value)}
@@ -499,8 +508,8 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
 
                 <FormControl>
                   <FormLabel>Custom 403 (WAF Blocked) HTML</FormLabel>
-                  <Textarea 
-                    placeholder="Custom HTML for WAF blocks" 
+                  <Textarea
+                    placeholder="Custom HTML for WAF blocks"
                     size="sm"
                     value={data.custom_error_403}
                     onChange={(e) => setData('custom_error_403', e.target.value)}
@@ -509,8 +518,8 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
 
                 <FormControl>
                   <FormLabel>Custom 503 (Maintenance) HTML</FormLabel>
-                  <Textarea 
-                    placeholder="Custom HTML for maintenance mode" 
+                  <Textarea
+                    placeholder="Custom HTML for maintenance mode"
                     size="sm"
                     value={data.custom_error_503}
                     onChange={(e) => setData('custom_error_503', e.target.value)}
@@ -519,8 +528,8 @@ export default function Dashboard({ auth, sites: initialSites, bannedIps, analyt
 
                 <FormControl>
                   <FormLabel>Environment Variables (Key:Value)</FormLabel>
-                  <Textarea 
-                    placeholder="KEY1=VALUE1&#10;KEY2=VALUE2" 
+                  <Textarea
+                    placeholder="KEY1=VALUE1&#10;KEY2=VALUE2"
                     size="sm"
                     onChange={(e) => {
                       const lines = e.target.value.split('\n');

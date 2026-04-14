@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Models\SecurityEvent;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProxySite extends Model
@@ -12,6 +12,7 @@ class ProxySite extends Model
     use HasFactory;
 
     protected $fillable = [
+        'team_id',
         'name',
         'domain',
         'backend_url',
@@ -39,8 +40,13 @@ class ProxySite extends Model
         'custom_error_503',
         'ip_allowlist',
         'ip_denylist',
+        'geoip_allowlist',
+        'geoip_denylist',
+        'geoip_enabled',
         'custom_waf_rules',
         'env_vars',
+        'header_rules',
+        'redirect_rules',
         'block_common_bad_bots',
         'bot_challenge_mode',
         'bot_challenge_force',
@@ -53,11 +59,19 @@ class ProxySite extends Model
         'hits_4xx',
         'hits_5xx',
         'avg_latency_ms',
+        'bytes_in',
+        'bytes_out',
+        'uptime_percentage',
+        'total_downtime_seconds',
+        'monitoring_started_at',
     ];
 
     protected $casts = [
         'ip_allowlist' => 'array',
         'ip_denylist' => 'array',
+        'geoip_allowlist' => 'array',
+        'geoip_denylist' => 'array',
+        'geoip_enabled' => 'boolean',
         'ssl_enabled' => 'boolean',
         'waf_enabled' => 'boolean',
         'is_active' => 'boolean',
@@ -69,9 +83,17 @@ class ProxySite extends Model
         'route_policies' => 'array',
         'custom_waf_rules' => 'array',
         'env_vars' => 'array',
+        'header_rules' => 'array',
+        'redirect_rules' => 'array',
         'circuit_breaker_enabled' => 'boolean',
         'circuit_breaker_opened_at' => 'datetime',
+        'monitoring_started_at' => 'datetime',
     ];
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 
     public function securityEvents(): HasMany
     {
@@ -81,5 +103,10 @@ class ProxySite extends Model
     public function configAudits(): HasMany
     {
         return $this->hasMany(ConfigAudit::class);
+    }
+
+    public function uptimeEvents(): HasMany
+    {
+        return $this->hasMany(UptimeEvent::class);
     }
 }

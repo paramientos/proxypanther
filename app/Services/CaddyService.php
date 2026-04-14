@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ProxySite;
 use App\Models\BannedIp;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 
 class CaddyService
@@ -18,9 +19,9 @@ class CaddyService
 
     public function sync(): bool
     {
-        $sites = ProxySite::query()->where('is_active', true)->get(['*']);
+        $sites     = ProxySite::query()->where('is_active', true)->get();
         $bannedIps = BannedIp::all();
-        $content = $this->generateCaddyfile($sites, $bannedIps);
+        $content   = $this->generateCaddyfile($sites, $bannedIps);
 
         File::put($this->caddyfilePath, $content);
 
@@ -29,303 +30,296 @@ class CaddyService
 
     protected function generateCaddyfile($sites, $bannedIps): string
     {
-        $caddyfile = "{
-    # Global Options
-    email admin@proxypanther.com
-}
+        $out = "{\n    # Global Options\n    email admin@proxypanther.com\n}\n\n";
 
-(common_security_headers) {
-    header {
-        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"
-        X-Content-Type-Options \"nosniff\"
-        X-Frame-Options \"SAMEORIGIN\"
-        X-XSS-Protection \"1; mode=block\"
-        Referrer-Policy \"strict-origin-when-cross-origin\"
-        Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';\"
-        Permissions-Policy \"geolocation=(), microphone=(), camera=()\"
-        -Server
-        -X-Powered-By
-    }
-}
+        $out .= "(common_security_headers) {\n    header {\n";
+        $out .= "        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
+        $out .= "        X-Content-Type-Options \"nosniff\"\n";
+        $out .= "        X-Frame-Options \"SAMEORIGIN\"\n";
+        $out .= "        X-XSS-Protection \"1; mode=block\"\n";
+        $out .= "        Referrer-Policy \"strict-origin-when-cross-origin\"\n";
+        $out .= "        Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';\"\n";
+        $out .= "        Permissions-Policy \"geolocation=(), microphone=(), camera=()\"\n";
+        $out .= "        -Server\n        -X-Powered-By\n    }\n}\n\n";
 
-";
-
-        // Global IP Blacklist
         if ($bannedIps->count() > 0) {
-            $ips = $bannedIps->pluck('ip_address')->implode(' ');
-            $caddyfile .= "# Global IP Blacklist\n";
-            $caddyfile .= "(blacklist) {\n";
-            $caddyfile .= "    @banned_ips remote_ip {$ips}\n";
-            $caddyfile .= "    respond @banned_ips \"Access Denied by ProxyPanther Global Blacklist\" 403\n";
-            $caddyfile .= "}\n\n";
+            $ips  = $bannedIps->pluck('ip_address')->implode(' ');
+            $out .= "(blacklist) {\n";
+            $out .= "    @banned_ips remote_ip {$ips}\n";
+            $out .= "    respond @banned_ips \"Access Denied by ProxyPanther Global Blacklist\" 403\n";
+            $out .= "}\n\n";
         }
 
         foreach ($sites as $site) {
-            $prefix = $site->ssl_enabled ? "" : "http://";
-            $caddyfile .= "{$prefix}{$site->domain} {\n";
-            
+            $prefix = $site->ssl_enabled ? '' : 'http://';
+            $out   .= "{$prefix}{$site->domain} {\n";
+
             if ($site->is_maintenance) {
-                $msg = $site->maintenance_message ?: "Site is under maintenance. Please try again later.";
-                $caddyfile .= "    respond \"{$msg}\" 503\n";
-                $caddyfile .= "}\n\n";
+                $msg  = $site->maintenance_message ?: 'Site is under maintenance. Please try again later.';
+                $out .= "    respond \"{$msg}\" 503\n}\n\n";
                 continue;
             }
 
-            // Enable Logging for Statistics
+            // Logging
             $logPath = storage_path("logs/caddy-{$site->id}.log");
-            $caddyfile .= "    log {\n";
-            $caddyfile .= "        output file {$logPath}\n";
-            $caddyfile .= "        format json\n";
-            $caddyfile .= "    }\n\n";
-            
+            $out .= "    log {\n        output file {$logPath}\n        format json\n    }\n\n";
+
             if ($bannedIps->count() > 0) {
-                $caddyfile .= "    import blacklist\n";
+                $out .= "    import blacklist\n";
             }
 
+            // Sensitive file protection
             if ($site->protect_sensitive_files) {
-                $caddyfile .= "    # Protect Sensitive Files\n";
-                $caddyfile .= "    @sensitive_paths {\n";
-                $caddyfile .= "        path /.env* /.git* /.svn* /wp-config.php /config.php /composer.json /composer.lock\n";
-                $caddyfile .= "    }\n";
-                $caddyfile .= "    respond @sensitive_paths \"Access to sensitive system files is forbidden.\" 403\n\n";
+                $out .= "    @sensitive_paths {\n";
+                $out .= "        path /.env* /.git* /.svn* /wp-config.php /config.php /composer.json /composer.lock\n";
+                $out .= "    }\n";
+                $out .= "    respond @sensitive_paths \"Access to sensitive system files is forbidden.\" 403\n\n";
             }
 
+            // GeoIP
+            if ($site->geoip_enabled) {
+                if ($site->geoip_denylist && \count($site->geoip_denylist) > 0) {
+                    $countries = implode(' ', array_map('strtoupper', $site->geoip_denylist));
+                    $out .= "    @geo_blocked {\n        not maxmind_geolocation {\n";
+                    $out .= "            db_path /etc/caddy/GeoLite2-Country.mmdb\n";
+                    $out .= "            allow_countries {$countries}\n        }\n    }\n";
+                    $out .= "    respond @geo_blocked \"Access Denied: Your region is blocked.\" 403\n";
+                }
+                if ($site->geoip_allowlist && \count($site->geoip_allowlist) > 0) {
+                    $countries = implode(' ', array_map('strtoupper', $site->geoip_allowlist));
+                    $out .= "    @geo_not_allowed {\n        not maxmind_geolocation {\n";
+                    $out .= "            db_path /etc/caddy/GeoLite2-Country.mmdb\n";
+                    $out .= "            allow_countries {$countries}\n        }\n    }\n";
+                    $out .= "    respond @geo_not_allowed \"Access Denied: Your region is not allowed.\" 403\n";
+                }
+            }
+
+            // WAF
             if ($site->waf_enabled) {
-                // Advanced WAF Protection
                 if ($site->block_common_bad_bots) {
-                    $caddyfile .= "    @bad_bots {\n";
-                    $caddyfile .= "        header_regexp User-Agent \"(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)\"\n";
-                    $caddyfile .= "    }\n";
-                    $caddyfile .= "    respond @bad_bots \"Access Denied\" 403\n";
+                    $out .= "    @bad_bots {\n";
+                    $out .= "        header_regexp User-Agent \"(?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster|python-requests|curl|wget)\"\n";
+                    $out .= "    }\n    respond @bad_bots \"Access Denied\" 403\n";
                 }
 
                 if ($site->bot_challenge_force) {
-                    $caddyfile .= "    # Force Challenge Mode - All Requests\n";
-                    $caddyfile .= "    header Retry-After \"15\"\n";
-                    $caddyfile .= "    header Content-Type \"text/html; charset=utf-8\"\n";
-                    $html = <<<'HTML'
-<html><head><title>Security Check</title></head><body style="text-align:center;padding:50px;font-family:sans-serif"><h1>Security Check Required</h1><p>This site is under enhanced protection.</p><p>Please retry after 15 seconds.</p></body></html>
-HTML;
-                    $caddyfile .= "    respond `{$html}` 429\n";
+                    $html = '<html><head><title>Security Check</title></head><body style="text-align:center;padding:50px;font-family:sans-serif"><h1>Security Check Required</h1><p>Please retry after 15 seconds.</p></body></html>';
+                    $out .= "    header Retry-After \"15\"\n";
+                    $out .= "    respond `{$html}` 429\n";
                 } elseif ($site->bot_challenge_mode) {
-                    $caddyfile .= "    @bot_challenge {\n";
-                    $caddyfile .= "        header_regexp User-Agent \"(?i)(bot|crawler|spider|python-requests|curl|wget|scrapy|httpclient)\"\n";
-                    $caddyfile .= "    }\n";
-                    $caddyfile .= "    header @bot_challenge Retry-After \"15\"\n";
-                    $caddyfile .= "    header @bot_challenge Content-Type \"text/html; charset=utf-8\"\n";
-                    $html = <<<'HTML'
-<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>
-HTML;
-                    $caddyfile .= "    respond @bot_challenge `{$html}` 429\n";
+                    $html = '<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>';
+                    $out .= "    @bot_challenge {\n        header_regexp User-Agent \"(?i)(bot|crawler|spider|python-requests|curl|wget|scrapy|httpclient)\"\n    }\n";
+                    $out .= "    header @bot_challenge Retry-After \"15\"\n";
+                    $out .= "    respond @bot_challenge `{$html}` 429\n";
                 }
 
-                if (is_array($site->route_policies) && count($site->route_policies) > 0) {
-                    foreach ($site->route_policies as $index => $policy) {
+                // Per-route policies
+                if (\is_array($site->route_policies)) {
+                    foreach ($site->route_policies as $idx => $policy) {
                         $path = trim((string) ($policy['path'] ?? ''));
-                        if ($path === '') {
-                            continue;
-                        }
-
-                        $pathPattern = str_ends_with($path, '*') ? $path : "{$path}*";
+                        if ($path === '') continue;
+                        $pp = str_ends_with($path, '*') ? $path : "{$path}*";
 
                         if (!empty($policy['bot_challenge_mode'])) {
-                            $matcher = "route_bot_{$index}";
-                            $caddyfile .= "    @{$matcher} {\n";
-                            $caddyfile .= "        path {$pathPattern}\n";
-                            $caddyfile .= "        header_regexp User-Agent \"(?i)(bot|crawler|spider|python-requests|curl|wget|scrapy|httpclient)\"\n";
-                            $caddyfile .= "    }\n";
-                            $caddyfile .= "    header @{$matcher} Retry-After \"15\"\n";
-                            $html = <<<'HTML'
-<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>
-HTML;
-                            $caddyfile .= "    respond @{$matcher} `{$html}` 429\n";
+                            $html = '<html><head><title>Bot Challenge</title></head><body><h1>Bot Challenge</h1><p>Please retry after 15 seconds.</p></body></html>';
+                            $out .= "    @route_bot_{$idx} {\n        path {$pp}\n        header_regexp User-Agent \"(?i)(bot|crawler|spider)\"\n    }\n";
+                            $out .= "    header @route_bot_{$idx} Retry-After \"15\"\n";
+                            $out .= "    respond @route_bot_{$idx} `{$html}` 429\n";
                         }
-
                         if (!empty($policy['rate_limit_rps'])) {
-                            $matcher = "route_rate_{$index}";
-                            $caddyfile .= "    @{$matcher} path {$pathPattern}\n";
-                            $caddyfile .= "    header @{$matcher} X-ProxyPanther-Policy-Limit \"{$policy['rate_limit_rps']}rps\"\n";
+                            $out .= "    @route_rate_{$idx} path {$pp}\n";
+                            $out .= "    header @route_rate_{$idx} X-ProxyPanther-Policy-Limit \"{$policy['rate_limit_rps']}rps\"\n";
                         }
                     }
                 }
 
-                // Custom User-Defined WAF Rules
-                if ($site->custom_waf_rules && count($site->custom_waf_rules) > 0) {
-                    foreach ($site->custom_waf_rules as $index => $rule) {
-                        $name = "custom_rule_" . ($index + 1);
+                // Custom WAF rules
+                if ($site->custom_waf_rules && \count($site->custom_waf_rules) > 0) {
+                    foreach ($site->custom_waf_rules as $idx => $rule) {
+                        $name    = 'custom_rule_' . ($idx + 1);
                         $pattern = addslashes($rule['pattern']);
-                        $caddyfile .= "    @{$name} {\n";
+                        $out .= "    @{$name} {\n";
                         if ($rule['type'] === 'path') {
-                            $caddyfile .= "        path {$pattern}\n";
+                            $out .= "        path {$pattern}\n";
                         } elseif ($rule['type'] === 'query') {
-                            $caddyfile .= "        expression {query}.contains('{$pattern}')\n";
+                            $out .= "        expression {query}.contains('{$pattern}')\n";
                         } elseif ($rule['type'] === 'header') {
-                            $caddyfile .= "        header_regexp {$rule['header_name']} \"{$pattern}\"\n";
+                            $out .= "        header_regexp {$rule['header_name']} \"{$pattern}\"\n";
                         }
-                        $caddyfile .= "    }\n";
-                        $caddyfile .= "    respond @{$name} \"Blocked by Custom Security Rule\" 403\n";
+                        $out .= "    }\n    respond @{$name} \"Blocked by Custom Security Rule\" 403\n";
                     }
                 }
-                
-                $caddyfile .= "    # Advanced WAF Patterns\n";
-                $caddyfile .= "    @attacks {\n";
-                $caddyfile .= "        # SQL Injection Patterns\n";
-                $caddyfile .= "        expression {query}.contains('union') && {query}.contains('select')\n";
-                $caddyfile .= "        expression {query}.contains('information_schema')\n";
-                $caddyfile .= "        expression {query}.contains('sleep(')\n";
-                $caddyfile .= "        expression {query}.contains('benchmark(')\n";
-                $caddyfile .= "        expression {query}.contains(\"' OR 1=1\") || {query}.contains('\" OR 1=1') || {query}.contains('--')\n";
-                
-                $caddyfile .= "        # XSS Patterns\n";
-                $caddyfile .= "        expression {query}.contains('<script')\n";
-                $caddyfile .= "        expression {query}.contains('javascript:')\n";
-                $caddyfile .= "        expression {query}.contains('onerror=')\n";
-                $caddyfile .= "        expression {query}.contains('onload=')\n";
-                $caddyfile .= "        expression {query}.contains('eval(')\n";
-                
-                $caddyfile .= "        # LFI & Directory Traversal\n";
-                $caddyfile .= "        expression {query}.contains('../')\n";
-                $caddyfile .= "        expression {query}.contains('/etc/passwd')\n";
-                $caddyfile .= "        expression {query}.contains('/etc/shadow')\n";
-                
-                $caddyfile .= "        # Malicious Bots & Scanners\n";
-                $caddyfile .= "        header_regexp User-Agent (?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)\n";
-                $caddyfile .= "    }\n";
-                $caddyfile .= "    respond @attacks \"Access Denied by ProxyPanther Advanced WAF\" 403\n\n";
-                
-                $caddyfile .= "    import common_security_headers\n";
 
-                // Advanced ACL: Denylist
-                if ($site->ip_denylist && count($site->ip_denylist) > 0) {
-                    $ips = implode(' ', $site->ip_denylist);
-                    $caddyfile .= "    @denylist remote_ip {$ips}\n";
-                    $caddyfile .= "    abort @denylist\n";
+                // Built-in WAF patterns
+                $out .= "    @attacks {\n";
+                $out .= "        expression {query}.contains('union') && {query}.contains('select')\n";
+                $out .= "        expression {query}.contains('information_schema')\n";
+                $out .= "        expression {query}.contains('sleep(')\n";
+                $out .= "        expression {query}.contains('benchmark(')\n";
+                $out .= "        expression {query}.contains('<script')\n";
+                $out .= "        expression {query}.contains('javascript:')\n";
+                $out .= "        expression {query}.contains('onerror=')\n";
+                $out .= "        expression {query}.contains('../')\n";
+                $out .= "        expression {query}.contains('/etc/passwd')\n";
+                $out .= "        header_regexp User-Agent (?i)(sqlmap|nikto|nmap|zgrab|masscan|burp|metasploit|gobuster|dirbuster)\n";
+                $out .= "    }\n    respond @attacks \"Access Denied by ProxyPanther Advanced WAF\" 403\n\n";
+
+                $out .= "    import common_security_headers\n";
+
+                if ($site->ip_denylist && \count($site->ip_denylist) > 0) {
+                    $ips  = implode(' ', $site->ip_denylist);
+                    $out .= "    @denylist remote_ip {$ips}\n    abort @denylist\n";
                 }
-
-                // Advanced ACL: Allowlist
-                if ($site->ip_allowlist && count($site->ip_allowlist) > 0) {
-                    $ips = implode(' ', $site->ip_allowlist);
-                    $caddyfile .= "    @allowlist not remote_ip {$ips}\n";
-                    $caddyfile .= "    abort @allowlist\n";
+                if ($site->ip_allowlist && \count($site->ip_allowlist) > 0) {
+                    $ips  = implode(' ', $site->ip_allowlist);
+                    $out .= "    @allowlist not remote_ip {$ips}\n    abort @allowlist\n";
                 }
             }
 
+            // Basic Auth
             if ($site->auth_user && $site->auth_password) {
-                $caddyfile .= "    # Auth Proxy\n";
-                $caddyfile .= "    basic_auth {\n";
-                $caddyfile .= "        {$site->auth_user} " . password_hash($site->auth_password, PASSWORD_DEFAULT) . "\n";
-                $caddyfile .= "    }\n";
+                $hash = password_hash($site->auth_password, PASSWORD_DEFAULT);
+                $out .= "    basic_auth {\n        {$site->auth_user} {$hash}\n    }\n";
             }
 
+            // Redirect / Rewrite rules
+            if ($site->redirect_rules && \count($site->redirect_rules) > 0) {
+                foreach ($site->redirect_rules as $idx => $rule) {
+                    $from = trim((string) ($rule['from'] ?? ''));
+                    $to   = trim((string) ($rule['to'] ?? ''));
+                    if ($from === '' || $to === '') continue;
+                    $type = $rule['type'] ?? 'permanent';
+                    $mn   = "redirect_{$idx}";
+
+                    match ($type) {
+                        'permanent'    => $out .= "    @{$mn} path {$from}\n    redir @{$mn} {$to} 301\n",
+                        'temporary'    => $out .= "    @{$mn} path {$from}\n    redir @{$mn} {$to} 302\n",
+                        'rewrite'      => $out .= "    @{$mn} path {$from}\n    rewrite @{$mn} {$to}\n",
+                        'strip_prefix' => $out .= "    handle_path {$from}* {\n        rewrite * {$to}{path}\n    }\n",
+                        default        => null,
+                    };
+                }
+            }
+
+            // Backend
             if ($site->backend_type === 'php_fpm') {
                 $backend = $site->backend_url;
                 if (str_starts_with($backend, '/') && !str_starts_with($backend, 'unix/')) {
                     $backend = "unix/{$backend}";
                 }
-                $caddyfile .= "    root * {$site->root_path}\n";
-                $caddyfile .= "    php_fastcgi {$backend} {\n";
-                
-                // Inject .env variables
-                if ($site->env_vars && count($site->env_vars) > 0) {
-                    foreach ($site->env_vars as $key => $value) {
-                        $caddyfile .= "        env {$key} \"{$value}\"\n";
+                $out .= "    root * {$site->root_path}\n";
+                $out .= "    php_fastcgi {$backend} {\n";
+                if ($site->env_vars && \count($site->env_vars) > 0) {
+                    foreach ($site->env_vars as $k => $v) {
+                        $out .= "        env {$k} \"{$v}\"\n";
                     }
                 }
-                
-                $caddyfile .= "    }\n";
-            } elseif ($site->backend_type === 'proxy') {
-                $backends = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
+                $out .= "    }\n";
+            } else {
+                $backends  = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
                 $backendStr = implode(' ', $backends);
-                
-                $hasEnvVars = $site->env_vars && count($site->env_vars) > 0;
+                $hasEnv    = $site->env_vars && \count($site->env_vars) > 0;
                 $hasBackup = !empty($site->backup_backend_url);
-                $hasMultiple = count($backends) > 1;
-                $hasCircuitBreaker = (bool) $site->circuit_breaker_enabled;
+                $hasCB     = (bool) $site->circuit_breaker_enabled;
 
-                if ($hasEnvVars || $hasBackup || $hasMultiple || $hasCircuitBreaker) {
-                    $caddyfile .= "    reverse_proxy {$backendStr} {\n";
-                    
-                    if ($hasMultiple) {
-                        $caddyfile .= "        lb_policy random\n";
-                    }
-
+                if ($hasEnv || $hasBackup || \count($backends) > 1 || $hasCB) {
+                    $out .= "    reverse_proxy {$backendStr} {\n";
+                    if (\count($backends) > 1) $out .= "        lb_policy random\n";
                     if ($hasBackup) {
-                        $caddyfile .= "        lb_policy first\n";
-                        $caddyfile .= "        fail_timeout 5s\n";
-                        $caddyfile .= "        max_fails 2\n";
-                        $caddyfile .= "        to {$site->backup_backend_url}\n";
+                        $out .= "        lb_policy first\n        fail_timeout 5s\n        max_fails 2\n";
+                        $out .= "        to {$site->backup_backend_url}\n";
                     }
-
-                    if ($hasCircuitBreaker) {
-                        $threshold = max(1, (int) $site->circuit_breaker_threshold);
-                        $retrySeconds = max(5, (int) $site->circuit_breaker_retry_seconds);
-                        $caddyfile .= "        max_fails {$threshold}\n";
-                        $caddyfile .= "        fail_duration {$retrySeconds}s\n";
-                        $caddyfile .= "        unhealthy_status 500 502 503 504\n";
-                        $caddyfile .= "        health_interval 10s\n";
-                        $caddyfile .= "        health_timeout 3s\n";
+                    if ($hasCB) {
+                        $t = max(1, (int) $site->circuit_breaker_threshold);
+                        $r = max(5, (int) $site->circuit_breaker_retry_seconds);
+                        $out .= "        max_fails {$t}\n        fail_duration {$r}s\n";
+                        $out .= "        unhealthy_status 500 502 503 504\n";
+                        $out .= "        health_interval 10s\n        health_timeout 3s\n";
                     }
-
-                    if ($hasEnvVars) {
-                        foreach ($site->env_vars as $key => $value) {
-                            $caddyfile .= "        header_up X-Env-{$key} \"{$value}\"\n";
+                    if ($hasEnv) {
+                        foreach ($site->env_vars as $k => $v) {
+                            $out .= "        header_up X-Env-{$k} \"{$v}\"\n";
                         }
-                        // Security: Don't leak injected env vars back to the client
-                        $caddyfile .= "        header_down -X-Env-*\n";
+                        $out .= "        header_down -X-Env-*\n";
                     }
-
-                    $caddyfile .= "        header_up Host {host}\n";
-                    $caddyfile .= "        header_up X-Real-IP {remote_host}\n";
-                    $caddyfile .= "    }\n";
+                    $out .= "        header_up Host {host}\n        header_up X-Real-IP {remote_host}\n    }\n";
                 } else {
-                    $caddyfile .= "    reverse_proxy {$backendStr}\n";
+                    $out .= "    reverse_proxy {$backendStr}\n";
                 }
             }
 
-            if ($site->rate_limit_rps > 0) {
-                $caddyfile .= "    # Rate Limit: {$site->rate_limit_rps} rps\n";
+            // Header manipulation rules
+            if ($site->header_rules && \count($site->header_rules) > 0) {
+                foreach ($site->header_rules as $rule) {
+                    $action    = $rule['action'] ?? 'set';
+                    $direction = $rule['direction'] ?? 'response';
+                    $name      = trim((string) ($rule['name'] ?? ''));
+                    $value     = trim((string) ($rule['value'] ?? ''));
+                    if ($name === '') continue;
+                    $directive = $direction === 'request' ? 'header_up' : 'header';
+                    if ($action === 'remove') {
+                        $out .= "    {$directive} -{$name}\n";
+                    } elseif ($action === 'add') {
+                        $out .= "    {$directive} +{$name} \"{$value}\"\n";
+                    } else {
+                        $out .= "    {$directive} {$name} \"{$value}\"\n";
+                    }
+                }
             }
 
             if ($site->cache_enabled) {
-                $caddyfile .= "    # Smart Caching\n";
-                $caddyfile .= "    header >Cache-Control \"public, max-age={$site->cache_ttl}\"\n";
+                $out .= "    header >Cache-Control \"public, max-age={$site->cache_ttl}\"\n";
             }
 
-            // Custom Error Handling
+            // Custom error pages
             if ($site->custom_error_403 || $site->custom_error_503) {
-                $caddyfile .= "    handle_errors {\n";
+                $out .= "    handle_errors {\n";
                 if ($site->custom_error_403) {
-                    $caddyfile .= "        @403 expression {err.status_code} == 403\n";
-                    $caddyfile .= "        handle @403 {\n";
-                    $caddyfile .= "            respond `{$site->custom_error_403}` 403\n";
-                    $caddyfile .= "        }\n";
+                    $out .= "        @403 expression {err.status_code} == 403\n";
+                    $out .= "        handle @403 {\n            respond `{$site->custom_error_403}` 403\n        }\n";
                 }
                 if ($site->custom_error_503) {
-                    $caddyfile .= "        @503 expression {err.status_code} == 503\n";
-                    $caddyfile .= "        handle @503 {\n";
-                    $caddyfile .= "            respond `{$site->custom_error_503}` 503\n";
-                    $caddyfile .= "        }\n";
+                    $out .= "        @503 expression {err.status_code} == 503\n";
+                    $out .= "        handle @503 {\n            respond `{$site->custom_error_503}` 503\n        }\n";
                 }
-                $caddyfile .= "    }\n";
+                $out .= "    }\n";
             } else {
-                $caddyfile .= "    handle_errors {\n";
-                $caddyfile .= "        rewrite * /{err.status_code}.html\n";
-                $caddyfile .= "        respond \"ProxyPanther Secure Gateway: Error {err.status_code}\" {err.status_code}\n";
-                $caddyfile .= "    }\n";
+                $out .= "    handle_errors {\n";
+                $out .= "        respond \"ProxyPanther Secure Gateway: Error {err.status_code}\" {err.status_code}\n";
+                $out .= "    }\n";
             }
 
-            $caddyfile .= "}\n\n";
+            $out .= "}\n\n";
         }
 
-        return $caddyfile;
+        return $out;
+    }
+
+    /**
+     * Fetch SSL certificate info from Caddy Admin API.
+     */
+    public function getSslCertificates(): array
+    {
+        try {
+            $response = Http::timeout(3)->get('http://localhost:2019/pki/ca/local/certificates');
+            if ($response->successful()) {
+                return $response->json() ?? [];
+            }
+        } catch (\Exception) {}
+
+        try {
+            $config = Http::timeout(3)->get('http://localhost:2019/config/');
+            if ($config->successful()) {
+                return ['raw_config' => $config->json()];
+            }
+        } catch (\Exception) {}
+
+        return [];
     }
 
     protected function reloadCaddy(): bool
     {
-        // Try to reload caddy
-        // In a real environment, this would be 'caddy reload' or 'frankenphp reload'
-        $result = Process::run('caddy reload --config ' . $this->caddyfilePath);
-        
+        $result = Process::run("caddy reload --config {$this->caddyfilePath}");
         return $result->successful();
     }
 }

@@ -5,13 +5,13 @@ use App\Http\Controllers\ProxySiteController;
 use App\Http\Controllers\BannedIpController;
 use App\Http\Controllers\LogExplorerController;
 use App\Http\Controllers\AuthController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\SslController;
+use App\Http\Controllers\UptimeController;
+use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-});
+Route::get('/', fn () => Inertia::render('Welcome'));
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
@@ -21,6 +21,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard & Sites
     Route::get('/dashboard', [ProxySiteController::class, 'index'])->name('dashboard');
     Route::get('/sites/{site}', [ProxySiteController::class, 'show'])->name('sites.show');
     Route::post('/sites', [ProxySiteController::class, 'store'])->name('sites.store');
@@ -29,12 +30,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/sites/{site}/check-health', [ProxySiteController::class, 'checkHealth'])->name('sites.check-health');
     Route::post('/sites/{site}/audits/{audit}/rollback', [ProxySiteController::class, 'rollback'])->name('sites.audits.rollback');
     Route::delete('/sites/{site}', [ProxySiteController::class, 'destroy'])->name('sites.destroy');
-    
+
+    // Banned IPs
     Route::get('/banned-ips', [BannedIpController::class, 'index'])->name('banned-ips.index');
     Route::post('/banned-ips', [BannedIpController::class, 'store'])->name('banned-ips.store');
     Route::delete('/banned-ips/{bannedIp}', [BannedIpController::class, 'destroy'])->name('banned-ips.destroy');
-    
+
+    // Logs
     Route::get('/logs', [LogExplorerController::class, 'index'])->name('logs.index');
+    Route::get('/logs/export', [LogExplorerController::class, 'export'])->name('logs.export');
+
+    // SSL Panel
+    Route::get('/ssl', [SslController::class, 'index'])->name('ssl.index');
+
+    // Uptime / SLA
+    Route::get('/uptime', [UptimeController::class, 'index'])->name('uptime.index');
+
+    // Teams
+    Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
+    Route::post('/teams', [TeamController::class, 'store'])->name('teams.store');
+    Route::post('/teams/{team}/invite', [TeamController::class, 'invite'])->name('teams.invite');
+    Route::delete('/teams/{team}/members/{user}', [TeamController::class, 'removeMember'])->name('teams.members.remove');
+    Route::post('/teams/switch', [TeamController::class, 'switchTeam'])->name('teams.switch');
+    Route::delete('/teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 });

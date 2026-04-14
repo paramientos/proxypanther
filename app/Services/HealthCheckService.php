@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\BackendHealthUpdated;
 use App\Models\ProxySite;
+use App\Models\UptimeEvent;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -45,9 +46,67 @@ class HealthCheckService
             'last_error' => $isOnline ? null : $lastError,
         ]);
 
+        // Uptime tracking
         if ($oldStatus !== $isOnline) {
+            if (!$isOnline) {
+                // Site went down
+                UptimeEvent::create([
+                    'proxy_site_id' => $site->id,
+                    'type' => 'down',
+                    'reason' => $lastError,
+                ]);
+            } else {
+                // Site came back up - find last down event and calculate duration
+                $lastDown = UptimeEvent::where('proxy_site_id', $site->id)
+                    ->where('type', 'down')
+                    ->whereNull('duration_seconds')
+                    ->latest()
+                    ->first();
+
+                if ($lastDown) {
+                    $duration = (int) $lastDown->created_at->diffInSeconds(now());
+                    $lastDown->update(['duration_seconds' => $duration]);
+                    $site->increment('total_downtime_seconds', $duration);
+                }
+
+                UptimeEvent::create([
+                    'proxy_site_id' => $site->id,
+                    'type' => 'up',
+                ]);
+            }
+
+            // Recalculate uptime percentage
+            $this->recalculateUptime($site);
+
             event(new BackendHealthUpdated($site));
         }
+
+        // Set monitoring start if not set
+        if (!$site->monitoring_started_at) {
+            $site->update(['monitoring_started_at' => now()]);
+        }
+    }
+
+    private function recalculateUptime(ProxySite $site): void
+    {
+        $startedAt = $site->monitoring_started_at ?? $site->created_at;
+        $totalSeconds = max(1, (int) $startedAt->diffInSeconds(now()));
+        $downSeconds = $site->total_downtime_seconds;
+
+        // Also add current ongoing downtime if site is down
+        if (!$site->is_online) {
+            $lastDown = UptimeEvent::where('proxy_site_id', $site->id)
+                ->where('type', 'down')
+                ->whereNull('duration_seconds')
+                ->latest()
+                ->first();
+            if ($lastDown) {
+                $downSeconds += (int) $lastDown->created_at->diffInSeconds(now());
+            }
+        }
+
+        $uptimePct = max(0, min(10000, (int) (($totalSeconds - $downSeconds) / $totalSeconds * 10000)));
+        $site->update(['uptime_percentage' => $uptimePct]);
     }
 
     private function checkHttp($url)

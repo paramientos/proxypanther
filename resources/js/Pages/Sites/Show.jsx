@@ -25,6 +25,7 @@ import {
   Stat,
   StatLabel,
   StatNumber,
+  StatHelpText,
   Switch,
   useToast,
   Tabs,
@@ -39,14 +40,14 @@ import {
   Select,
   Textarea,
 } from '@chakra-ui/react';
-import { Shield, Globe, Activity, ChevronRight, AlertTriangle, Clock, Trash2, Power, Lock, Settings, TrendingUp, Plus, X } from 'lucide-react';
+import { Shield, Globe, Activity, ChevronRight, AlertTriangle, Clock, Trash2, Power, Lock, Settings, TrendingUp, Plus, X, Map, ArrowRightLeft, BarChart2 } from 'lucide-react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 
-export default function Show({ auth, site, analytics }) {
+export default function Show({ auth, site, analytics, bandwidth }) {
   const toast = useToast();
   const { post, delete: destroy, processing } = useForm();
-  
+
   const chartOptions = {
     backgroundColor: 'transparent',
     tooltip: {
@@ -124,7 +125,23 @@ export default function Show({ auth, site, analytics }) {
     circuit_breaker_enabled: !!site.circuit_breaker_enabled,
     circuit_breaker_threshold: site.circuit_breaker_threshold || 5,
     circuit_breaker_retry_seconds: site.circuit_breaker_retry_seconds || 30,
+    // GeoIP
+    geoip_enabled: !!site.geoip_enabled,
+    geoip_allowlist: Array.isArray(site.geoip_allowlist) ? site.geoip_allowlist.join(', ') : '',
+    geoip_denylist: Array.isArray(site.geoip_denylist) ? site.geoip_denylist.join(', ') : '',
+    // Header rules
+    header_rules: Array.isArray(site.header_rules) ? site.header_rules : [],
+    // Redirect/Rewrite rules
+    redirect_rules: Array.isArray(site.redirect_rules) ? site.redirect_rules : [],
   });
+
+  const addHeaderRule = () => setData('header_rules', [...data.header_rules, { action: 'set', direction: 'response', name: '', value: '' }]);
+  const removeHeaderRule = (i) => { const r = [...data.header_rules]; r.splice(i, 1); setData('header_rules', r); };
+  const updateHeaderRule = (i, f, v) => { const r = [...data.header_rules]; r[i][f] = v; setData('header_rules', r); };
+
+  const addRedirectRule = () => setData('redirect_rules', [...data.redirect_rules, { from: '', to: '', type: 'permanent' }]);
+  const removeRedirectRule = (i) => { const r = [...data.redirect_rules]; r.splice(i, 1); setData('redirect_rules', r); };
+  const updateRedirectRule = (i, f, v) => { const r = [...data.redirect_rules]; r[i][f] = v; setData('redirect_rules', r); };
 
   const toggleStatus = () => {
     post(route('sites.toggle', site.id), {
@@ -248,6 +265,9 @@ export default function Show({ auth, site, analytics }) {
           <Tab><Icon as={Settings} size={14} mr={2} /> Settings</Tab>
           <Tab><Icon as={Shield} size={14} mr={2} /> Security Logs</Tab>
           <Tab><Icon as={Clock} size={14} mr={2} /> Audit & Rollback</Tab>
+          <Tab><Icon as={BarChart2} size={14} mr={2} /> Bandwidth</Tab>
+          <Tab><Icon as={ArrowRightLeft} size={14} mr={2} /> Headers & Redirects</Tab>
+          <Tab><Icon as={Map} size={14} mr={2} /> GeoIP</Tab>
         </TabList>
 
         <TabPanels>
@@ -264,9 +284,9 @@ export default function Show({ auth, site, analytics }) {
               <Stat px={4} py={5} bg={useColorModeValue('white', 'gray.800')} shadow={'base'} rounded={'lg'}>
                 <StatLabel fontWeight={'medium'}>Protection Status</StatLabel>
                 <HStack mt={1}>
-                   <Badge colorScheme={site.waf_enabled ? 'purple' : 'gray'}>WAF: {site.waf_enabled ? 'ON' : 'OFF'}</Badge>
-                   <Badge colorScheme={site.ssl_enabled ? 'green' : 'gray'}>SSL: {site.ssl_enabled ? 'ON' : 'OFF'}</Badge>
-                   {site.auth_user && <Badge colorScheme="blue">AUTH: ON</Badge>}
+                  <Badge colorScheme={site.waf_enabled ? 'purple' : 'gray'}>WAF: {site.waf_enabled ? 'ON' : 'OFF'}</Badge>
+                  <Badge colorScheme={site.ssl_enabled ? 'green' : 'gray'}>SSL: {site.ssl_enabled ? 'ON' : 'OFF'}</Badge>
+                  {site.auth_user && <Badge colorScheme="blue">AUTH: ON</Badge>}
                 </HStack>
               </Stat>
             </SimpleGrid>
@@ -300,8 +320,8 @@ export default function Show({ auth, site, analytics }) {
                       <FormLabel>Backend URL / FastCGI Socket</FormLabel>
                       <Input value={data.backend_url} onChange={e => setData('backend_url', e.target.value)} placeholder={data.backend_type === 'proxy' ? 'http://localhost:8001' : '/var/run/php/php-fpm.sock'} />
                       <Text fontSize="xs" color="gray.500" mt={1}>
-                        {data.backend_type === 'proxy' 
-                          ? 'Multiple URLs supported for Load Balancing (separate with comma or space).' 
+                        {data.backend_type === 'proxy'
+                          ? 'Multiple URLs supported for Load Balancing (separate with comma or space).'
                           : 'Enter path to PHP-FPM socket or TCP address.'}
                       </Text>
                     </FormControl>
@@ -329,7 +349,7 @@ export default function Show({ auth, site, analytics }) {
                   </SimpleGrid>
 
                   <Divider />
-                  
+
                   <Heading size="md"><Icon as={Shield} size={18} mr={2} /> Security Settings</Heading>
                   <SimpleGrid columns={2} spacing={6}>
                     <FormControl display="flex" alignItems="center">
@@ -401,13 +421,13 @@ export default function Show({ auth, site, analytics }) {
                   <VStack align="stretch" spacing={4}>
                     {data.custom_waf_rules.map((rule, index) => (
                       <Box key={index} p={4} border="1px" borderColor="gray.200" rounded="md" position="relative">
-                        <Button 
-                          size="xs" 
-                          colorScheme="red" 
-                          variant="ghost" 
-                          position="absolute" 
-                          top={2} 
-                          right={2} 
+                        <Button
+                          size="xs"
+                          colorScheme="red"
+                          variant="ghost"
+                          position="absolute"
+                          top={2}
+                          right={2}
                           onClick={() => removeWafRule(index)}
                         >
                           <X size={14} />
@@ -474,9 +494,9 @@ export default function Show({ auth, site, analytics }) {
                   <Heading size="md"><Icon as={Settings} size={18} mr={2} /> Environment Variables (.env Injector)</Heading>
                   <Text fontSize="sm" color="gray.500">Variables will be injected directly into the application runtime (PHP-FPM or via HTTP Headers for Proxy).</Text>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       rows={6}
-                      placeholder="KEY1=VALUE1&#10;KEY2=VALUE2" 
+                      placeholder="KEY1=VALUE1&#10;KEY2=VALUE2"
                       value={Object.entries(data.env_vars).map(([k, v]) => `${k}=${v}`).join('\n')}
                       onChange={(e) => {
                         const lines = e.target.value.split('\n');
@@ -619,8 +639,190 @@ export default function Show({ auth, site, analytics }) {
               </Table>
             </Box>
           </TabPanel>
+          {/* ── Bandwidth Tab ── */}
+          <TabPanel px={0} py={6}>
+            <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
+              {[
+                { label: 'Total Requests', value: site.total_requests?.toLocaleString() ?? 0 },
+                { label: 'Bandwidth In', value: formatBytes(site.bytes_in) },
+                { label: 'Bandwidth Out', value: formatBytes(site.bytes_out) },
+                { label: 'Avg Latency', value: site.avg_latency_ms ? `${Math.round(site.avg_latency_ms)} ms` : '—' },
+              ].map(s => (
+                <Stat key={s.label} px={4} py={5} bg={useColorModeValue('white', 'gray.800')} shadow="base" rounded="lg">
+                  <StatLabel>{s.label}</StatLabel>
+                  <StatNumber fontSize="xl">{s.value}</StatNumber>
+                </Stat>
+              ))}
+            </SimpleGrid>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+              <Box bg={useColorModeValue('white', 'gray.800')} shadow="base" rounded="lg" p={5}>
+                <Heading size="sm" mb={4}>Status Code Distribution</Heading>
+                <ReactECharts style={{ height: '200px' }} option={{
+                  backgroundColor: 'transparent',
+                  tooltip: { trigger: 'item' },
+                  series: [{
+                    type: 'pie', radius: ['40%', '70%'],
+                    data: [
+                      { value: site.hits_2xx || 0, name: '2xx Success', itemStyle: { color: '#48bb78' } },
+                      { value: site.hits_4xx || 0, name: '4xx Client Error', itemStyle: { color: '#ed8936' } },
+                      { value: site.hits_5xx || 0, name: '5xx Server Error', itemStyle: { color: '#f56565' } },
+                    ],
+                    label: { color: '#718096' },
+                  }],
+                }} />
+              </Box>
+
+              <Box bg={useColorModeValue('white', 'gray.800')} shadow="base" rounded="lg" p={5}>
+                <Heading size="sm" mb={4}>Request Trend (Last 30 Days)</Heading>
+                <ReactECharts style={{ height: '200px' }} option={{
+                  backgroundColor: 'transparent',
+                  tooltip: { trigger: 'axis' },
+                  grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                  xAxis: { type: 'category', data: (bandwidth || []).map(b => b.date), axisLine: { lineStyle: { color: '#718096' } } },
+                  yAxis: { type: 'value', splitLine: { lineStyle: { color: 'rgba(113,128,150,0.2)' } } },
+                  series: [{ name: 'Requests', type: 'bar', data: (bandwidth || []).map(b => b.requests), itemStyle: { color: '#4299e1' } }],
+                }} />
+              </Box>
+            </SimpleGrid>
+          </TabPanel>
+
+          {/* ── Headers & Redirects Tab ── */}
+          <TabPanel px={0} py={6}>
+            <Box bg={useColorModeValue('white', 'gray.800')} p={6} rounded="lg" shadow="base" mb={6}>
+              <Heading size="md" mb={1}>Header Manipulation</Heading>
+              <Text fontSize="sm" color="gray.500" mb={4}>Add, set, or remove HTTP headers on requests or responses.</Text>
+              <VStack align="stretch" spacing={3}>
+                {data.header_rules.map((rule, i) => (
+                  <Box key={i} p={4} border="1px" borderColor="gray.200" rounded="md" position="relative">
+                    <Button size="xs" colorScheme="red" variant="ghost" position="absolute" top={2} right={2} onClick={() => removeHeaderRule(i)}><X size={13} /></Button>
+                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
+                      <FormControl>
+                        <FormLabel fontSize="xs">Direction</FormLabel>
+                        <Select size="sm" value={rule.direction} onChange={e => updateHeaderRule(i, 'direction', e.target.value)}>
+                          <option value="response">Response</option>
+                          <option value="request">Request (upstream)</option>
+                        </Select>
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="xs">Action</FormLabel>
+                        <Select size="sm" value={rule.action} onChange={e => updateHeaderRule(i, 'action', e.target.value)}>
+                          <option value="set">Set</option>
+                          <option value="add">Add</option>
+                          <option value="remove">Remove</option>
+                        </Select>
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="xs">Header Name</FormLabel>
+                        <Input size="sm" value={rule.name} onChange={e => updateHeaderRule(i, 'name', e.target.value)} placeholder="X-Custom-Header" />
+                      </FormControl>
+                      {rule.action !== 'remove' && (
+                        <FormControl>
+                          <FormLabel fontSize="xs">Value</FormLabel>
+                          <Input size="sm" value={rule.value} onChange={e => updateHeaderRule(i, 'value', e.target.value)} placeholder="header-value" />
+                        </FormControl>
+                      )}
+                    </SimpleGrid>
+                  </Box>
+                ))}
+                <Button leftIcon={<Plus size={14} />} size="sm" variant="outline" onClick={addHeaderRule}>Add Header Rule</Button>
+              </VStack>
+            </Box>
+
+            <Box bg={useColorModeValue('white', 'gray.800')} p={6} rounded="lg" shadow="base">
+              <Heading size="md" mb={1}>Redirect & Rewrite Rules</Heading>
+              <Text fontSize="sm" color="gray.500" mb={4}>301/302 redirects, path rewrites, and prefix stripping.</Text>
+              <VStack align="stretch" spacing={3}>
+                {data.redirect_rules.map((rule, i) => (
+                  <Box key={i} p={4} border="1px" borderColor="gray.200" rounded="md" position="relative">
+                    <Button size="xs" colorScheme="red" variant="ghost" position="absolute" top={2} right={2} onClick={() => removeRedirectRule(i)}><X size={13} /></Button>
+                    <SimpleGrid columns={{ base: 1, md: 4 }} spacing={3}>
+                      <FormControl>
+                        <FormLabel fontSize="xs">Type</FormLabel>
+                        <Select size="sm" value={rule.type} onChange={e => updateRedirectRule(i, 'type', e.target.value)}>
+                          <option value="permanent">301 Permanent</option>
+                          <option value="temporary">302 Temporary</option>
+                          <option value="rewrite">Rewrite (internal)</option>
+                          <option value="strip_prefix">Strip Prefix</option>
+                        </Select>
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="xs">From (path)</FormLabel>
+                        <Input size="sm" value={rule.from} onChange={e => updateRedirectRule(i, 'from', e.target.value)} placeholder="/old-path" />
+                      </FormControl>
+                      <FormControl gridColumn="span 2">
+                        <FormLabel fontSize="xs">To (destination)</FormLabel>
+                        <Input size="sm" value={rule.to} onChange={e => updateRedirectRule(i, 'to', e.target.value)} placeholder="/new-path or https://..." />
+                      </FormControl>
+                    </SimpleGrid>
+                  </Box>
+                ))}
+                <Button leftIcon={<Plus size={14} />} size="sm" variant="outline" onClick={addRedirectRule}>Add Redirect Rule</Button>
+              </VStack>
+
+              <Box pt={6}>
+                <Button colorScheme="blue" isLoading={updateProcessing} onClick={submitUpdate}>Save Headers & Redirects</Button>
+              </Box>
+            </Box>
+          </TabPanel>
+
+          {/* ── GeoIP Tab ── */}
+          <TabPanel px={0} py={6}>
+            <Box bg={useColorModeValue('white', 'gray.800')} p={6} rounded="lg" shadow="base">
+              <Heading size="md" mb={1}>GeoIP Filtering</Heading>
+              <Text fontSize="sm" color="gray.500" mb={6}>
+                Block or allow traffic by country. Requires the <Code fontSize="xs">caddy-maxmind-geolocation</Code> module and a MaxMind GeoLite2 database at <Code fontSize="xs">/etc/caddy/GeoLite2-Country.mmdb</Code>.
+              </Text>
+              <Stack spacing={5}>
+                <FormControl display="flex" alignItems="center">
+                  <FormLabel mb="0">Enable GeoIP Filtering</FormLabel>
+                  <Switch isChecked={data.geoip_enabled} onChange={e => setData('geoip_enabled', e.target.checked)} />
+                </FormControl>
+
+                {data.geoip_enabled && (
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                    <FormControl>
+                      <FormLabel>Allowlist Countries (ISO codes)</FormLabel>
+                      <Textarea
+                        size="sm"
+                        value={data.geoip_allowlist}
+                        onChange={e => setData('geoip_allowlist', e.target.value)}
+                        placeholder="TR, US, DE&#10;(comma or space separated)"
+                        rows={4}
+                      />
+                      <Text fontSize="xs" color="gray.500" mt={1}>Only these countries can access the site. Leave empty to allow all.</Text>
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Denylist Countries (ISO codes)</FormLabel>
+                      <Textarea
+                        size="sm"
+                        value={data.geoip_denylist}
+                        onChange={e => setData('geoip_denylist', e.target.value)}
+                        placeholder="CN, RU, KP&#10;(comma or space separated)"
+                        rows={4}
+                      />
+                      <Text fontSize="xs" color="gray.500" mt={1}>Block traffic from these countries.</Text>
+                    </FormControl>
+                  </SimpleGrid>
+                )}
+
+                <Box>
+                  <Button colorScheme="blue" isLoading={updateProcessing} onClick={submitUpdate}>Save GeoIP Settings</Button>
+                </Box>
+              </Stack>
+            </Box>
+          </TabPanel>
+
         </TabPanels>
       </Tabs>
     </AppLayout>
   );
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }

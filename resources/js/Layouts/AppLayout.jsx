@@ -20,6 +20,9 @@ import {
   Shield,
   Activity,
   LogOut,
+  Users,
+  Lock,
+  TrendingUp,
 } from 'lucide-react';
 import { Link as InertiaLink } from '@inertiajs/react';
 
@@ -64,11 +67,14 @@ export default function AppLayout({ children, user }) {
           </Text>
 
           <Flex display={{ base: 'none', md: 'flex' }} ml={10}>
-             <Stack direction={'row'} spacing={4}>
-                <NavItem href={route('dashboard')}>Dashboard</NavItem>
-                <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
-                <NavItem href={route('logs.index')}>Security Logs</NavItem>
-             </Stack>
+            <Stack direction={'row'} spacing={4}>
+              <NavItem href={route('dashboard')}>Dashboard</NavItem>
+              <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
+              <NavItem href={route('logs.index')}>Security Logs</NavItem>
+              <NavItem href={route('ssl.index')}>SSL</NavItem>
+              <NavItem href={route('uptime.index')}>Uptime</NavItem>
+              <NavItem href={route('teams.index')}>Teams</NavItem>
+            </Stack>
           </Flex>
         </Flex>
 
@@ -78,19 +84,22 @@ export default function AppLayout({ children, user }) {
           direction={'row'}
           spacing={6}
         >
-            <Text fontSize="sm" fontWeight={500}>{user?.name}</Text>
-            <InertiaLink href={route('logout')} method="post" as="button">
-                <Icon as={LogOut} size={18} />
-            </InertiaLink>
+          <Text fontSize="sm" fontWeight={500}>{user?.name}</Text>
+          <InertiaLink href={route('logout')} method="post" as="button">
+            <Icon as={LogOut} size={18} />
+          </InertiaLink>
         </Stack>
       </Flex>
 
       <Collapse in={isOpen} animateOpacity>
-         <Stack bg={useColorModeValue('white', 'gray.800')} p={4} display={{ md: 'none' }}>
-            <NavItem href={route('dashboard')}>Dashboard</NavItem>
-            <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
-            <NavItem href={route('logs.index')}>Security Logs</NavItem>
-         </Stack>
+        <Stack bg={useColorModeValue('white', 'gray.800')} p={4} display={{ md: 'none' }}>
+          <NavItem href={route('dashboard')}>Dashboard</NavItem>
+          <NavItem href={route('banned-ips.index')}>IP Blacklist</NavItem>
+          <NavItem href={route('logs.index')}>Security Logs</NavItem>
+          <NavItem href={route('ssl.index')}>SSL</NavItem>
+          <NavItem href={route('uptime.index')}>Uptime</NavItem>
+          <NavItem href={route('teams.index')}>Teams</NavItem>
+        </Stack>
       </Collapse>
 
       <Container maxW="container.xl" py={8}>
