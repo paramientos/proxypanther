@@ -15,7 +15,7 @@ import {
   Plus, X, Map, ArrowRightLeft, BarChart2, Zap, Save,
   Server, Cpu, Database, Bell, ArrowUp, ArrowDown, RefreshCcw
 } from 'lucide-react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 
 const CARD_BG = '#0c0d12';
@@ -213,6 +213,27 @@ export default function Show({ auth, site, analytics, bandwidth }) {
         </VStack>
         <HStack spacing={3}>
           <Button
+            leftIcon={<AlertTriangle size={18} />}
+            variant={data.under_attack_mode ? 'solid' : 'outline'}
+            borderColor={ACCENT}
+            color={data.under_attack_mode ? 'white' : ACCENT}
+            bg={data.under_attack_mode ? '#ea580c' : 'transparent'}
+            _hover={{ bg: data.under_attack_mode ? '#c2410c' : 'rgba(243,128,32,0.1)' }}
+            boxShadow={data.under_attack_mode ? `0 0 20px ${ACCENT}` : 'none'}
+            animation={data.under_attack_mode ? 'pulse 2s infinite' : 'none'}
+            onClick={() => {
+                const val = !data.under_attack_mode;
+                setData('under_attack_mode', val);
+                router.post(route('sites.update', site.id), {
+                    ...data,
+                    under_attack_mode: val,
+                    _method: 'PUT'
+                }, { preserveScroll: true });
+            }}
+          >
+            {data.under_attack_mode ? 'UNDER ATTACK' : 'PANIC BUTTON'}
+          </Button>
+          <Button
             leftIcon={<Power size={18} />}
             variant="outline"
             borderColor={site.is_active ? 'orange.800' : 'green.800'}
@@ -393,23 +414,8 @@ export default function Show({ auth, site, analytics, bandwidth }) {
           </TabPanel>
 
           <TabPanel p={0}>
-            <Stack spacing={6}>
-              <Box bg="rgba(243,128,32,0.05)" p={6} borderRadius="xl" border="1px solid" borderColor="rgba(243,128,32,0.2)" position="relative" overflow="hidden">
-                <HStack justify="space-between">
-                  <HStack spacing={4}>
-                    <Box p={2.5} bg="rgba(243,128,32,0.1)" borderRadius="lg" animation="pulse 2s infinite">
-                      <Icon as={AlertTriangle} boxSize={5} color={ACCENT} />
-                    </Box>
-                    <VStack align="start" spacing={0}>
-                      <Heading size="sm" color="white">Emergency Shield (Under Attack Mode)</Heading>
-                      <Text fontSize="xs" color="gray.500">Enforce interstitial waiting room for ALL visitors during active DDoS.</Text>
-                    </VStack>
-                  </HStack>
-                  <Switch size="lg" colorScheme="brand" isChecked={data.under_attack_mode} onChange={e => setData('under_attack_mode', e.target.checked)} />
-                </HStack>
-              </Box>
-
-              <ConfigSection title="WAF Strategy" icon={Shield} description="Intelligent firewall policies">
+              <Stack spacing={6}>
+                <ConfigSection title="WAF Strategy" icon={Shield} description="Intelligent firewall policies">
                 <SimpleGrid columns={2} spacing={8}>
                   <FormControl display="flex" justifyContent="space-between" alignItems="center">
                     <Box>
