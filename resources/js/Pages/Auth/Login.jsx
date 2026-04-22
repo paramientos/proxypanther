@@ -1,25 +1,14 @@
 import React from 'react';
 import {
-  Box,
-  Button,
-  Checkbox,
-  Flex,
-  FormControl,
-  FormLabel,
-  Heading,
-  HStack,
-  Input,
-  Stack,
-  Text,
-  FormErrorMessage,
-  Icon,
-  VStack,
-  Divider,
-} from '@chakra-ui/react';
+  Box, Button, Checkbox, Flex, TextInput, PasswordInput,
+  Text, Stack, Group, Divider,
+} from '@mantine/core';
 import { Head, useForm } from '@inertiajs/react';
-import { Zap, ShieldCheck, Fingerprint, Lock, Globe } from 'lucide-react';
+import {
+  IconBolt, IconShieldCheck, IconLock, IconGlobe, IconFingerprint,
+} from '@tabler/icons-react';
 
-const ACCENT = '#6366f1';
+const ACCENT = '#f38020';
 const BG = '#050508';
 const CARD_BG = '#0c0d12';
 const BORDER = 'rgba(255, 255, 255, 0.08)';
@@ -33,195 +22,168 @@ export default function Login() {
 
   const submit = (e) => {
     e.preventDefault();
-    post(route('login'), {
-      onFinish: () => reset('password'),
-    });
+    post(route('login'), { onFinish: () => reset('password') });
   };
 
   return (
-    <Flex minH="100vh" bg={BG} overflow="hidden">
+    <Flex mih="100vh" style={{ backgroundColor: BG, overflow: 'hidden' }}>
       <Head title="Enterprise Login | ProxyPanther" />
 
-      {/* Left Side: Visual & Branding (Desktop Only) */}
       <Box
         flex="1.2"
-        position="relative"
-        display={{ base: 'none', lg: 'block' }}
-        overflow="hidden"
+        pos="relative"
+        visibleFrom="lg"
+        style={{ overflow: 'hidden' }}
       >
         <Box
-          position="absolute"
+          pos="absolute"
           top={0} left={0} right={0} bottom={0}
-          bgImage="url('/images/login-bg.png')"
-          bgSize="cover"
-          bgPosition="center"
-          filter="brightness(0.6) saturate(1.2)"
+          style={{
+            backgroundImage: "url('/images/login-bg.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.6) saturate(1.2)',
+          }}
         />
-        {/* Overlay Gradient */}
         <Box
-          position="absolute"
+          pos="absolute"
           top={0} left={0} right={0} bottom={0}
-          bgGradient="linear(to-r, rgba(5,5,8,0.95) 0%, rgba(5,5,8,0.4) 50%, rgba(5,5,8,0.95) 100%)"
+          style={{
+            background: 'linear-gradient(to right, rgba(5,5,8,0.95) 0%, rgba(5,5,8,0.4) 50%, rgba(5,5,8,0.95) 100%)',
+          }}
         />
 
-        <VStack
-          position="absolute"
-          top="50%" left="10%"
-          transform="translateY(-50%)"
-          align="start"
-          spacing={6}
-          maxW="500px"
-          zIndex={2}
+        <Box
+          pos="absolute"
+          style={{ top: '50%', left: '10%', transform: 'translateY(-50%)', zIndex: 2, maxWidth: 500 }}
         >
-          <Box
-            w={16} h={16}
-            bg={ACCENT}
-            borderRadius="2xl"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            boxShadow={`0 0 40px ${ACCENT}66`}
-          >
-            <Icon as={Zap} w={8} h={8} color="white" />
-          </Box>
-          <VStack align="start" spacing={2}>
-            <Heading size="2xl" color="white" fontWeight="900" letterSpacing="tight">
-              ProxyPanther
-            </Heading>
-            <Text color="brand.400" fontSize="md" fontWeight="bold" letterSpacing="widest" textTransform="uppercase">
-              Next-Gen Proxy Infrastructure
-            </Text>
-          </VStack>
-          <Text color="gray.300" fontSize="lg" lineHeight="tall">
-            Elite-tier security, real-time analytics, and automatic certificate orchestration for your global backend fleet.
-          </Text>
+          <Stack gap={24}>
+            <Box
+              style={{
+                width: 64, height: 64,
+                backgroundColor: ACCENT,
+                borderRadius: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 0 40px ${ACCENT}66`,
+              }}
+            >
+              <IconBolt size={32} color="white" />
+            </Box>
 
-          <HStack spacing={6} pt={8}>
-            <VStack align="start" spacing={0}>
-              <Text color="white" fontWeight="bold" fontSize="2xl">99.99%</Text>
-              <Text color="gray.500" fontSize="xs" fontWeight="bold">UPTIME SLA</Text>
-            </VStack>
-            <Box w="1px" h={10} bg="whiteAlpha.300" />
-            <VStack align="start" spacing={0}>
-              <Text color="white" fontWeight="bold" fontSize="2xl">256-bit</Text>
-              <Text color="gray.500" fontSize="xs" fontWeight="bold">ENCRYPTION</Text>
-            </VStack>
-            <Box w="1px" h={10} bg="whiteAlpha.300" />
-            <VStack align="start" spacing={0}>
-              <Text color="white" fontWeight="bold" fontSize="2xl">Real-time</Text>
-              <Text color="gray.500" fontSize="xs" fontWeight="bold">WAF SHIELD</Text>
-            </VStack>
-          </HStack>
-        </VStack>
+            <Box>
+              <Text size="42px" fw={900} c="white" lh={1.1} style={{ letterSpacing: '-0.02em' }}>
+                ProxyPanther
+              </Text>
+              <Text size="sm" fw={700} style={{ color: ACCENT, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 6 }}>
+                Next-Gen Proxy Infrastructure
+              </Text>
+            </Box>
+
+            <Text c="gray.3" size="lg" lh={1.7}>
+              Elite-tier security, real-time analytics, and automatic certificate orchestration for your global backend fleet.
+            </Text>
+
+            <Group gap={32} mt={16}>
+              {[
+                { value: '99.99%', label: 'UPTIME SLA' },
+                { value: '256-bit', label: 'ENCRYPTION' },
+                { value: 'Real-time', label: 'WAF SHIELD' },
+              ].map((stat, i) => (
+                <React.Fragment key={stat.label}>
+                  {i > 0 && <Divider orientation="vertical" color="rgba(255,255,255,0.15)" />}
+                  <Box>
+                    <Text c="white" fw={700} size="xl">{stat.value}</Text>
+                    <Text c="dimmed" size="xs" fw={700}>{stat.label}</Text>
+                  </Box>
+                </React.Fragment>
+              ))}
+            </Group>
+          </Stack>
+        </Box>
 
         <Text
-          position="absolute"
-          bottom={8} left={10}
-          color="gray.500"
-          fontSize="xs"
-          zIndex={2}
+          pos="absolute"
+          style={{ bottom: 32, left: 40, zIndex: 2 }}
+          c="dimmed"
+          size="xs"
         >
           © 2026 ProxyPanther Security Solutions. All nodes operational.
         </Text>
       </Box>
 
-      {/* Right Side: Login Form */}
-      <Flex
-        flex="1"
-        align="center"
-        justify="center"
-        px={{ base: 4, md: 24 }}
-        zIndex={5}
-      >
-        <VStack spacing={8} w="full" maxW="400px">
-          <VStack spacing={2} align={{ base: 'center', lg: 'start' }} w="full">
-            <Text
-              display={{ base: 'block', lg: 'none' }}
-              color={ACCENT} fontWeight="bold" fontSize="lg" mb={2}
-            >
-              ProxyPanther
-            </Text>
-            <Heading color="white" size="lg">Identity Authentication</Heading>
-            <Text color="gray.500" fontSize="sm">
+      <Flex flex={1} align="center" justify="center" px={{ base: 16, md: 64 }} style={{ zIndex: 5 }}>
+        <Stack gap={32} w="100%" maw={400}>
+          <Box>
+            <Text c={ACCENT} fw={700} size="lg" mb={4} hiddenFrom="lg">ProxyPanther</Text>
+            <Text c="white" size="xl" fw={700}>Identity Authentication</Text>
+            <Text c="dimmed" size="sm" mt={4}>
               Please provide authorized credentials to proceed.
             </Text>
-          </VStack>
+          </Box>
 
           <Box
-            w="full"
-            bg={{ base: 'transparent', lg: 'rgba(12, 13, 18, 0.4)' }}
-            backdropFilter={{ base: 'none', lg: 'blur(20px)' }}
-            p={{ base: 0, lg: 8 }}
-            borderRadius="2xl"
-            border={{ base: 'none', lg: '1px solid' }}
-            borderColor={BORDER}
+            p={32}
+            style={{
+              backgroundColor: 'rgba(12,13,18,0.4)',
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${BORDER}`,
+              borderRadius: 16,
+            }}
           >
             <form onSubmit={submit}>
-              <Stack spacing={6}>
-                <Stack spacing={4}>
-                  <FormControl isRequired isInvalid={errors.email}>
-                    <FormLabel color="gray.500" fontSize="xs" fontWeight="bold" textTransform="uppercase">
-                      Enterprise Identity (Email)
-                    </FormLabel>
-                    <Input
-                      bg={BG}
-                      
-                      border="1px solid"
-                      borderColor={BORDER}
-                      _focus={{ borderColor: ACCENT, boxShadow: `0 0 0 1px ${ACCENT}` }}
-                      _hover={{ borderColor: 'whiteAlpha.300' }}
-                      type="email"
-                      value={data.email}
-                      onChange={(e) => setData('email', e.target.value)}
-                      placeholder="admin@panther.internal"
-                      fontSize="sm"
-                    />
-                    {errors.email && <FormErrorMessage>{errors.email}</FormErrorMessage>}
-                  </FormControl>
+              <Stack gap={20}>
+                <TextInput
+                  label="Enterprise Identity (Email)"
+                  placeholder="admin@panther.internal"
+                  type="email"
+                  value={data.email}
+                  onChange={e => setData('email', e.target.value)}
+                  error={errors.email}
+                  required
+                  styles={{
+                    label: { color: '#71717a', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
+                    input: {
+                      backgroundColor: BG,
+                      borderColor: BORDER,
+                      color: '#e4e4e7',
+                      '&:focus': { borderColor: ACCENT },
+                    },
+                  }}
+                />
 
-                  <FormControl isRequired isInvalid={errors.password}>
-                    <FormLabel color="gray.500" fontSize="xs" fontWeight="bold" textTransform="uppercase">
-                      Access Token (Password)
-                    </FormLabel>
-                    <Input
-                      bg={BG}
-                      
-                      border="1px solid"
-                      borderColor={BORDER}
-                      _focus={{ borderColor: ACCENT, boxShadow: `0 0 0 1px ${ACCENT}` }}
-                      _hover={{ borderColor: 'whiteAlpha.300' }}
-                      type="password"
-                      value={data.password}
-                      onChange={(e) => setData('password', e.target.value)}
-                      placeholder="••••••••"
-                      fontSize="sm"
-                    />
-                    {errors.password && <FormErrorMessage>{errors.password}</FormErrorMessage>}
-                  </FormControl>
-                </Stack>
+                <PasswordInput
+                  label="Access Token (Password)"
+                  placeholder="••••••••"
+                  value={data.password}
+                  onChange={e => setData('password', e.target.value)}
+                  error={errors.password}
+                  required
+                  styles={{
+                    label: { color: '#71717a', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
+                    input: {
+                      backgroundColor: BG,
+                      borderColor: BORDER,
+                      color: '#e4e4e7',
+                    },
+                  }}
+                />
 
-                <HStack justify="space-between">
-                  <Checkbox
-                    colorScheme="brand"
-                    isChecked={data.remember}
-                    onChange={(e) => setData('remember', e.target.checked)}
-                  >
-                    <Text fontSize="xs" color="gray.500">Maintain persistent session</Text>
-                  </Checkbox>
-                  {/* <Button variant="link" color={ACCENT} fontSize="xs">Recovery Key?</Button> */}
-                </HStack>
+                <Checkbox
+                  label={<Text size="xs" c="dimmed">Maintain persistent session</Text>}
+                  checked={data.remember}
+                  onChange={e => setData('remember', e.currentTarget.checked)}
+                  color="orange"
+                />
 
                 <Button
                   type="submit"
-                  width="full"
-                  bg={ACCENT}
-                  color="white"
-                  _hover={{ bg: '#4f46e5', transform: 'translateY(-1px)' }}
-                  _active={{ bg: '#4338ca', transform: 'translateY(0)' }}
-                  isLoading={processing}
-                  leftIcon={<ShieldCheck size={18} />}
-                  transition="all 0.2s"
-                  fontWeight="bold"
+                  fullWidth
+                  loading={processing}
+                  leftSection={<IconShieldCheck size={17} />}
+                  style={{ backgroundColor: ACCENT, fontWeight: 700 }}
+                  size="md"
                 >
                   Confirm Identity
                 </Button>
@@ -229,27 +191,18 @@ export default function Login() {
             </form>
           </Box>
 
-          <VStack spacing={4}>
-            <HStack spacing={4}>
-              <Icon as={ShieldCheck} color="gray.600" boxSize={3} />
-              <Icon as={Lock} color="gray.600" boxSize={3} />
-              <Icon as={Globe} color="gray.600" boxSize={3} />
-            </HStack>
-            <Text fontSize="10px" color="gray.600" textAlign="center" letterSpacing="widest">
-              SYSTEM ENCRYPTED • AES-256-GCM PROXY NODE <br />
-              CLIENT IP: {window.location.hostname}
+          <Stack gap={8} align="center">
+            <Group gap={16}>
+              <IconShieldCheck size={13} color="#3f3f46" />
+              <IconLock size={13} color="#3f3f46" />
+              <IconGlobe size={13} color="#3f3f46" />
+            </Group>
+            <Text size="10px" c="dimmed" ta="center" style={{ letterSpacing: '0.1em' }}>
+              SYSTEM ENCRYPTED • AES-256-GCM PROXY NODE
             </Text>
-          </VStack>
-        </VStack>
+          </Stack>
+        </Stack>
       </Flex>
     </Flex>
   );
 }
-
-const SimpleGrid = ({ children, columns, spacing }) => (
-  <Flex gap={spacing} w="full">
-    {React.Children.map(children, child => (
-      <Box flex="1">{child}</Box>
-    ))}
-  </Flex>
-);

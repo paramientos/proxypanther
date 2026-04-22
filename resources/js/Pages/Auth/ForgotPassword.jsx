@@ -1,22 +1,13 @@
 import React from 'react';
-import {
-  Box,
-  Button,
-  Container,
-  FormControl,
-  FormLabel,
-  Heading,
-  Input,
-  Stack,
-  Text,
-  useColorModeValue,
-  FormErrorMessage,
-  Icon,
-  Alert,
-  AlertIcon,
-} from '@chakra-ui/react';
+import { Box, Stack, Title, Text, TextInput, Button, Alert, Center } from '@mantine/core';
+import { IconMail, IconSend } from '@tabler/icons-react';
 import { Head, useForm } from '@inertiajs/react';
-import { Mail } from 'lucide-react';
+
+const ACCENT = '#f38020';
+const BG = '#09090b';
+const CARD_BG = '#18181b';
+const BORDER = '#27272a';
+const inputStyles = { label: { color: '#a1a1aa' }, input: { backgroundColor: '#0f0f11', borderColor: BORDER, color: 'white' } };
 
 export default function ForgotPassword({ status }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -29,51 +20,51 @@ export default function ForgotPassword({ status }) {
     };
 
     return (
-        <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')} display="flex" alignItems="center" justifyContent="center">
+        <Box style={{ minHeight: '100vh', backgroundColor: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Head title="Forgot Password" />
-            <Container maxW="md" py={{ base: '12', md: '24' }} px={{ base: '0', sm: '8' }}>
-                <Stack spacing="8">
-                    <Stack spacing="6" align="center">
-                        <Icon as={Mail} w={10} h={10} color="orange.500" />
-                        <Stack spacing={{ base: '2', md: '3' }} textAlign="center">
-                            <Heading size={{ base: 'xs', md: 'sm' }}>Forgot Password</Heading>
-                            <Text color="muted">No problem. Just let us know your email address and we will email you a password reset link.</Text>
-                        </Stack>
+            <Box w={420} p="xl">
+                <Stack gap="xl">
+                    <Center>
+                        <Box style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <IconMail size={28} color="white" />
+                        </Box>
+                    </Center>
+
+                    <Stack gap={6} style={{ textAlign: 'center' }}>
+                        <Title order={3} c="white">Forgot Password</Title>
+                        <Text size="sm" c="dimmed">
+                            No problem. Enter your email address and we'll send you a password reset link.
+                        </Text>
                     </Stack>
-                    <Box
-                        py={{ base: '0', sm: '8' }}
-                        px={{ base: '4', sm: '10' }}
-                        bg={{ base: 'transparent', sm: useColorModeValue('white', 'gray.800') }}
-                        boxShadow={{ base: 'none', sm: 'md' }}
-                        borderRadius={{ base: 'none', sm: 'xl' }}
-                    >
+
+                    <Box style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 24 }}>
                         {status && (
-                            <Alert status="success" mb={4} borderRadius="md">
-                                <AlertIcon />
+                            <Alert color="green" variant="light" mb="md">
                                 {status}
                             </Alert>
                         )}
+
                         <form onSubmit={submit}>
-                            <Stack spacing="6">
-                                <FormControl isRequired isInvalid={errors.email}>
-                                    <FormLabel htmlFor="email">Email</FormLabel>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        autoFocus
-                                    />
-                                    {errors.email && <FormErrorMessage>{errors.email}</FormErrorMessage>}
-                                </FormControl>
-                                <Button type="submit" width="full" colorScheme="orange" isLoading={processing}>
+                            <Stack gap="md">
+                                <TextInput
+                                    id="email"
+                                    label="Email"
+                                    type="email"
+                                    required
+                                    autoFocus
+                                    value={data.email}
+                                    onChange={(e) => setData('email', e.target.value)}
+                                    error={errors.email}
+                                    styles={inputStyles}
+                                />
+                                <Button type="submit" fullWidth loading={processing} color={ACCENT} leftSection={<IconSend size={14} />}>
                                     Email Password Reset Link
                                 </Button>
                             </Stack>
                         </form>
                     </Box>
                 </Stack>
-            </Container>
+            </Box>
         </Box>
     );
 }

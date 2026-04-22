@@ -1,33 +1,69 @@
 import React from 'react';
 import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
-    Box, Heading, Text, Button, SimpleGrid, Badge,
-    Table, Thead, Tbody, Tr, Th, Td,
-    Icon, HStack, VStack, Progress, Flex, IconButton,
-    Menu, MenuButton, MenuList, MenuItem,
-    useDisclosure, Modal, ModalOverlay, ModalContent,
-    ModalHeader, ModalBody, ModalCloseButton,
-    FormControl, FormLabel, Input, Select, Stack, Switch,
-} from '@chakra-ui/react';
+    Box, Text, Button, SimpleGrid, Badge, Table,
+    Group, Stack, Progress, Flex, ActionIcon,
+    Menu, Modal, TextInput, Select, Switch,
+    Title, Paper, Divider,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@mantine/notifications';
 import {
-    Plus, Shield, Globe, RefreshCcw, MoreVertical,
-    CheckCircle, Zap, ArrowUp, Settings, Trash2, Eye, X,
-    ChevronRight, MapPin
-} from 'lucide-react';
+    IconPlus, IconShield, IconGlobe, IconRefresh, IconDots,
+    IconCircleCheck, IconBolt, IconArrowUp, IconSettings,
+    IconTrash, IconEye, IconChevronRight, IconMapPin,
+} from '@tabler/icons-react';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 
-const CARD_BG = '#0c0d12';
-const BORDER = 'rgba(255,255,255,0.08)';
-const ROW_HOVER = '#1c1c1c';
+const CARD_BG = '#111113';
+const BORDER = 'rgba(255,255,255,0.07)';
+const ROW_HOVER = '#18181b';
 const ACCENT = '#f38020';
-const ACCENT_DIM = 'rgba(243,128,32,0.12)';
+const ACCENT_DIM = 'rgba(243,128,32,0.1)';
+
+function StatCard({ label, value, sub, icon: Icon, iconColor, iconBg, badge, badgeColor, progress }) {
+    return (
+        <Paper
+            p="lg"
+            style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}` }}
+        >
+            <Flex justify="space-between" align="flex-start" mb={16}>
+                <Box
+                    style={{
+                        padding: 10,
+                        backgroundColor: iconBg,
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <Icon size={20} color={iconColor} />
+                </Box>
+                <Badge
+                    size="xs"
+                    variant="light"
+                    color={badgeColor}
+                    radius="xl"
+                >
+                    {badge}
+                </Badge>
+            </Flex>
+            <Text size="28px" fw={700} c="white" lh={1}>{value}</Text>
+            <Text size="xs" c="dimmed" mt={4} mb={progress !== undefined ? 12 : 0}>{label}</Text>
+            {progress !== undefined && (
+                <Progress value={progress} size="xs" color="orange" style={{ backgroundColor: '#27272a' }} radius="xl" />
+            )}
+        </Paper>
+    );
+}
 
 export default function EnterpriseDashboard({ auth, sites: initialSites, analytics, threatsByCountry = [] }) {
     const [sites, setSites] = React.useState(initialSites);
     const [liveStats, setLiveStats] = React.useState({});
-    const { isOpen, onOpen, onClose } = useDisclosure();
+    const [opened, { open, close }] = useDisclosure(false);
 
     React.useEffect(() => {
         if (!window.Echo) return;
@@ -75,44 +111,41 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
             backgroundColor: '#1a1a1a',
             borderColor: ACCENT,
             textStyle: { color: '#e5e5e5', fontSize: 12 },
-            formatter: (params) => {
-                return `${params.name}: ${params.value || 0} Threats`;
-            }
+            formatter: (params) => `${params.name}: ${params.value || 0} Threats`,
         },
         visualMap: {
             min: 0,
-            max: Math.max(...Object.values(threatsByCountry || { 'US': 0 }), 10),
+            max: Math.max(...Object.values(threatsByCountry || { US: 0 }), 10),
             left: 'left',
             top: 'bottom',
             text: ['High', 'Low'],
             seriesIndex: [0],
-            inRange: {
-                color: ['rgba(243,128,32,0.1)', 'rgba(243,128,32,0.6)', '#f38020']
-            },
+            inRange: { color: ['rgba(243,128,32,0.1)', 'rgba(243,128,32,0.6)', '#f38020'] },
             calculable: true,
-            textStyle: { color: '#666' }
+            textStyle: { color: '#666' },
         },
-        series: [
-            {
-                name: 'Threats',
-                type: 'map',
-                map: 'world',
-                roam: true,
-                emphasis: {
-                    label: { show: false },
-                    itemStyle: { areaColor: '#4f46e5' }
-                },
-                data: Object.entries(threatsByCountry || {}).map(([code, count]) => ({
-                    name: code === 'US' ? 'United States' : (code === 'TR' ? 'Turkey' : (code === 'CN' ? 'China' : code)),
-                    value: count
-                }))
-            }
-        ]
+        series: [{
+            name: 'Threats',
+            type: 'map',
+            map: 'world',
+            roam: true,
+            emphasis: { label: { show: false }, itemStyle: { areaColor: '#4f46e5' } },
+            data: Object.entries(threatsByCountry || {}).map(([code, count]) => ({
+                name: code === 'US' ? 'United States' : code === 'TR' ? 'Turkey' : code === 'CN' ? 'China' : code,
+                value: count,
+            })),
+        }],
     };
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('sites.store'), { onSuccess: () => { reset(); onClose(); } });
+        post(route('sites.store'), {
+            onSuccess: () => {
+                reset();
+                close();
+                notifications.show({ title: 'Site added', color: 'orange' });
+            },
+        });
     };
 
     const kpis = [
@@ -120,7 +153,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
             label: 'Active Proxy Sites',
             value: sites.length,
             sub: `${onlineSites} online`,
-            icon: Globe,
+            icon: IconGlobe,
             iconBg: ACCENT_DIM,
             iconColor: ACCENT,
             progress: sites.length ? (onlineSites / sites.length) * 100 : 0,
@@ -131,8 +164,8 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
             label: 'Threats Blocked',
             value: totalBlocked.toLocaleString(),
             sub: `${blockRate}% of traffic`,
-            icon: Shield,
-            iconBg: 'rgba(239,68,68,0.12)',
+            icon: IconShield,
+            iconBg: 'rgba(239,68,68,0.1)',
             iconColor: '#ef4444',
             badge: '+8%',
             badgeColor: 'red',
@@ -141,8 +174,8 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
             label: 'Systems Online',
             value: `${onlineSites}/${sites.length}`,
             sub: 'Real-time status',
-            icon: CheckCircle,
-            iconBg: 'rgba(34,197,94,0.12)',
+            icon: IconCircleCheck,
+            iconBg: 'rgba(34,197,94,0.1)',
             iconColor: '#22c55e',
             progress: sites.length ? (onlineSites / sites.length) * 100 : 0,
             badge: 'LIVE',
@@ -152,39 +185,38 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
             label: 'Total Requests',
             value: totalRequests.toLocaleString(),
             sub: `~${Math.round(totalRequests / 24)}/hr avg`,
-            icon: Zap,
-            iconBg: 'rgba(168,85,247,0.12)',
+            icon: IconBolt,
+            iconBg: 'rgba(168,85,247,0.1)',
             iconColor: '#a855f7',
             badge: '24h',
-            badgeColor: 'purple',
+            badgeColor: 'violet',
         },
     ];
 
-    const view = new URLSearchParams(window.location.search).get('view');
+    const view = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('view')
+        : null;
     const showAll = !view || view === 'dashboard';
 
     return (
         <EnterpriseLayout user={auth.user}>
             <Head title={view === 'sites' ? 'Proxy Sites' : 'Dashboard'} />
 
-            {/* Header */}
-            <Flex justify="space-between" align="center" mb={8}>
+            <Flex justify="space-between" align="center" mb={32}>
                 <Box>
-                    <Heading size="lg" color="white" fontWeight="semibold">
+                    <Title order={2} c="white" fw={600}>
                         {view === 'sites' ? 'Proxy Infrastructure' : 'Security Operations Center'}
-                    </Heading>
-                    <Text color="gray.500" fontSize="sm" mt={1}>
-                        {view === 'sites' ? 'Manage and monitor your proxy sites' : 'Real-time monitoring and threat intelligence'}
+                    </Title>
+                    <Text c="dimmed" size="sm" mt={4}>
+                        {view === 'sites'
+                            ? 'Manage and monitor your proxy sites'
+                            : 'Real-time monitoring and threat intelligence'}
                     </Text>
                 </Box>
                 <Button
-                    leftIcon={<Plus size={16} />}
-                    bg={ACCENT}
-                    color="white"
-                    _hover={{ bg: '#4f46e5' }}
-                    size="md"
-                    onClick={onOpen}
-                    fontWeight="medium"
+                    leftSection={<IconPlus size={15} />}
+                    onClick={open}
+                    style={{ backgroundColor: ACCENT }}
                 >
                     Add Proxy Site
                 </Button>
@@ -192,58 +224,38 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
 
             {showAll && (
                 <>
-                    {/* KPI Cards */}
-                    <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={6}>
-                        {kpis.map((kpi) => (
-                            <Box key={kpi.label} bg={CARD_BG} p={5} borderRadius="lg"
-                                border="1px solid" borderColor={BORDER}>
-                                <HStack justify="space-between" mb={4}>
-                                    <Box p={2.5} bg={kpi.iconBg} borderRadius="md">
-                                        <Icon as={kpi.icon} boxSize={5} color={kpi.iconColor} />
-                                    </Box>
-                                    <Badge
-                                        colorScheme={kpi.badgeColor}
-                                        fontSize="10px"
-                                        px={2}
-                                        borderRadius="full"
-                                    >
-                                        {kpi.badge === '+12%' || kpi.badge === '+8%'
-                                            ? <HStack spacing={0.5}><ArrowUp size={9} /><Text>{kpi.badge}</Text></HStack>
-                                            : kpi.badge
-                                        }
-                                    </Badge>
-                                </HStack>
-                                <Text fontSize="2xl" fontWeight="bold" color="white" mb={0.5}>
-                                    {kpi.value}
-                                </Text>
-                                <Text fontSize="xs" color="gray.500" mb={kpi.progress !== undefined ? 3 : 0}>
-                                    {kpi.label}
-                                </Text>
-                                {kpi.progress !== undefined && (
-                                    <Progress value={kpi.progress} size="xs" colorScheme="brand"
-                                        bg="#2a2a2a" borderRadius="full" />
-                                )}
-                            </Box>
+                    <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md" mb={24}>
+                        {kpis.map(kpi => (
+                            <StatCard key={kpi.label} {...kpi} />
                         ))}
                     </SimpleGrid>
 
-                    {/* Security Intel & AI Advisor */}
-                    <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} mb={6}>
-                        {/* Threat Timeline */}
-                        <Box bg={CARD_BG} p={6} borderRadius="xl" border="1px solid" borderColor={BORDER} gridColumn={{ lg: "span 2" }}>
-                            <HStack justify="space-between" mb={5}>
+                    <SimpleGrid cols={{ base: 1, lg: 3 }} spacing={24} mb={24}>
+                        <Paper
+                            p="xl"
+                            style={{
+                                backgroundColor: CARD_BG,
+                                border: `1px solid ${BORDER}`,
+                                gridColumn: 'span 2',
+                            }}
+                        >
+                            <Flex justify="space-between" align="flex-start" mb={20}>
                                 <Box>
-                                    <Text fontWeight="semibold" color="white" fontSize="lg">Global Threat Map</Text>
-                                    <Text fontSize="xs" color="gray.500" mt={0.5}>Visualizing blocked attack attempts across regions</Text>
+                                    <Text fw={600} c="white" size="lg">Global Threat Map</Text>
+                                    <Text size="xs" c="dimmed" mt={2}>Visualizing blocked attack attempts across regions</Text>
                                 </Box>
-                                <HStack spacing={4}>
-                                    <HStack spacing={2}>
-                                        <Box w={2} h={2} bg={ACCENT} borderRadius="full" />
-                                        <Text fontSize="xs" color="gray.400">Threat Hotspots</Text>
-                                    </HStack>
-                                </HStack>
-                            </HStack>
-                            <Box height="280px">
+                                <Group gap={8}>
+                                    <Box
+                                        style={{
+                                            width: 8, height: 8,
+                                            borderRadius: '50%',
+                                            backgroundColor: ACCENT,
+                                        }}
+                                    />
+                                    <Text size="xs" c="dimmed">Threat Hotspots</Text>
+                                </Group>
+                            </Flex>
+                            <Box h={280}>
                                 {worldJson ? (
                                     <ReactECharts
                                         echarts={echarts}
@@ -252,305 +264,383 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                     />
                                 ) : (
                                     <Flex align="center" justify="center" h="100%">
-                                        <VStack spacing={3}>
-                                            <Progress size="xs" isIndeterminate w="150px" colorScheme="brand" bg="rgba(255,255,255,0.05)" />
-                                            <Text fontSize="xs" color="gray.600">Loading Geospatial Data...</Text>
-                                        </VStack>
+                                        <Stack align="center" gap={8}>
+                                            <Progress size="xs" animated w={150} color="orange" />
+                                            <Text size="xs" c="dimmed">Loading Geospatial Data...</Text>
+                                        </Stack>
                                     </Flex>
                                 )}
                             </Box>
-                        </Box>
+                        </Paper>
 
-                        {/* AI Advisor & Regional Matrix */}
-                        <Stack spacing={6}>
-                            {/* AI Security Advisor */}
-                            <Box bg="linear-gradient(135deg, #0c0d12 0%, #1a1b26 100%)" p={5} borderRadius="xl" border="1px solid" borderColor="rgba(243,128,32,0.2)" position="relative" overflow="hidden">
-                                <Box position="absolute" top="-20px" right="-20px" w="100px" h="100px" bg={ACCENT_DIM} filter="blur(40px)" borderRadius="full" />
-                                <HStack mb={4}>
-                                    <Icon as={Shield} color={ACCENT} boxSize={5} />
-                                    <Text fontWeight="bold" color="white" fontSize="sm" letterSpacing="wide">AI SECURITY ADVISOR</Text>
-                                </HStack>
-                                <VStack align="start" spacing={3}>
-                                    <Box p={3} bg="rgba(0,0,0,0.3)" borderRadius="md" borderLeft="3px solid" borderLeftColor={ACCENT}>
-                                        <Text fontSize="xs" color="gray.300" fontWeight="medium">
-                                            {threatsByCountry.length > 0
-                                                ? `High activity detected from ${threatsByCountry[0]?.country_code}. Consider enabling regional lock for this zone.`
-                                                : "Security parameters look stable. No immediate action required."}
-                                        </Text>
-                                    </Box>
-                                    <Button size="xs" variant="outline" colorScheme="brand" rightIcon={<ChevronRight size={12} />} borderColor="rgba(243,128,32,0.3)">
-                                        Optimize Policies
-                                    </Button>
-                                </VStack>
-                            </Box>
+                        <Stack gap={24}>
+                            <Paper
+                                p="lg"
+                                style={{
+                                    backgroundColor: CARD_BG,
+                                    border: `1px solid rgba(243,128,32,0.2)`,
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <Box
+                                    pos="absolute"
+                                    style={{
+                                        top: -20, right: -20,
+                                        width: 100, height: 100,
+                                        backgroundColor: ACCENT_DIM,
+                                        filter: 'blur(40px)',
+                                        borderRadius: '50%',
+                                    }}
+                                />
+                                <Group mb={16}>
+                                    <IconShield size={18} color={ACCENT} />
+                                    <Text fw={700} c="white" size="xs" style={{ letterSpacing: '0.08em' }}>
+                                        AI SECURITY ADVISOR
+                                    </Text>
+                                </Group>
+                                <Box
+                                    p={12}
+                                    mb={12}
+                                    style={{
+                                        backgroundColor: 'rgba(0,0,0,0.3)',
+                                        borderRadius: 8,
+                                        borderLeft: `3px solid ${ACCENT}`,
+                                    }}
+                                >
+                                    <Text size="xs" c="gray.3" fw={500}>
+                                        {threatsByCountry.length > 0
+                                            ? `High activity detected from ${threatsByCountry[0]?.country_code}. Consider enabling regional lock.`
+                                            : 'Security parameters look stable. No immediate action required.'}
+                                    </Text>
+                                </Box>
+                                <Button
+                                    size="xs"
+                                    variant="outline"
+                                    color="orange"
+                                    rightSection={<IconChevronRight size={11} />}
+                                >
+                                    Optimize Policies
+                                </Button>
+                            </Paper>
 
-                            {/* Regional Threat Intelligence */}
-                            <Box bg={CARD_BG} p={5} borderRadius="xl" border="1px solid" borderColor={BORDER} flex="1">
-                                <Text fontWeight="semibold" color="white" fontSize="sm" mb={4}>Regional Intelligence</Text>
-                                <Stack spacing={3}>
+                            <Paper
+                                p="lg"
+                                style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, flex: 1 }}
+                            >
+                                <Text fw={600} c="white" size="sm" mb={16}>Regional Intelligence</Text>
+                                <Stack gap={12}>
                                     {threatsByCountry.slice(0, 5).map((threat, i) => (
                                         <Box key={i}>
-                                            <Flex justify="space-between" mb={1}>
-                                                <HStack spacing={2}>
-                                                    <Text fontSize="10px" color="gray.400" fontWeight="bold">{threat.country_code}</Text>
-                                                    <Text fontSize="xs" color="white">{threat.country_code === 'TR' ? 'Turkey' : 'Global Origin'}</Text>
-                                                </HStack>
-                                                <Text fontSize="xs" fontWeight="bold" color={ACCENT}>{threat.count}</Text>
+                                            <Flex justify="space-between" mb={4}>
+                                                <Group gap={8}>
+                                                    <Text size="10px" c="dimmed" fw={700}>{threat.country_code}</Text>
+                                                    <Text size="xs" c="white">
+                                                        {threat.country_code === 'TR' ? 'Turkey' : 'Global Origin'}
+                                                    </Text>
+                                                </Group>
+                                                <Text size="xs" fw={700} style={{ color: ACCENT }}>{threat.count}</Text>
                                             </Flex>
-                                            <Progress value={(threat.count / (threatsByCountry[0]?.count || 1)) * 100} size="xs" colorScheme="brand" bg="rgba(255,255,255,0.05)" borderRadius="full" />
+                                            <Progress
+                                                value={(threat.count / (threatsByCountry[0]?.count || 1)) * 100}
+                                                size="xs"
+                                                color="orange"
+                                                style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                                                radius="xl"
+                                            />
                                         </Box>
                                     ))}
                                     {threatsByCountry.length === 0 && (
-                                        <Text fontSize="xs" color="gray.600" textAlign="center" py={4}>No regional threats logged.</Text>
+                                        <Text size="xs" c="dimmed" ta="center" py={16}>No regional threats logged.</Text>
                                     )}
                                 </Stack>
-                            </Box>
+                            </Paper>
                         </Stack>
                     </SimpleGrid>
                 </>
             )}
 
-            {/* Sites Table */}
-            <Box bg={CARD_BG} borderRadius="lg" border="1px solid" borderColor={BORDER} overflow="hidden">
-                <Flex px={6} py={4} borderBottom="1px solid" borderColor={BORDER}
-                    justify="space-between" align="center">
+            <Paper style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
+                <Flex
+                    px={24} py={16}
+                    style={{ borderBottom: `1px solid ${BORDER}` }}
+                    justify="space-between"
+                    align="center"
+                >
                     <Box>
-                        <Text fontWeight="semibold" color="white">Proxy Sites</Text>
-                        <Text fontSize="xs" color="gray.500" mt={0.5}>
-                            Manage and monitor your gateway infrastructure
-                        </Text>
+                        <Text fw={600} c="white">Proxy Sites</Text>
+                        <Text size="xs" c="dimmed" mt={2}>Manage and monitor your gateway infrastructure</Text>
                     </Box>
-                    <Button size="sm" variant="outline" borderColor={BORDER} color="gray.400"
-                        _hover={{ borderColor: ACCENT, color: ACCENT }}
-                        leftIcon={<RefreshCcw size={13} />}>
+                    <Button
+                        size="xs"
+                        variant="outline"
+                        color="gray"
+                        leftSection={<IconRefresh size={13} />}
+                        onClick={() => router.reload()}
+                    >
                         Refresh
                     </Button>
                 </Flex>
 
-                <Table variant="unstyled" size="sm">
-                    <Thead>
-                        <Tr borderBottom="1px solid" borderColor={BORDER}>
+                <Table highlightOnHover highlightOnHoverColor={ROW_HOVER} style={{ color: '#e4e4e7' }}>
+                    <Table.Thead>
+                        <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                             {['STATUS', 'SITE', 'BACKEND', 'PROTECTION', 'TRAFFIC', 'UPTIME', ''].map(h => (
-                                <Th key={h} py={3} px={4} fontSize="10px" color="gray.600"
-                                    fontWeight="semibold" letterSpacing="wider">
+                                <Table.Th
+                                    key={h}
+                                    style={{
+                                        fontSize: 10,
+                                        color: '#52525b',
+                                        fontWeight: 600,
+                                        letterSpacing: '0.08em',
+                                        padding: '12px 16px',
+                                        backgroundColor: CARD_BG,
+                                    }}
+                                >
                                     {h}
-                                </Th>
+                                </Table.Th>
                             ))}
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {sites.map((site) => {
+                        </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                        {sites.map(site => {
                             const stats = liveStats[site.id] || site;
                             return (
-                                <Tr key={site.id}
-                                    borderBottom="1px solid" borderColor={BORDER}
-                                    _hover={{ bg: ROW_HOVER }}
-                                    transition="background 0.1s"
+                                <Table.Tr
+                                    key={site.id}
+                                    style={{ borderBottom: `1px solid ${BORDER}`, cursor: 'default' }}
                                 >
-                                    <Td px={4} py={3}>
-                                        <HStack spacing={2}>
-                                            <Box w={2} h={2} borderRadius="full"
-                                                bg={site.is_online ? '#22c55e' : '#ef4444'}
-                                                boxShadow={site.is_online
-                                                    ? '0 0 6px rgba(34,197,94,0.7)'
-                                                    : '0 0 6px rgba(239,68,68,0.7)'}
+                                    <Table.Td style={{ padding: '12px 16px' }}>
+                                        <Group gap={8}>
+                                            <Box
+                                                style={{
+                                                    width: 8, height: 8,
+                                                    borderRadius: '50%',
+                                                    backgroundColor: site.is_online ? '#22c55e' : '#ef4444',
+                                                    boxShadow: site.is_online
+                                                        ? '0 0 6px rgba(34,197,94,0.7)'
+                                                        : '0 0 6px rgba(239,68,68,0.7)',
+                                                }}
                                             />
-                                            <Text fontSize="xs" fontWeight="medium"
-                                                color={site.is_online ? '#22c55e' : '#ef4444'}>
+                                            <Text size="xs" fw={600} c={site.is_online ? 'green' : 'red'}>
                                                 {site.is_online ? 'ONLINE' : 'OFFLINE'}
                                             </Text>
-                                        </HStack>
-                                    </Td>
-                                    <Td px={4} py={3}>
-                                        <VStack align="start" spacing={0}>
-                                            <Text fontWeight="semibold" fontSize="sm" color="white">
-                                                {site.name}
-                                            </Text>
-                                            <Text fontSize="xs" color="gray.500">{site.domain}</Text>
-                                        </VStack>
-                                    </Td>
-                                    <Td px={4} py={3}>
-                                        <Badge variant="outline" colorScheme="gray" fontSize="10px">
+                                        </Group>
+                                    </Table.Td>
+                                    <Table.Td style={{ padding: '12px 16px' }}>
+                                        <Text fw={600} size="sm" c="white">{site.name}</Text>
+                                        <Text size="xs" c="dimmed">{site.domain}</Text>
+                                    </Table.Td>
+                                    <Table.Td style={{ padding: '12px 16px' }}>
+                                        <Badge variant="outline" color="gray" size="xs">
                                             {site.backend_type === 'php_fpm' ? 'PHP-FPM' : 'HTTP'}
                                         </Badge>
-                                    </Td>
-                                    <Td px={4} py={3}>
-                                        <HStack spacing={1}>
-                                            {site.ssl_enabled && <Badge colorScheme="green" fontSize="10px">SSL</Badge>}
+                                    </Table.Td>
+                                    <Table.Td style={{ padding: '12px 16px' }}>
+                                        <Group gap={4}>
+                                            {site.ssl_enabled && <Badge color="green" size="xs">SSL</Badge>}
                                             {site.waf_enabled && (
-                                                <Badge fontSize="10px"
-                                                    bg={ACCENT_DIM} color={ACCENT}
-                                                    border="1px solid" borderColor="rgba(243,128,32,0.3)">
+                                                <Badge
+                                                    size="xs"
+                                                    style={{
+                                                        backgroundColor: ACCENT_DIM,
+                                                        color: ACCENT,
+                                                        border: `1px solid rgba(243,128,32,0.3)`,
+                                                    }}
+                                                >
                                                     WAF
                                                 </Badge>
                                             )}
-                                            {site.auth_user && <Badge colorScheme="blue" fontSize="10px">AUTH</Badge>}
-                                        </HStack>
-                                    </Td>
-                                    <Td px={4} py={3}>
-                                        <VStack align="start" spacing={0}>
-                                            <HStack spacing={1}>
-                                                <Text fontSize="sm" color="white">
-                                                    {(stats.total_requests || 0).toLocaleString()}
-                                                </Text>
-                                                {liveStats[site.id] && (
-                                                    <Badge fontSize="9px" bg={ACCENT_DIM} color={ACCENT}>LIVE</Badge>
-                                                )}
-                                            </HStack>
-                                            <Text fontSize="xs" color="#ef4444">
-                                                {(stats.blocked_requests || 0).toLocaleString()} blocked
+                                            {site.auth_user && <Badge color="blue" size="xs">AUTH</Badge>}
+                                        </Group>
+                                    </Table.Td>
+                                    <Table.Td style={{ padding: '12px 16px' }}>
+                                        <Group gap={4}>
+                                            <Text size="sm" c="white">
+                                                {(stats.total_requests || 0).toLocaleString()}
                                             </Text>
-                                        </VStack>
-                                    </Td>
-                                    <Td px={4} py={3}>
-                                        <VStack align="start" spacing={1}>
-                                            <Text fontSize="sm" fontWeight="medium" color={site.uptime_percentage > 9900 ? '#22c55e' : '#f38020'}>
-                                                {(site.uptime_percentage / 100).toFixed(1)}%
-                                            </Text>
-                                            <Progress
-                                                value={site.uptime_percentage / 100}
-                                                size="xs"
-                                                colorScheme={site.uptime_percentage > 9900 ? 'green' : 'orange'}
-                                                w="50px" bg="#2a2a2a" borderRadius="full" />
-                                        </VStack>
-                                    </Td>
-                                    <Td px={4} py={3} textAlign="right">
-                                        <HStack spacing={1} justify="flex-end">
-                                            <IconButton size="xs" variant="ghost" color="gray.500"
-                                                _hover={{ color: 'white' }}
-                                                icon={<RefreshCcw size={13} />}
+                                            {liveStats[site.id] && (
+                                                <Badge size="xs" style={{ backgroundColor: ACCENT_DIM, color: ACCENT }}>
+                                                    LIVE
+                                                </Badge>
+                                            )}
+                                        </Group>
+                                        <Text size="xs" c="red">{(stats.blocked_requests || 0).toLocaleString()} blocked</Text>
+                                    </Table.Td>
+                                    <Table.Td style={{ padding: '12px 16px' }}>
+                                        <Text
+                                            size="sm"
+                                            fw={600}
+                                            c={site.uptime_percentage > 9900 ? 'green' : 'orange'}
+                                        >
+                                            {(site.uptime_percentage / 100).toFixed(1)}%
+                                        </Text>
+                                        <Progress
+                                            value={site.uptime_percentage / 100}
+                                            size="xs"
+                                            color={site.uptime_percentage > 9900 ? 'green' : 'orange'}
+                                            w={50}
+                                            mt={4}
+                                            radius="xl"
+                                        />
+                                    </Table.Td>
+                                    <Table.Td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                        <Group gap={4} justify="flex-end">
+                                            <ActionIcon
+                                                size="sm"
+                                                variant="subtle"
+                                                color="gray"
                                                 onClick={() => router.post(route('sites.check-health', site.id), {}, { preserveScroll: true })}
-                                            />
-                                            <Button as={Link} href={route('sites.show', site.id)}
-                                                size="xs" variant="ghost" color={ACCENT}
-                                                _hover={{ bg: ACCENT_DIM }}>
+                                            >
+                                                <IconRefresh size={13} />
+                                            </ActionIcon>
+                                            <Button
+                                                component={Link}
+                                                href={route('sites.show', site.id)}
+                                                size="xs"
+                                                variant="subtle"
+                                                color="orange"
+                                            >
                                                 Manage
                                             </Button>
-                                            <Menu>
-                                                <MenuButton as={IconButton} icon={<MoreVertical size={13} />}
-                                                    variant="ghost" size="xs" color="gray.500"
-                                                    _hover={{ color: 'white' }} />
-                                                <MenuList bg="#1a1a1a" borderColor="#2a2a2a" minW="160px" zIndex={10}>
-                                                    <MenuItem
-                                                        as={Link}
+                                            <Menu shadow="md" width={160} position="bottom-end">
+                                                <Menu.Target>
+                                                    <ActionIcon size="sm" variant="subtle" color="gray">
+                                                        <IconDots size={13} />
+                                                    </ActionIcon>
+                                                </Menu.Target>
+                                                <Menu.Dropdown style={{ backgroundColor: '#18181b', border: `1px solid ${BORDER}` }}>
+                                                    <Menu.Item
+                                                        leftSection={<IconBolt size={13} />}
+                                                        component={Link}
                                                         href={route('sites.show', site.id)}
-                                                        bg="transparent"
-                                                        _hover={{ bg: '#2a2a2a' }}
-                                                        fontSize="sm"
-                                                        color="gray.300"
-                                                        icon={<Icon as={Zap} size={14} />}
+                                                        style={{ color: '#a1a1aa' }}
                                                     >
                                                         View Logs
-                                                    </MenuItem>
-                                                    <MenuItem
-                                                        as={Link}
+                                                    </Menu.Item>
+                                                    <Menu.Item
+                                                        leftSection={<IconSettings size={13} />}
+                                                        component={Link}
                                                         href={route('sites.show', site.id)}
-                                                        bg="transparent"
-                                                        _hover={{ bg: '#2a2a2a' }}
-                                                        fontSize="sm"
-                                                        color="gray.300"
-                                                        icon={<Icon as={Settings} size={14} />}
+                                                        style={{ color: '#a1a1aa' }}
                                                     >
                                                         Edit Config
-                                                    </MenuItem>
-                                                    <MenuItem
+                                                    </Menu.Item>
+                                                    <Menu.Divider style={{ borderColor: BORDER }} />
+                                                    <Menu.Item
+                                                        leftSection={<IconTrash size={13} />}
+                                                        color="red"
                                                         onClick={() => {
                                                             if (confirm('Are you sure you want to delete this site?')) {
                                                                 router.delete(route('sites.destroy', site.id));
                                                             }
                                                         }}
-                                                        bg="transparent"
-                                                        _hover={{ bg: '#2a1010' }}
-                                                        fontSize="sm"
-                                                        color="red.400"
-                                                        icon={<Icon as={Trash2} size={14} />}
                                                     >
                                                         Delete
-                                                    </MenuItem>
-                                                </MenuList>
+                                                    </Menu.Item>
+                                                </Menu.Dropdown>
                                             </Menu>
-                                        </HStack>
-                                    </Td>
-                                </Tr>
+                                        </Group>
+                                    </Table.Td>
+                                </Table.Tr>
                             );
                         })}
                         {sites.length === 0 && (
-                            <Tr>
-                                <Td colSpan={7} textAlign="center" py={12} color="gray.600">
+                            <Table.Tr>
+                                <Table.Td colSpan={7} style={{ textAlign: 'center', padding: '48px 16px', color: '#52525b' }}>
                                     No proxy sites configured yet.
-                                </Td>
-                            </Tr>
+                                </Table.Td>
+                            </Table.Tr>
                         )}
-                    </Tbody>
+                    </Table.Tbody>
                 </Table>
-            </Box>
+            </Paper>
 
-            {/* Add Site Modal */}
-            <Modal isOpen={isOpen} onClose={onClose} size="lg">
-                <ModalOverlay backdropFilter="blur(4px)" bg="rgba(0,0,0,0.7)" />
-                <ModalContent bg="#161616" border="1px solid" borderColor={BORDER}>
-                    <ModalHeader color="white" borderBottom="1px solid" borderColor={BORDER} pb={4}>
-                        Add New Proxy Site
-                    </ModalHeader>
-                    <ModalCloseButton color="gray.500" />
-                    <form onSubmit={submit}>
-                        <ModalBody py={6}>
-                            <Stack spacing={4}>
-                                <FormControl isRequired>
-                                    <FormLabel fontSize="sm" color="gray.400">Site Name</FormLabel>
-                                    <Input placeholder="My Application" value={data.name}
-                                        onChange={e => setData('name', e.target.value)}
-                                        bg="#0d0d0d" borderColor={BORDER} color="white"
-                                        _focus={{ borderColor: ACCENT, boxShadow: `0 0 0 1px ${ACCENT}` }} />
-                                </FormControl>
-                                <FormControl isRequired>
-                                    <FormLabel fontSize="sm" color="gray.400">Domain</FormLabel>
-                                    <Input placeholder="app.example.com" value={data.domain}
-                                        onChange={e => setData('domain', e.target.value)}
-                                        bg="#0d0d0d" borderColor={BORDER} color="white"
-                                        _focus={{ borderColor: ACCENT, boxShadow: `0 0 0 1px ${ACCENT}` }} />
-                                </FormControl>
-                                <FormControl isRequired>
-                                    <FormLabel fontSize="sm" color="gray.400">Backend URL</FormLabel>
-                                    <Input placeholder="http://localhost:8000" value={data.backend_url}
-                                        onChange={e => setData('backend_url', e.target.value)}
-                                        bg="#0d0d0d" borderColor={BORDER} color="white"
-                                        _focus={{ borderColor: ACCENT, boxShadow: `0 0 0 1px ${ACCENT}` }} />
-                                </FormControl>
-                                <FormControl>
-                                    <FormLabel fontSize="sm" color="gray.400">Backend Type</FormLabel>
-                                    <Select value={data.backend_type}
-                                        onChange={e => setData('backend_type', e.target.value)}
-                                        bg="#0d0d0d" borderColor={BORDER} color="white"
-                                        _focus={{ borderColor: ACCENT }}>
-                                        <option value="proxy">Reverse Proxy (HTTP)</option>
-                                        <option value="php_fpm">PHP-FPM (FastCGI)</option>
-                                    </Select>
-                                </FormControl>
-                                <HStack spacing={6}>
-                                    <FormControl display="flex" alignItems="center">
-                                        <FormLabel mb="0" fontSize="sm" color="gray.400">Enable SSL</FormLabel>
-                                        <Switch isChecked={data.ssl_enabled}
-                                            onChange={e => setData('ssl_enabled', e.target.checked)}
-                                            colorScheme="green" />
-                                    </FormControl>
-                                    <FormControl display="flex" alignItems="center">
-                                        <FormLabel mb="0" fontSize="sm" color="gray.400">Enable WAF</FormLabel>
-                                        <Switch isChecked={data.waf_enabled}
-                                            onChange={e => setData('waf_enabled', e.target.checked)}
-                                            colorScheme="brand" />
-                                    </FormControl>
-                                </HStack>
-                            </Stack>
-                        </ModalBody>
-                        <Flex px={6} py={4} borderTop="1px solid" borderColor={BORDER} justify="flex-end" gap={3}>
-                            <Button variant="ghost" color="gray.400" onClick={onClose} leftIcon={<Icon as={X} size={16} />}>Cancel</Button>
-                            <Button type="submit" bg={ACCENT} color="white" _hover={{ bg: '#4f46e5' }} leftIcon={<Icon as={CheckCircle} size={16} />}>
-                                Create Site
+            <Modal
+                opened={opened}
+                onClose={close}
+                title={<Text fw={600} c="white">Add New Proxy Site</Text>}
+                size="lg"
+                styles={{
+                    content: { backgroundColor: '#111113', border: `1px solid ${BORDER}` },
+                    header: { backgroundColor: '#111113', borderBottom: `1px solid ${BORDER}` },
+                }}
+            >
+                <form onSubmit={submit}>
+                    <Stack gap={16} pt={8}>
+                        <TextInput
+                            label="Site Name"
+                            placeholder="My Application"
+                            required
+                            value={data.name}
+                            onChange={e => setData('name', e.target.value)}
+                            styles={{
+                                label: { color: '#71717a', fontSize: 12 },
+                                input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+                            }}
+                        />
+                        <TextInput
+                            label="Domain"
+                            placeholder="app.example.com"
+                            required
+                            value={data.domain}
+                            onChange={e => setData('domain', e.target.value)}
+                            styles={{
+                                label: { color: '#71717a', fontSize: 12 },
+                                input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+                            }}
+                        />
+                        <TextInput
+                            label="Backend URL"
+                            placeholder="http://localhost:8000"
+                            required
+                            value={data.backend_url}
+                            onChange={e => setData('backend_url', e.target.value)}
+                            styles={{
+                                label: { color: '#71717a', fontSize: 12 },
+                                input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+                            }}
+                        />
+                        <Select
+                            label="Backend Type"
+                            value={data.backend_type}
+                            onChange={v => setData('backend_type', v)}
+                            data={[
+                                { value: 'proxy', label: 'Reverse Proxy (HTTP)' },
+                                { value: 'php_fpm', label: 'PHP-FPM (FastCGI)' },
+                            ]}
+                            styles={{
+                                label: { color: '#71717a', fontSize: 12 },
+                                input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+                            }}
+                        />
+                        <Group grow>
+                            <Switch
+                                label="SSL Enabled"
+                                checked={data.ssl_enabled}
+                                onChange={e => setData('ssl_enabled', e.currentTarget.checked)}
+                                color="orange"
+                            />
+                            <Switch
+                                label="WAF Enabled"
+                                checked={data.waf_enabled}
+                                onChange={e => setData('waf_enabled', e.currentTarget.checked)}
+                                color="orange"
+                            />
+                        </Group>
+                        <Divider color={BORDER} />
+                        <Group justify="flex-end">
+                            <Button variant="subtle" color="gray" onClick={close}>Cancel</Button>
+                            <Button
+                                type="submit"
+                                leftSection={<IconPlus size={15} />}
+                                style={{ backgroundColor: ACCENT }}
+                            >
+                                Add Site
                             </Button>
-                        </Flex>
-                    </form>
-                </ModalContent>
+                        </Group>
+                    </Stack>
+                </form>
             </Modal>
         </EnterpriseLayout>
     );

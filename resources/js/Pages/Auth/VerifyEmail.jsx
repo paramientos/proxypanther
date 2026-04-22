@@ -1,18 +1,12 @@
 import React from 'react';
-import {
-    Box,
-    Button,
-    Container,
-    Heading,
-    Stack,
-    Text,
-    useColorModeValue,
-    Icon,
-    Alert,
-    AlertIcon,
-} from '@chakra-ui/react';
+import { Box, Stack, Title, Text, Button, Alert, Center } from '@mantine/core';
+import { IconMailCheck, IconLogout } from '@tabler/icons-react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { MailCheck } from 'lucide-react';
+
+const ACCENT = '#f38020';
+const BG = '#09090b';
+const CARD_BG = '#18181b';
+const BORDER = '#27272a';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
@@ -23,42 +17,50 @@ export default function VerifyEmail({ status }) {
     };
 
     return (
-        <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')} display="flex" alignItems="center" justifyContent="center">
+        <Box style={{ minHeight: '100vh', backgroundColor: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Head title="Email Verification" />
-            <Container maxW="md" py={{ base: '12', md: '24' }} px={{ base: '0', sm: '8' }}>
-                <Stack spacing="8">
-                    <Stack spacing="6" align="center">
-                        <Icon as={MailCheck} w={10} h={10} color="orange.500" />
-                        <Stack spacing={{ base: '2', md: '3' }} textAlign="center">
-                            <Heading size={{ base: 'xs', md: 'sm' }}>Verify Email</Heading>
-                            <Text color="muted">Thanks for signing up! Please verify your email address by clicking the link we sent you.</Text>
-                        </Stack>
+            <Box w={420} p="xl">
+                <Stack gap="xl">
+                    <Center>
+                        <Box style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <IconMailCheck size={28} color="white" />
+                        </Box>
+                    </Center>
+
+                    <Stack gap={6} style={{ textAlign: 'center' }}>
+                        <Title order={3} c="white">Verify Your Email</Title>
+                        <Text size="sm" c="dimmed">
+                            Thanks for signing up! Please verify your email address by clicking the link we sent you.
+                        </Text>
                     </Stack>
-                    <Box
-                        py={{ base: '0', sm: '8' }}
-                        px={{ base: '4', sm: '10' }}
-                        bg={{ base: 'transparent', sm: useColorModeValue('white', 'gray.800') }}
-                        boxShadow={{ base: 'none', sm: 'md' }}
-                        borderRadius={{ base: 'none', sm: 'xl' }}
-                    >
+
+                    <Box style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 24 }}>
                         {status === 'verification-link-sent' && (
-                            <Alert status="success" mb={4} borderRadius="md">
-                                <AlertIcon />
+                            <Alert color="green" variant="light" mb="md">
                                 A new verification link has been sent to your email.
                             </Alert>
                         )}
+
                         <form onSubmit={submit}>
-                            <Stack spacing="6">
-                                <Button type="submit" width="full" colorScheme="orange" isLoading={processing}>
+                            <Stack gap="sm">
+                                <Button
+                                    type="submit"
+                                    fullWidth
+                                    loading={processing}
+                                    color={ACCENT}
+                                    leftSection={<IconMailCheck size={14} />}
+                                >
                                     Resend Verification Email
                                 </Button>
                                 <Button
-                                    as={Link}
+                                    component={Link}
                                     href={route('logout')}
                                     method="post"
-                                    variant="link"
-                                    width="full"
-                                    size="sm"
+                                    as="button"
+                                    fullWidth
+                                    variant="subtle"
+                                    color="gray"
+                                    leftSection={<IconLogout size={14} />}
                                 >
                                     Log Out
                                 </Button>
@@ -66,7 +68,7 @@ export default function VerifyEmail({ status }) {
                         </form>
                     </Box>
                 </Stack>
-            </Container>
+            </Box>
         </Box>
     );
 }

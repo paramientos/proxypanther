@@ -1,18 +1,19 @@
 import React from 'react';
 import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
-  Box, Heading, Text, Button, HStack,
-  Table, Thead, Tbody, Tr, Th, Td,
-  useColorModeValue, Input, Badge, Code,
-  InputGroup, InputLeftElement, Select,
-  SimpleGrid, FormControl, FormLabel,
-} from '@chakra-ui/react';
-import { Search, Download, Ban } from 'lucide-react';
+  Box, Title, Text, Button, Group, Table,
+  TextInput, Select, Paper, Badge, Code, Flex,
+  SimpleGrid,
+} from '@mantine/core';
+import { IconSearch, IconDownload, IconBan } from '@tabler/icons-react';
 import { Head, Link, router } from '@inertiajs/react';
+
+const CARD_BG = '#111113';
+const BORDER = 'rgba(255,255,255,0.07)';
 
 const TYPE_COLORS = {
   SQLi: 'red', XSS: 'orange', LFI: 'yellow',
-  Bot: 'purple', SensitivePath: 'pink', WAF_Block: 'gray',
+  Bot: 'violet', SensitivePath: 'pink', WAF_Block: 'gray',
 };
 
 export default function Index({ auth, events, filters, sites, types }) {
@@ -36,161 +37,224 @@ export default function Index({ auth, events, filters, sites, types }) {
     return route('logs.export') + (params.toString() ? '?' + params.toString() : '');
   };
 
-  const bg = useColorModeValue('white', 'gray.800');
-  const headBg = useColorModeValue('gray.50', 'gray.700');
-
   return (
     <EnterpriseLayout user={auth.user}>
       <Head title="Security Logs" />
 
-      <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
+      <Flex justify="space-between" align="center" mb={32}>
         <Box>
-          <Heading size="lg" color="white">Log Explorer</Heading>
-          <Text color="gray.500" fontSize="sm">Analyze and export security events across all proxy sites.</Text>
+          <Title order={2} c="white" fw={600}>Log Explorer</Title>
+          <Text c="dimmed" size="sm" mt={4}>Analyze and export security events across all proxy sites.</Text>
         </Box>
-        <Button as="a" href={exportUrl()} leftIcon={<Download size={16} />}
-          bg="#16a34a" color="white" _hover={{ bg: '#15803d' }} size="sm">
+        <Button
+          component="a"
+          href={exportUrl()}
+          leftSection={<IconDownload size={15} />}
+          color="green"
+        >
           Export CSV
         </Button>
-      </Box>
+      </Flex>
 
-      {/* Filters */}
-      <Box bg="#161616" p={4} rounded="lg" border="1px solid" borderColor="#242424" mb={6}>
-        <SimpleGrid columns={{ base: 1, md: 3, lg: 5 }} spacing={4}>
-          <FormControl>
-            <FormLabel fontSize="xs">Search</FormLabel>
-            <InputGroup size="sm">
-              <InputLeftElement><Search size={14} /></InputLeftElement>
-              <Input
-                placeholder="IP, path, user-agent..."
-                value={form.search}
-                onChange={e => setForm(f => ({ ...f, search: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && apply()}
-              />
-            </InputGroup>
-          </FormControl>
-
-          <FormControl>
-            <FormLabel fontSize="xs">Site</FormLabel>
-            <Select size="sm" value={form.site_id} onChange={e => { setForm(f => ({ ...f, site_id: e.target.value })); apply({ site_id: e.target.value }); }}>
-              <option value="">All Sites</option>
-              {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </Select>
-          </FormControl>
-
-          <FormControl>
-            <FormLabel fontSize="xs">Type</FormLabel>
-            <Select size="sm" value={form.type} onChange={e => { setForm(f => ({ ...f, type: e.target.value })); apply({ type: e.target.value }); }}>
-              <option value="">All Types</option>
-              {types.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
-          </FormControl>
-
-          <FormControl>
-            <FormLabel fontSize="xs">From</FormLabel>
-            <Input size="sm" type="date" value={form.from} onChange={e => setForm(f => ({ ...f, from: e.target.value }))} />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel fontSize="xs">To</FormLabel>
-            <Input size="sm" type="date" value={form.to} onChange={e => setForm(f => ({ ...f, to: e.target.value }))} />
-          </FormControl>
+      <Paper p="lg" mb={24} style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}` }}>
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing="md">
+          <TextInput
+            label="Search"
+            placeholder="IP, path, user-agent..."
+            leftSection={<IconSearch size={14} />}
+            value={form.search}
+            onChange={e => setForm(f => ({ ...f, search: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && apply()}
+            styles={{
+              label: { color: '#71717a', fontSize: 11 },
+              input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+            }}
+          />
+          <Select
+            label="Site"
+            value={form.site_id || null}
+            onChange={v => { setForm(f => ({ ...f, site_id: v || '' })); apply({ site_id: v || '' }); }}
+            data={[{ value: '', label: 'All Sites' }, ...sites.map(s => ({ value: String(s.id), label: s.name }))]}
+            styles={{
+              label: { color: '#71717a', fontSize: 11 },
+              input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+            }}
+          />
+          <Select
+            label="Type"
+            value={form.type || null}
+            onChange={v => { setForm(f => ({ ...f, type: v || '' })); apply({ type: v || '' }); }}
+            data={[{ value: '', label: 'All Types' }, ...types.map(t => ({ value: t, label: t }))]}
+            styles={{
+              label: { color: '#71717a', fontSize: 11 },
+              input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+            }}
+          />
+          <TextInput
+            label="From"
+            type="date"
+            value={form.from}
+            onChange={e => setForm(f => ({ ...f, from: e.target.value }))}
+            styles={{
+              label: { color: '#71717a', fontSize: 11 },
+              input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+            }}
+          />
+          <TextInput
+            label="To"
+            type="date"
+            value={form.to}
+            onChange={e => setForm(f => ({ ...f, to: e.target.value }))}
+            styles={{
+              label: { color: '#71717a', fontSize: 11 },
+              input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+            }}
+          />
         </SimpleGrid>
+        <Group mt={16} gap={8}>
+          <Button
+            size="sm"
+            style={{ backgroundColor: '#f38020' }}
+            onClick={() => apply()}
+          >
+            Apply Filters
+          </Button>
+          <Button
+            size="sm"
+            variant="subtle"
+            color="gray"
+            onClick={() => {
+              setForm({ search: '', site_id: '', type: '', from: '', to: '' });
+              router.get(route('logs.index'));
+            }}
+          >
+            Clear
+          </Button>
+        </Group>
+      </Paper>
 
-        <HStack mt={3} spacing={2}>
-          <Button size="sm" bg="#6366f1" color="white" _hover={{ bg: '#4f46e5' }} onClick={() => apply()}>Apply Filters</Button>
-          <Button size="sm" variant="ghost" color="gray.500" onClick={() => {
-            setForm({ search: '', site_id: '', type: '', from: '', to: '' });
-            router.get(route('logs.index'));
-          }}>Clear</Button>
-        </HStack>
-      </Box>
-
-      {/* Table */}
-      <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" overflow="hidden">
-        <Table variant="unstyled" size="sm">
-          <Thead>
-            <Tr borderBottom="1px solid" borderColor="#242424">
+      <Paper style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
+        <Table highlightOnHover highlightOnHoverColor="#18181b" style={{ fontSize: 13 }}>
+          <Table.Thead>
+            <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
               {['Time', 'Site', 'IP Address', 'Type', 'Method / Path', 'User Agent', ''].map(h => (
-                <Th key={h} py={3} px={4} fontSize="10px" color="gray.600" fontWeight="semibold" letterSpacing="wider">{h}</Th>
+                <Table.Th
+                  key={h}
+                  style={{
+                    fontSize: 10,
+                    color: '#52525b',
+                    fontWeight: 600,
+                    letterSpacing: '0.08em',
+                    padding: '12px 16px',
+                    backgroundColor: CARD_BG,
+                  }}
+                >
+                  {h}
+                </Table.Th>
               ))}
-            </Tr>
-          </Thead>
-          <Tbody>
-            {events.data.map((event) => (
-              <Tr key={event.id} borderBottom="1px solid" borderColor="#1a1a1a" _hover={{ bg: '#1c1c1c' }}>
-                <Td px={4} py={2.5} fontSize="xs" whiteSpace="nowrap" color="gray.500">{new Date(event.created_at).toLocaleString()}</Td>
-                <Td px={4} py={2.5} fontSize="xs" fontWeight="bold" color="white">{event.proxy_site?.name ?? '—'}</Td>
-                <Td px={4} py={2.5} fontSize="xs">
-                  <HStack spacing={1}>
-                    <Text color="gray.300">{event.ip_address}</Text>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {events.data.map(event => (
+              <Table.Tr key={event.id} style={{ borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+                <Table.Td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
+                  <Text size="xs" c="dimmed">{new Date(event.created_at).toLocaleString()}</Text>
+                </Table.Td>
+                <Table.Td style={{ padding: '10px 16px' }}>
+                  <Text size="xs" fw={700} c="white">{event.proxy_site?.name ?? '—'}</Text>
+                </Table.Td>
+                <Table.Td style={{ padding: '10px 16px' }}>
+                  <Group gap={4}>
+                    <Text size="xs" c="gray.3">{event.ip_address}</Text>
                     <Button
-                      as={Link}
+                      component={Link}
                       href={route('banned-ips.store')}
                       method="post"
                       data={{ ip_address: event.ip_address, reason: `Manual ban from Log Explorer for ${event.type}` }}
-                      size="xs" colorScheme="red" variant="ghost" px={1}>
-                      <Ban size={11} />
+                      size="xs"
+                      variant="subtle"
+                      color="red"
+                      px={4}
+                    >
+                      <IconBan size={11} />
                     </Button>
-                  </HStack>
-                </Td>
-                <Td px={4} py={2.5}>
-                  <Badge colorScheme={TYPE_COLORS[event.type] || 'gray'} fontSize="10px">{event.type}</Badge>
-                </Td>
-                <Td px={4} py={2.5} fontSize="xs" maxW="260px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
-                  <Box as="code" bg="#2a2a2a" px={1} py={0.5} borderRadius="sm" fontSize="10px" color="#6366f1" mr={1}>
+                  </Group>
+                </Table.Td>
+                <Table.Td style={{ padding: '10px 16px' }}>
+                  <Badge
+                    color={TYPE_COLORS[event.type] || 'gray'}
+                    size="xs"
+                  >
+                    {event.type}
+                  </Badge>
+                </Table.Td>
+                <Table.Td style={{ padding: '10px 16px', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <Code
+                    style={{ backgroundColor: '#27272a', color: '#f38020', fontSize: 10, marginRight: 6 }}
+                  >
                     {event.request_method}
-                  </Box>
-                  <Text as="span" color="gray.400">{event.request_path}</Text>
-                </Td>
-                <Td px={4} py={2.5} fontSize="xs" maxW="200px" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" color="gray.600">
-                  {event.user_agent || '—'}
-                </Td>
-                <Td px={4} py={2.5}>
+                  </Code>
+                  <Text as="span" size="xs" c="dimmed">{event.request_path}</Text>
+                </Table.Td>
+                <Table.Td style={{ padding: '10px 16px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <Text size="xs" c="dimmed">{event.user_agent || '—'}</Text>
+                </Table.Td>
+                <Table.Td style={{ padding: '10px 16px' }}>
                   {event.proxy_site_id && (
-                    <Button as={Link} href={route('sites.show', event.proxy_site_id)}
-                      size="xs" variant="ghost" color="#6366f1" _hover={{ bg: 'rgba(99,102,241,0.1)' }}>
+                    <Button
+                      component={Link}
+                      href={route('sites.show', event.proxy_site_id)}
+                      size="xs"
+                      variant="subtle"
+                      color="orange"
+                    >
                       Site →
                     </Button>
                   )}
-                </Td>
-              </Tr>
+                </Table.Td>
+              </Table.Tr>
             ))}
             {events.data.length === 0 && (
-              <Tr>
-                <Td colSpan={7} textAlign="center" py={12} color="gray.600">
+              <Table.Tr>
+                <Table.Td colSpan={7} style={{ textAlign: 'center', padding: '48px 16px', color: '#52525b' }}>
                   No security events found.
-                </Td>
-              </Tr>
+                </Table.Td>
+              </Table.Tr>
             )}
-          </Tbody>
+          </Table.Tbody>
         </Table>
 
-        {/* Pagination */}
-        <Box p={4} display="flex" justifyContent="space-between" alignItems="center"
-          borderTop="1px solid" borderColor="#242424">
-          <Text fontSize="xs" color="gray.600">
+        <Flex
+          p={16}
+          justify="space-between"
+          align="center"
+          style={{ borderTop: `1px solid ${BORDER}` }}
+        >
+          <Text size="xs" c="dimmed">
             {events.from}–{events.to} of {events.total} events
           </Text>
-          <HStack>
+          <Group gap={4}>
             {events.links.map((link, i) => (
               link.url ? (
-                <Button key={i} as={Link} href={link.url} size="xs"
-                  variant={link.active ? 'solid' : 'ghost'}
-                  bg={link.active ? '#6366f1' : 'transparent'}
-                  color={link.active ? 'white' : 'gray.500'}
-                  _hover={{ bg: link.active ? '#4f46e5' : '#1c1c1c' }}>
+                <Button
+                  key={i}
+                  component={Link}
+                  href={link.url}
+                  size="xs"
+                  variant={link.active ? 'filled' : 'subtle'}
+                  color={link.active ? 'orange' : 'gray'}
+                >
                   {link.label.replace(/<[^>]*>/g, '')}
                 </Button>
               ) : (
-                <Button key={i} size="xs" variant="ghost" isDisabled color="gray.700">
+                <Button key={i} size="xs" variant="subtle" color="gray" disabled>
                   {link.label.replace(/<[^>]*>/g, '')}
                 </Button>
               )
             ))}
-          </HStack>
-        </Box>
-      </Box>
+          </Group>
+        </Flex>
+      </Paper>
     </EnterpriseLayout>
   );
 }

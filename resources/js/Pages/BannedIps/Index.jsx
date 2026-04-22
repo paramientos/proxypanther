@@ -1,27 +1,17 @@
 import React from 'react';
 import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
-  Box,
-  Heading,
-  Text,
-  Button,
-  HStack,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  FormControl,
-  FormLabel,
-  Input,
-  useToast,
-} from '@chakra-ui/react';
-import { Shield, Trash2, Ban } from 'lucide-react';
+  Box, Title, Text, Button, Group, Table,
+  TextInput, Paper, Stack, Badge,
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { IconShield, IconTrash, IconBan } from '@tabler/icons-react';
 import { Head, useForm, Link } from '@inertiajs/react';
 
+const CARD_BG = '#111113';
+const BORDER = 'rgba(255,255,255,0.07)';
+
 export default function Index({ auth, bannedIps }) {
-  const toast = useToast();
   const { data, setData, post, processing, reset, errors } = useForm({
     ip_address: '',
     reason: '',
@@ -32,7 +22,7 @@ export default function Index({ auth, bannedIps }) {
     post(route('banned-ips.store'), {
       onSuccess: () => {
         reset();
-        toast({ title: 'IP Banned', status: 'success' });
+        notifications.show({ title: 'IP Banned', color: 'red' });
       },
     });
   };
@@ -41,87 +31,113 @@ export default function Index({ auth, bannedIps }) {
     <EnterpriseLayout user={auth.user}>
       <Head title="IP Blacklist" />
 
-      <Box mb={8}>
-        <Heading size="lg" color="white">Global IP Blacklist</Heading>
-        <Text color="gray.500" fontSize="sm">Prevent malicious actors from accessing any of your sites.</Text>
+      <Box mb={32}>
+        <Title order={2} c="white" fw={600}>Global IP Blacklist</Title>
+        <Text c="dimmed" size="sm" mt={4}>Prevent malicious actors from accessing any of your sites.</Text>
       </Box>
 
-      <Box bg="#161616" p={6} rounded="lg" border="1px solid" borderColor="#242424" mb={6}>
+      <Paper
+        p="xl"
+        mb={24}
+        style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}` }}
+      >
         <form onSubmit={submit}>
-          <HStack align="flex-end" spacing={4}>
-            <FormControl isRequired isInvalid={errors.ip_address}>
-              <FormLabel fontSize="sm" color="gray.400">IP Address</FormLabel>
-              <Input
-                placeholder="e.g. 1.2.3.4"
-                value={data.ip_address}
-                onChange={e => setData('ip_address', e.target.value)}
-                bg="#0d0d0d" borderColor="#242424" color="white"
-                _focus={{ borderColor: '#6366f1', boxShadow: '0 0 0 1px #6366f1' }}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="sm" color="gray.400">Reason</FormLabel>
-              <Input
-                placeholder="Optional reason"
-                value={data.reason}
-                onChange={e => setData('reason', e.target.value)}
-                bg="#0d0d0d" borderColor="#242424" color="white"
-                _focus={{ borderColor: '#6366f1', boxShadow: '0 0 0 1px #6366f1' }}
-              />
-            </FormControl>
+          <Group align="flex-end" gap={16}>
+            <TextInput
+              label="IP Address"
+              placeholder="e.g. 1.2.3.4"
+              required
+              value={data.ip_address}
+              onChange={e => setData('ip_address', e.target.value)}
+              error={errors.ip_address}
+              style={{ flex: 1 }}
+              styles={{
+                label: { color: '#71717a', fontSize: 12 },
+                input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+              }}
+            />
+            <TextInput
+              label="Reason"
+              placeholder="Optional reason"
+              value={data.reason}
+              onChange={e => setData('reason', e.target.value)}
+              style={{ flex: 1 }}
+              styles={{
+                label: { color: '#71717a', fontSize: 12 },
+                input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
+              }}
+            />
             <Button
-              leftIcon={<Ban size={16} />}
-              bg="#ef4444" color="white" _hover={{ bg: '#dc2626' }}
-              type="submit" isLoading={processing} px={8} flexShrink={0}
+              leftSection={<IconBan size={15} />}
+              type="submit"
+              loading={processing}
+              color="red"
+              style={{ flexShrink: 0 }}
             >
               Ban IP
             </Button>
-          </HStack>
-          {errors.ip_address && <Text color="red.400" fontSize="xs" mt={1}>{errors.ip_address}</Text>}
+          </Group>
         </form>
-      </Box>
+      </Paper>
 
-      <Box bg="#161616" rounded="lg" border="1px solid" borderColor="#242424" overflow="hidden">
-        <Table variant="unstyled">
-          <Thead>
-            <Tr borderBottom="1px solid" borderColor="#242424">
+      <Paper style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
+        <Table highlightOnHover highlightOnHoverColor="#18181b">
+          <Table.Thead>
+            <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
               {['IP Address', 'Reason', 'Date Added', ''].map(h => (
-                <Th key={h} py={3} px={4} fontSize="10px" color="gray.600" fontWeight="semibold" letterSpacing="wider">{h}</Th>
+                <Table.Th
+                  key={h}
+                  style={{
+                    fontSize: 10,
+                    color: '#52525b',
+                    fontWeight: 600,
+                    letterSpacing: '0.08em',
+                    padding: '12px 16px',
+                    backgroundColor: CARD_BG,
+                  }}
+                >
+                  {h}
+                </Table.Th>
               ))}
-            </Tr>
-          </Thead>
-          <Tbody>
-            {bannedIps.map((ip) => (
-              <Tr key={ip.id} borderBottom="1px solid" borderColor="#1a1a1a" _hover={{ bg: '#1c1c1c' }}>
-                <Td px={4} py={3} fontWeight="bold" color="white" fontFamily="mono" fontSize="sm">{ip.ip_address}</Td>
-                <Td px={4} py={3} color="gray.500" fontSize="sm">{ip.reason || 'No reason provided'}</Td>
-                <Td px={4} py={3} fontSize="xs" color="gray.600">{new Date(ip.created_at).toLocaleString()}</Td>
-                <Td px={4} py={3} textAlign="right">
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {bannedIps.map(ip => (
+              <Table.Tr key={ip.id} style={{ borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+                <Table.Td style={{ padding: '12px 16px' }}>
+                  <Text fw={700} c="white" ff="monospace" size="sm">{ip.ip_address}</Text>
+                </Table.Td>
+                <Table.Td style={{ padding: '12px 16px' }}>
+                  <Text c="dimmed" size="sm">{ip.reason || 'No reason provided'}</Text>
+                </Table.Td>
+                <Table.Td style={{ padding: '12px 16px' }}>
+                  <Text size="xs" c="dimmed">{new Date(ip.created_at).toLocaleString()}</Text>
+                </Table.Td>
+                <Table.Td style={{ padding: '12px 16px', textAlign: 'right' }}>
                   <Button
-                    as={Link}
+                    component={Link}
                     href={route('banned-ips.destroy', ip.id)}
                     method="delete"
                     size="xs"
-                    variant="ghost"
-                    color="gray.500"
-                    _hover={{ color: '#ef4444', bg: 'rgba(239,68,68,0.1)' }}
-                    leftIcon={<Trash2 size={13} />}
+                    variant="subtle"
+                    color="red"
+                    leftSection={<IconTrash size={12} />}
                   >
                     Unban
                   </Button>
-                </Td>
-              </Tr>
+                </Table.Td>
+              </Table.Tr>
             ))}
             {bannedIps.length === 0 && (
-              <Tr>
-                <Td colSpan={4} textAlign="center" py={12} color="gray.600">
+              <Table.Tr>
+                <Table.Td colSpan={4} style={{ textAlign: 'center', padding: '48px 16px', color: '#52525b' }}>
                   No IP addresses are currently banned.
-                </Td>
-              </Tr>
+                </Table.Td>
+              </Table.Tr>
             )}
-          </Tbody>
+          </Table.Tbody>
         </Table>
-      </Box>
+      </Paper>
     </EnterpriseLayout>
   );
 }

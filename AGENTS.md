@@ -35,12 +35,12 @@ schedule command çağırırken command ismini değil class ismini yaz
 
 Bu fikir, özellikle "Siber Güvenlik" ve "Altyapı" konularına önem veren profesyonel kullanıcı kitlesini kendine çeker. 
 
-Laravel 13 + Inertia.js + React + Chakra UI + Yarn + Vite + Apache E-Charts
+Laravel 13 + Inertia.js + React + manticore UI + Yarn + Vite + Apache E-Charts
 nvm use 20.19.0
 laravel breeze vs kullanma
 socket olacaksa laravel reverb kullan
 queue işlemleri için redis + horizon kullan
-tasarım için chakra ui kullan
+tasarım için manticore ui kullan
 dizayna sadık kal
 enterprise bir hava olsun uida
 schedule command çağırırken command ismini değil class ismini yaz

@@ -4,101 +4,66 @@ import './bootstrap';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot, hydrateRoot } from 'react-dom/client';
-import { ChakraProvider, extendTheme, ColorModeScript } from '@chakra-ui/react';
+import { MantineProvider, createTheme } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import { ModalsProvider } from '@mantine/modals';
 
-const theme = extendTheme({
-    config: {
-        initialColorMode: 'dark',
-        useSystemColorMode: false,
-    },
-    fonts: {
-        heading: '"Plus Jakarta Sans", sans-serif',
-        body: '"Plus Jakarta Sans", sans-serif',
-        mono: '"JetBrains Mono", monospace',
-    },
+const theme = createTheme({
+    primaryColor: 'orange',
+    primaryShade: 6,
     colors: {
-        brand: {
-            50: '#eef2ff',
-            100: '#e0e7ff',
-            200: '#c7d2fe',
-            300: '#a5b4fc',
-            400: '#818cf8',
-            500: '#6366f1', // Electric Indigo
-            600: '#4f46e5',
-            700: '#4338ca',
-            800: '#3730a3',
-            900: '#312e81',
-        },
+        orange: [
+            '#fff4e6', '#ffe8cc', '#ffd8a8', '#ffc078',
+            '#ffa94d', '#ff922b', '#f38020', '#e8590c',
+            '#d9480f', '#bf360c',
+        ],
+        dark: [
+            '#c1c2c5', '#a6a7ab', '#909296', '#5c5f66',
+            '#373a40', '#2c2e33', '#25262b', '#1a1b1e',
+            '#141517', '#101113',
+        ],
     },
-    semanticTokens: {
-        colors: {
-            'chakra-body-bg': { _dark: '#050508' },
-        },
-    },
-    styles: {
-        global: {
-            body: {
-                bg: '#050508',
-                color: 'gray.100',
-            },
-        },
-    },
+    fontFamily: 'Inter, Plus Jakarta Sans, system-ui, sans-serif',
+    fontFamilyMonospace: 'JetBrains Mono, Fira Code, monospace',
+    defaultRadius: 'md',
     components: {
         Button: {
-            defaultProps: { colorScheme: 'brand' },
-            baseStyle: {
-                borderRadius: 'lg',
-                fontWeight: '600',
+            defaultProps: { size: 'sm' },
+            styles: {
+                root: { fontWeight: 600 },
             },
         },
-        Badge: {
-            defaultProps: { colorScheme: 'brand' },
-            baseStyle: {
-                borderRadius: 'full',
-                textTransform: 'none',
-                fontWeight: '600',
-                px: 2,
-            },
-        },
-        Progress: {
-            defaultProps: { colorScheme: 'brand' },
-        },
-        Switch: {
-            defaultProps: { colorScheme: 'brand' },
-        },
-        Button: {
-            defaultProps: { colorScheme: 'brand' },
-            baseStyle: {
-                borderRadius: 'lg',
-                fontWeight: '600',
-                _focus: { boxShadow: 'none' },
-            },
-            variants: {
-                solid: {
-                    h: '9', // 40px refined standard
-                    px: '5',
-                    fontSize: 'sm',
-                },
-                outline: {
-                    h: '9',
-                    px: '5',
-                    fontSize: 'sm',
-                },
-                ghost: {
-                    h: '9',
-                    px: '5',
-                    fontSize: 'sm',
+        TextInput: {
+            styles: {
+                input: {
+                    backgroundColor: '#0a0a0b',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    color: '#e4e4e7',
+                    '&:focus': { borderColor: '#f38020' },
                 },
             },
         },
-        Tabs: {
-            defaultProps: { colorScheme: 'brand' },
-            baseStyle: {
-                tab: {
-                    _focus: {
-                        boxShadow: 'none',
-                    },
+        Select: {
+            styles: {
+                input: {
+                    backgroundColor: '#0a0a0b',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    color: '#e4e4e7',
                 },
+            },
+        },
+        Paper: {
+            defaultProps: { bg: '#111113' },
+        },
+        Modal: {
+            styles: {
+                content: { backgroundColor: '#111113', border: '1px solid rgba(255,255,255,0.07)' },
+                header: { backgroundColor: '#111113', borderBottom: '1px solid rgba(255,255,255,0.07)' },
+            },
+        },
+        Table: {
+            styles: {
+                table: { borderCollapse: 'collapse' },
             },
         },
     },
@@ -114,24 +79,23 @@ createInertiaApp({
             import.meta.glob('./Pages/**/*.jsx'),
         ),
     setup({ el, App, props }) {
-        if (import.meta.env.SSR) {
-            hydrateRoot(el, (
-                <ChakraProvider theme={theme}>
-                    <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+        const app = (
+            <MantineProvider theme={theme} defaultColorScheme="dark">
+                <Notifications position="top-right" />
+                <ModalsProvider>
                     <App {...props} />
-                </ChakraProvider>
-            ));
+                </ModalsProvider>
+            </MantineProvider>
+        );
+
+        if (import.meta.env.SSR) {
+            hydrateRoot(el, app);
             return;
         }
 
-        createRoot(el).render(
-            <ChakraProvider theme={theme}>
-                <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-                <App {...props} />
-            </ChakraProvider>
-        );
+        createRoot(el).render(app);
     },
     progress: {
-        color: '#6366f1',
+        color: '#f38020',
     },
 });

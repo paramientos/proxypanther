@@ -1,317 +1,293 @@
 import React from 'react';
 import {
-    Box,
-    Flex,
-    Text,
-    IconButton,
-    VStack,
-    HStack,
-    Icon,
-    Avatar,
-    Menu,
-    MenuButton,
-    MenuList,
-    MenuItem,
-    MenuDivider,
-    Badge,
-    Tooltip,
-    Drawer,
-    DrawerContent,
-    DrawerOverlay,
-    useDisclosure,
-    Container,
-} from '@chakra-ui/react';
+    AppShell, Group, Text, Box, NavLink, Avatar,
+    Menu, ActionIcon, Indicator, Divider, Stack,
+    Badge, Tooltip, UnstyledButton, Flex,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
-    LayoutDashboard,
-    Shield,
-    LogOut,
-    Users,
-    Lock,
-    TrendingUp,
-    Menu as MenuIcon,
-    X,
-    Settings,
-    Bell,
-    Search,
-    ChevronDown,
-    Globe,
-    BarChart3,
-    FileText,
-    Zap,
-} from 'lucide-react';
+    IconLayoutDashboard, IconShield, IconLogout, IconUsers,
+    IconLock, IconTrendingUp, IconMenu2, IconSettings,
+    IconBell, IconSearch, IconChevronDown, IconGlobe,
+    IconChartBar, IconFileText, IconBolt, IconCircleCheck,
+} from '@tabler/icons-react';
 import { Link as InertiaLink, router } from '@inertiajs/react';
 
 const NAV_ITEMS = [
-    { name: 'Dashboard', icon: LayoutDashboard, route: 'dashboard' },
-    { name: 'Proxy Sites', icon: Globe, route: 'dashboard', params: { view: 'sites' } },
-    { name: 'Security Logs', icon: FileText, route: 'logs.index' },
-    { name: 'IP Blacklist', icon: Shield, route: 'banned-ips.index' },
-    { name: 'SSL Certificates', icon: Lock, route: 'ssl.index' },
-    { name: 'Uptime & SLA', icon: TrendingUp, route: 'uptime.index' },
-    { name: 'Analytics', icon: BarChart3, route: 'analytics.index' },
-    { name: 'Teams', icon: Users, route: 'teams.index' },
+    { name: 'Dashboard', icon: IconLayoutDashboard, route: 'dashboard' },
+    { name: 'Proxy Sites', icon: IconGlobe, route: 'dashboard', params: { view: 'sites' } },
+    { name: 'Security Logs', icon: IconFileText, route: 'logs.index' },
+    { name: 'IP Blacklist', icon: IconShield, route: 'banned-ips.index' },
+    { name: 'SSL Certificates', icon: IconLock, route: 'ssl.index' },
+    { name: 'Uptime & SLA', icon: IconTrendingUp, route: 'uptime.index' },
+    { name: 'Analytics', icon: IconChartBar, route: 'analytics.index' },
+    { name: 'Teams', icon: IconUsers, route: 'teams.index' },
 ];
 
-const SIDEBAR_BG = '#08080a';
-const SIDEBAR_BORDER = 'rgba(255,255,255,0.05)';
-const TOPBAR_BG = '#0a0a0a';
-const CONTENT_BG = '#0d0d0d';
-const ACTIVE_BG = 'rgba(99, 102, 241, 0.12)';
-const HOVER_BG = 'rgba(255, 255, 255, 0.05)';
-const ACCENT = '#6366f1';
+const ACCENT = '#f38020';
+const SIDEBAR_BG = '#0d0d0f';
+const TOPBAR_BG = '#0d0d0f';
+const CONTENT_BG = '#0a0a0b';
+const BORDER = 'rgba(255,255,255,0.07)';
+const HOVER_BG = 'rgba(255,255,255,0.04)';
+const ACTIVE_BG = 'rgba(243,128,32,0.1)';
 
-function SidebarContent({ onClose }) {
+function NavItem({ item }) {
+    const currentView = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('view')
+        : null;
+    const itemView = item.params?.view;
+    const isActive = route().current(item.route) &&
+        (itemView === currentView || (!itemView && !currentView));
+
     return (
-        <Box
-            bg={SIDEBAR_BG}
-            borderRight="1px solid"
-            borderRightColor={SIDEBAR_BORDER}
-            w={{ base: 'full', md: '240px' }}
-            pos="fixed"
-            h="full"
-            zIndex={10}
-        >
-            {/* Logo */}
-            <Flex h="16" alignItems="center" mx={5} justifyContent="space-between">
-                <HStack spacing={3}>
-                    <Box
-                        w={8} h={8}
-                        bg={ACCENT}
-                        borderRadius="md"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                    >
-                        <Icon as={Zap} w={5} h={5} color="white" />
-                    </Box>
-                    <VStack align="start" spacing={0}>
-                        <Text fontSize="md" fontWeight="bold" color="white" letterSpacing="tight">
-                            ProxyPanther
-                        </Text>
-                        <Text fontSize="10px" color="gray.500" letterSpacing="widest" textTransform="uppercase">
-                            Enterprise
-                        </Text>
-                    </VStack>
-                </HStack>
-                <IconButton
-                    display={{ base: 'flex', md: 'none' }}
-                    onClick={onClose}
-                    variant="ghost"
-                    color="gray.400"
-                    icon={<X size={18} />}
-                    aria-label="close"
-                    size="sm"
-                />
-            </Flex>
-
-            {/* Nav label */}
-            <Text fontSize="10px" color="gray.600" fontWeight="semibold" letterSpacing="widest"
-                textTransform="uppercase" px={5} mt={6} mb={2}>
-                Navigation
-            </Text>
-
-            {/* Navigation */}
-            <VStack spacing={0.5} align="stretch" px={3}>
-                {NAV_ITEMS.map((item) => {
-                    const currentView = new URLSearchParams(window.location.search).get('view');
-                    const itemView = item.params?.view;
-                    const isActive = route().current(item.route) && (itemView === currentView || (!itemView && !currentView));
-                    return (
-                        <Tooltip key={item.name} label={item.name} placement="right" hasArrow>
-                            <Box
-                                as={InertiaLink}
-                                href={route(item.route, item.params || {})}
-                                display="flex"
-                                alignItems="center"
-                                px={3}
-                                py={2}
-                                borderRadius="md"
-                                cursor="pointer"
-                                bg={isActive ? ACTIVE_BG : 'transparent'}
-                                color={isActive ? ACCENT : 'gray.500'}
-                                _hover={{ bg: isActive ? ACTIVE_BG : HOVER_BG, color: isActive ? ACCENT : 'gray.200' }}
-                                transition="all 0.2s"
-                                position="relative"
-                                fontWeight={isActive ? '600' : '500'}
-                            >
-                                {isActive && (
-                                    <Box
-                                        position="absolute"
-                                        left="-12px"
-                                        top="20%"
-                                        bottom="20%"
-                                        w="3px"
-                                        bg={ACCENT}
-                                        borderRadius="full"
-                                        boxShadow={`0 0 10px ${ACCENT}`}
-                                    />
-                                )}
-                                <Icon as={item.icon} boxSize={4.5} strokeWidth={isActive ? 2.5 : 2} />
-                                <Text ml={3} fontSize="13px">
-                                    {item.name}
-                                </Text>
-                            </Box>
-                        </Tooltip>
-                    );
-                })}
-            </VStack>
-
-            {/* System status */}
-            <Box position="absolute" bottom={4} left={0} right={0} px={3}>
-                <Box px={3} py={3} borderRadius="md" bg="#1a1a1a" border="1px solid" borderColor="#2a2a2a">
-                    <HStack spacing={2}>
-                        <Box w={2} h={2} borderRadius="full" bg="green.400"
-                            boxShadow="0 0 6px rgba(72,187,120,0.8)" />
-                        <VStack align="start" spacing={0} flex={1}>
-                            <Text fontSize="10px" color="gray.500" textTransform="uppercase" letterSpacing="wider">
-                                System Status
-                            </Text>
-                            <Text fontSize="xs" color="white" fontWeight="medium">
-                                All Systems Operational
-                            </Text>
-                        </VStack>
-                    </HStack>
-                </Box>
-            </Box>
-        </Box>
+        <Tooltip label={item.name} position="right" withArrow disabled>
+            <UnstyledButton
+                component={InertiaLink}
+                href={route(item.route, item.params || {})}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    backgroundColor: isActive ? ACTIVE_BG : 'transparent',
+                    color: isActive ? ACCENT : '#71717a',
+                    fontWeight: isActive ? 600 : 500,
+                    fontSize: 13,
+                    transition: 'all 0.15s',
+                    position: 'relative',
+                    textDecoration: 'none',
+                    borderLeft: isActive ? `3px solid ${ACCENT}` : '3px solid transparent',
+                }}
+                onMouseEnter={e => {
+                    if (!isActive) {
+                        e.currentTarget.style.backgroundColor = HOVER_BG;
+                        e.currentTarget.style.color = '#e4e4e7';
+                    }
+                }}
+                onMouseLeave={e => {
+                    if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#71717a';
+                    }
+                }}
+            >
+                <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                <span>{item.name}</span>
+            </UnstyledButton>
+        </Tooltip>
     );
 }
 
 export default function EnterpriseLayout({ children, user }) {
-    const { isOpen, onOpen, onClose } = useDisclosure();
+    const [opened, { toggle }] = useDisclosure();
 
     return (
-        <Box minH="100vh" bg={CONTENT_BG}>
-            {/* Desktop sidebar */}
-            <Box display={{ base: 'none', md: 'block' }}>
-                <SidebarContent onClose={onClose} />
-            </Box>
-
-            {/* Mobile drawer */}
-            <Drawer autoFocus={false} isOpen={isOpen} placement="left"
-                onClose={onClose} returnFocusOnClose={false} onOverlayClick={onClose} size="full">
-                <DrawerOverlay />
-                <DrawerContent>
-                    <SidebarContent onClose={onClose} />
-                </DrawerContent>
-            </Drawer>
-
-            {/* Main area */}
-            <Box ml={{ base: 0, md: '240px' }}>
-                {/* Topbar */}
-                <Flex
-                    px={6}
-                    height="16"
-                    alignItems="center"
-                    bg={TOPBAR_BG}
-                    borderBottom="1px solid"
-                    borderBottomColor={SIDEBAR_BORDER}
-                    justifyContent="space-between"
-                    position="sticky"
-                    top={0}
-                    zIndex={9}
-                >
-                    <HStack spacing={4} flex={1}>
-                        <IconButton
-                            display={{ base: 'flex', md: 'none' }}
-                            onClick={onOpen}
-                            variant="ghost"
-                            color="gray.400"
-                            icon={<MenuIcon size={20} />}
-                            aria-label="open menu"
-                        />
-                        <Box
-                            display={{ base: 'none', md: 'flex' }}
-                            alignItems="center"
-                            bg="#1a1a1a"
-                            border="1px solid"
-                            borderColor="#2a2a2a"
-                            px={4}
-                            py={2}
-                            borderRadius="md"
-                            maxW="360px"
-                            flex={1}
-                            cursor="text"
+        <AppShell
+            navbar={{ width: 240, breakpoint: 'md', collapsed: { mobile: !opened } }}
+            header={{ height: 60 }}
+            styles={{
+                root: { backgroundColor: CONTENT_BG },
+                navbar: {
+                    backgroundColor: SIDEBAR_BG,
+                    borderRight: `1px solid ${BORDER}`,
+                },
+                header: {
+                    backgroundColor: TOPBAR_BG,
+                    borderBottom: `1px solid ${BORDER}`,
+                },
+                main: {
+                    backgroundColor: CONTENT_BG,
+                    minHeight: '100vh',
+                },
+            }}
+        >
+            <AppShell.Header>
+                <Flex h="100%" px={20} align="center" justify="space-between">
+                    <Group gap={12}>
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            hiddenFrom="md"
+                            onClick={toggle}
+                            size="md"
                         >
-                            <Icon as={Search} color="gray.600" boxSize={4} mr={2} />
-                            <Text fontSize="sm" color="gray.600">
-                                Search sites, logs, IPs...
-                            </Text>
-                            <Box ml="auto" px={1.5} py={0.5} bg="#2a2a2a" borderRadius="sm">
-                                <Text fontSize="10px" color="gray.500">⌘K</Text>
+                            <IconMenu2 size={18} />
+                        </ActionIcon>
+
+                        <Box
+                            visibleFrom="md"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                backgroundColor: '#18181b',
+                                border: `1px solid ${BORDER}`,
+                                padding: '6px 14px',
+                                borderRadius: 8,
+                                cursor: 'text',
+                                minWidth: 280,
+                            }}
+                        >
+                            <IconSearch size={14} color="#52525b" />
+                            <Text size="sm" c="dimmed">Search sites, logs, IPs...</Text>
+                            <Box
+                                ml="auto"
+                                style={{
+                                    padding: '1px 6px',
+                                    backgroundColor: '#27272a',
+                                    borderRadius: 4,
+                                    fontSize: 10,
+                                    color: '#52525b',
+                                }}
+                            >
+                                ⌘K
                             </Box>
                         </Box>
-                    </HStack>
+                    </Group>
 
-                    <HStack spacing={2}>
-                        <Tooltip label="Notifications" hasArrow>
-                            <Box position="relative">
-                                <IconButton
-                                    variant="ghost"
-                                    color="gray.400"
-                                    _hover={{ bg: HOVER_BG, color: 'white' }}
-                                    icon={<Bell size={18} />}
-                                    aria-label="notifications"
-                                    size="sm"
-                                />
-                                <Box
-                                    position="absolute"
-                                    top={1}
-                                    right={1}
-                                    w={2}
-                                    h={2}
-                                    bg={ACCENT}
-                                    borderRadius="full"
-                                    border="2px solid"
-                                    borderColor={TOPBAR_BG}
-                                />
-                            </Box>
-                        </Tooltip>
+                    <Group gap={8}>
+                        <Indicator color="orange" size={7} offset={4}>
+                            <ActionIcon variant="subtle" color="gray" size="md">
+                                <IconBell size={17} />
+                            </ActionIcon>
+                        </Indicator>
 
-                        <Box w="1px" h={6} bg="#2a2a2a" mx={1} />
+                        <Divider orientation="vertical" color={BORDER} />
 
-                        <Menu>
-                            <MenuButton>
-                                <HStack spacing={2} cursor="pointer" px={2} py={1}
-                                    borderRadius="md" _hover={{ bg: HOVER_BG }}>
-                                    <Avatar size="xs" name={user?.name} bg={ACCENT} color="white" />
-                                    <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing={0}>
-                                        <Text fontSize="sm" fontWeight="medium" color="white">
-                                            {user?.name}
-                                        </Text>
-                                        <Text fontSize="10px" color="gray.500">
-                                            Administrator
-                                        </Text>
-                                    </VStack>
-                                    <Icon as={ChevronDown} boxSize={3} color="gray.500" />
-                                </HStack>
-                            </MenuButton>
-                            <MenuList bg="#1a1a1a" borderColor="#2a2a2a">
-                                <MenuItem bg="transparent" _hover={{ bg: HOVER_BG }}
-                                    icon={<Settings size={14} />} color="gray.300">
+                        <Menu shadow="md" width={180} position="bottom-end">
+                            <Menu.Target>
+                                <UnstyledButton>
+                                    <Group gap={8} style={{ cursor: 'pointer' }}>
+                                        <Avatar
+                                            size={30}
+                                            radius="md"
+                                            color="orange"
+                                            style={{ backgroundColor: ACCENT }}
+                                        >
+                                            {user?.name?.charAt(0)?.toUpperCase()}
+                                        </Avatar>
+                                        <Box visibleFrom="md">
+                                            <Text size="sm" fw={500} c="white" lh={1.2}>
+                                                {user?.name}
+                                            </Text>
+                                            <Text size="xs" c="dimmed" lh={1.2}>Administrator</Text>
+                                        </Box>
+                                        <IconChevronDown size={13} color="#52525b" />
+                                    </Group>
+                                </UnstyledButton>
+                            </Menu.Target>
+                            <Menu.Dropdown
+                                style={{
+                                    backgroundColor: '#18181b',
+                                    border: `1px solid ${BORDER}`,
+                                }}
+                            >
+                                <Menu.Item
+                                    leftSection={<IconSettings size={14} />}
+                                    style={{ color: '#a1a1aa' }}
+                                >
                                     Settings
-                                </MenuItem>
-                                <MenuItem bg="transparent" _hover={{ bg: HOVER_BG }}
-                                    icon={<Users size={14} />} color="gray.300"
-                                    as={InertiaLink} href={route('teams.index')}>
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconUsers size={14} />}
+                                    style={{ color: '#a1a1aa' }}
+                                    component={InertiaLink}
+                                    href={route('teams.index')}
+                                >
                                     Teams
-                                </MenuItem>
-                                <MenuDivider borderColor="#2a2a2a" />
-                                <MenuItem bg="transparent" _hover={{ bg: '#2a1010' }}
-                                    icon={<LogOut size={14} />} color="red.400"
-                                    onClick={() => router.post(route('logout'))}>
+                                </Menu.Item>
+                                <Menu.Divider style={{ borderColor: BORDER }} />
+                                <Menu.Item
+                                    leftSection={<IconLogout size={14} />}
+                                    color="red"
+                                    onClick={() => router.post(route('logout'))}
+                                >
                                     Logout
-                                </MenuItem>
-                            </MenuList>
+                                </Menu.Item>
+                            </Menu.Dropdown>
                         </Menu>
-                    </HStack>
+                    </Group>
                 </Flex>
+            </AppShell.Header>
 
-                {/* Content */}
-                <Box p={8}>
-                    <Container maxW="container.2xl">{children}</Container>
+            <AppShell.Navbar p={0}>
+                <Box p={16} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                    <Group gap={10}>
+                        <Box
+                            style={{
+                                width: 32, height: 32,
+                                backgroundColor: ACCENT,
+                                borderRadius: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: `0 0 16px rgba(243,128,32,0.3)`,
+                            }}
+                        >
+                            <IconBolt size={18} color="white" />
+                        </Box>
+                        <Box>
+                            <Text size="sm" fw={700} c="white" lh={1.2}>ProxyPanther</Text>
+                            <Text size="10px" c="dimmed" style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                                Enterprise
+                            </Text>
+                        </Box>
+                    </Group>
                 </Box>
-            </Box>
-        </Box>
+
+                <Box p={8} style={{ flex: 1, overflowY: 'auto' }}>
+                    <Text
+                        size="10px"
+                        c="dimmed"
+                        fw={600}
+                        style={{ letterSpacing: '0.1em', textTransform: 'uppercase', padding: '12px 12px 6px' }}
+                    >
+                        Navigation
+                    </Text>
+                    <Stack gap={2}>
+                        {NAV_ITEMS.map(item => (
+                            <NavItem key={item.name} item={item} />
+                        ))}
+                    </Stack>
+                </Box>
+
+                <Box p={12} style={{ borderTop: `1px solid ${BORDER}` }}>
+                    <Box
+                        style={{
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            backgroundColor: '#18181b',
+                            border: `1px solid ${BORDER}`,
+                        }}
+                    >
+                        <Group gap={8}>
+                            <Box
+                                style={{
+                                    width: 8, height: 8,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#22c55e',
+                                    boxShadow: '0 0 6px rgba(34,197,94,0.8)',
+                                    flexShrink: 0,
+                                }}
+                            />
+                            <Box>
+                                <Text size="10px" c="dimmed" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                    System Status
+                                </Text>
+                                <Text size="xs" c="white" fw={500}>All Systems Operational</Text>
+                            </Box>
+                        </Group>
+                    </Box>
+                </Box>
+            </AppShell.Navbar>
+
+            <AppShell.Main>
+                <Box p={32}>
+                    {children}
+                </Box>
+            </AppShell.Main>
+        </AppShell>
     );
 }

@@ -1,3 +1,44 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import '@mantine/core/styles.css';
+@import '@mantine/notifications/styles.css';
+@import '@mantine/charts/styles.css';
+@import '@mantine/dates/styles.css';
+
+:root {
+    --pp-bg: #0a0a0b;
+    --pp-surface: #111113;
+    --pp-surface-2: #18181b;
+    --pp-border: rgba(255, 255, 255, 0.07);
+    --pp-accent: #f38020;
+    --pp-accent-dim: rgba(243, 128, 32, 0.12);
+    --pp-text: #e4e4e7;
+    --pp-muted: #71717a;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--pp-bg);
+    color: var(--pp-text);
+    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--pp-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2a2a2e;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3a3a3e;
+}

@@ -1,33 +1,13 @@
-import React from 'react';
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Stack,
-  Text,
-  useColorModeValue,
-  FormErrorMessage,
-  Heading,
-  Fade,
-} from '@chakra-ui/react';
+import React, { useRef } from 'react';
+import { Stack, Title, Text, PasswordInput, Button, Group, Transition } from '@mantine/core';
+import { IconCheck, IconKey } from '@tabler/icons-react';
 import { useForm } from '@inertiajs/react';
-import { useRef } from 'react';
 
 export default function UpdatePasswordForm({ className = '' }) {
     const passwordInput = useRef();
     const currentPasswordInput = useRef();
 
-    const {
-        data,
-        setData,
-        errors,
-        put,
-        reset,
-        processing,
-        recentlySuccessful,
-    } = useForm({
+    const { data, setData, errors, put, reset, processing, recentlySuccessful } = useForm({
         current_password: '',
         password: '',
         password_confirmation: '',
@@ -39,82 +19,77 @@ export default function UpdatePasswordForm({ className = '' }) {
         put(route('password.update'), {
             preserveScroll: true,
             onSuccess: () => reset(),
-            onError: (errors) => {
-                if (errors.password) {
+            onError: (errs) => {
+                if (errs.password) {
                     reset('password', 'password_confirmation');
-                    passwordInput.current.focus();
+                    passwordInput.current?.focus();
                 }
-
-                if (errors.current_password) {
+                if (errs.current_password) {
                     reset('current_password');
-                    currentPasswordInput.current.focus();
+                    currentPasswordInput.current?.focus();
                 }
             },
         });
     };
 
+    const inputStyles = { label: { color: '#a1a1aa' }, input: { backgroundColor: '#09090b', borderColor: '#27272a', color: 'white' } };
+
     return (
-        <Box as="section" className={className}>
-            <Stack spacing={1} mb={6}>
-                <Heading size="md">Update Password</Heading>
-                <Text color="gray.500" fontSize="sm">
-                    Ensure your account is using a long, random password to stay secure.
-                </Text>
+        <Stack gap="lg" className={className}>
+            <Stack gap={4}>
+                <Title order={5} c="white">Update Password</Title>
+                <Text size="sm" c="dimmed">Ensure your account is using a long, random password to stay secure.</Text>
             </Stack>
 
             <form onSubmit={updatePassword}>
-                <Stack spacing={6} maxW="xl">
-                    <FormControl isRequired isInvalid={errors.current_password}>
-                        <FormLabel htmlFor="current_password">Current Password</FormLabel>
-                        <Input
-                            id="current_password"
-                            ref={currentPasswordInput}
-                            value={data.current_password}
-                            onChange={(e) => setData('current_password', e.target.value)}
-                            type="password"
-                            autoComplete="current-password"
-                        />
-                        {errors.current_password && <FormErrorMessage>{errors.current_password}</FormErrorMessage>}
-                    </FormControl>
+                <Stack gap="md" maw={480}>
+                    <PasswordInput
+                        id="current_password"
+                        label="Current Password"
+                        required
+                        ref={currentPasswordInput}
+                        value={data.current_password}
+                        onChange={(e) => setData('current_password', e.target.value)}
+                        autoComplete="current-password"
+                        error={errors.current_password}
+                        styles={inputStyles}
+                    />
 
-                    <FormControl isRequired isInvalid={errors.password}>
-                        <FormLabel htmlFor="password">New Password</FormLabel>
-                        <Input
-                            id="password"
-                            ref={passwordInput}
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            type="password"
-                            autoComplete="new-password"
-                        />
-                        {errors.password && <FormErrorMessage>{errors.password}</FormErrorMessage>}
-                    </FormControl>
+                    <PasswordInput
+                        id="password"
+                        label="New Password"
+                        required
+                        ref={passwordInput}
+                        value={data.password}
+                        onChange={(e) => setData('password', e.target.value)}
+                        autoComplete="new-password"
+                        error={errors.password}
+                        styles={inputStyles}
+                    />
 
-                    <FormControl isRequired isInvalid={errors.password_confirmation}>
-                        <FormLabel htmlFor="password_confirmation">Confirm Password</FormLabel>
-                        <Input
-                            id="password_confirmation"
-                            value={data.password_confirmation}
-                            onChange={(e) => setData('password_confirmation', e.target.value)}
-                            type="password"
-                            autoComplete="new-password"
-                        />
-                        {errors.password_confirmation && <FormErrorMessage>{errors.password_confirmation}</FormErrorMessage>}
-                    </FormControl>
+                    <PasswordInput
+                        id="password_confirmation"
+                        label="Confirm Password"
+                        required
+                        value={data.password_confirmation}
+                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        autoComplete="new-password"
+                        error={errors.password_confirmation}
+                        styles={inputStyles}
+                    />
 
-                    <Box display="flex" alignItems="center" gap={4}>
-                        <Button type="submit" colorScheme="orange" isLoading={processing}>
+                    <Group gap="md" align="center">
+                        <Button type="submit" loading={processing} color="#f38020" leftSection={<IconKey size={14} />}>
                             Save
                         </Button>
-
-                        <Fade in={recentlySuccessful}>
-                            <Text fontSize="sm" color="gray.500">
-                                Saved.
-                            </Text>
-                        </Fade>
-                    </Box>
+                        <Transition mounted={recentlySuccessful} transition="fade" duration={400}>
+                            {(styles) => (
+                                <Text size="sm" c="dimmed" style={styles}>Saved.</Text>
+                            )}
+                        </Transition>
+                    </Group>
                 </Stack>
             </form>
-        </Box>
+        </Stack>
     );
 }
