@@ -17,6 +17,7 @@ import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import ConfirmModal from '@/Components/ConfirmModal';
+import PolicyOptimizerModal from '@/Components/PolicyOptimizerModal';
 
 const CARD_BG = '#111113';
 const BORDER = 'rgba(255,255,255,0.07)';
@@ -66,6 +67,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
     const [liveStats, setLiveStats] = React.useState({});
     const [opened, { open, close }] = useDisclosure(false);
     const [deleteSite, setDeleteSite] = React.useState(null);
+    const [policyOptimizerOpened, { open: openPolicyOptimizer, close: closePolicyOptimizer }] = useDisclosure(false);
 
     React.useEffect(() => {
         if (!window.Echo) return;
@@ -321,7 +323,9 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                         size="xs"
                                         variant="outline"
                                         color="orange"
+                                        leftSection={<IconShield size={11} />}
                                         rightSection={<IconChevronRight size={11} />}
+                                        onClick={openPolicyOptimizer}
                                     >
                                         Optimize Policies
                                     </Button>
@@ -650,6 +654,11 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                 title={`Delete "${deleteSite?.name}"?`}
                 description="This will permanently remove the site and all its configuration from ProxyPanther."
                 confirmWord={deleteSite?.name}
+            />
+
+            <PolicyOptimizerModal
+                opened={policyOptimizerOpened}
+                onClose={closePolicyOptimizer}
             />
         </>
     );

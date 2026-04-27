@@ -23,44 +23,74 @@ echo -e "${NC}"
 echo -e "${GREEN}ProxyPanther Installer${NC}"
 echo "================================================"
 
+OS="$(uname -s)"
+
+check_root_linux() {
+    if [[ "$EUID" -ne 0 ]]; then
+        echo -e "${RED}This installer must be run as root on Linux.${NC}"
+        echo -e "Please re-run with: ${YELLOW}sudo bash install.sh${NC}"
+        exit 1
+    fi
+}
+
+if [[ "$OS" == "Linux" ]]; then
+    check_root_linux
+elif [[ "$OS" == "Darwin" ]]; then
+    echo -e "${YELLOW}macOS detected — root not required.${NC}"
+else
+    echo -e "${RED}Unsupported OS: ${OS}${NC}"
+    exit 1
+fi
+
+install_docker_linux() {
+    echo -e "${YELLOW}Installing Docker...${NC}"
+    apt-get update -qq
+    curl -fsSL https://get.docker.com | sh
+}
+
+install_docker_mac() {
+    echo -e "${YELLOW}Docker Desktop is required on macOS.${NC}"
+    echo -e "Download from: ${CYAN}https://docs.docker.com/desktop/install/mac-install/${NC}"
+    echo -e "After installing, start Docker Desktop and re-run this script."
+    exit 1
+}
+
 if ! command -v docker &> /dev/null; then
-    echo -e "${YELLOW}Docker not found.${NC}"
-    echo -n "Install Docker Engine now? (Ubuntu/Debian) [y/N]: "
-    read -r INSTALL_DOCKER
-    if [[ "$INSTALL_DOCKER" =~ ^[yY]$ ]]; then
-        echo -e "${YELLOW}Installing Docker...${NC}"
-        curl -fsSL https://get.docker.com | sh
+    echo -e "${YELLOW}Docker not found. Installing automatically...${NC}"
+    if [[ "$OS" == "Linux" ]]; then
+        install_docker_linux
         if ! command -v docker &> /dev/null; then
             echo -e "${RED}Docker installation failed. Manual install: https://docs.docker.com/engine/install/${NC}"
             exit 1
         fi
         echo -e "${GREEN}Docker installed successfully.${NC}"
     else
-        echo -e "${RED}Docker is required. Exiting.${NC}"
-        exit 1
+        install_docker_mac
     fi
 fi
 
 if ! docker compose version &> /dev/null 2>&1; then
     echo -e "${YELLOW}Docker Compose v2 not found.${NC}"
-    echo -n "Install Docker Compose plugin now? [y/N]: "
-    read -r INSTALL_COMPOSE
-    if [[ "$INSTALL_COMPOSE" =~ ^[yY]$ ]]; then
-        echo -e "${YELLOW}Installing Docker Compose...${NC}"
-        apt-get install -y docker-compose-plugin 2>/dev/null || \
-            curl -fsSL https://get.docker.com | sh
+    if [[ "$OS" == "Linux" ]]; then
+        echo -e "${YELLOW}Installing Docker Compose plugin...${NC}"
+        apt-get install -y docker-compose-plugin
         if ! docker compose version &> /dev/null 2>&1; then
             echo -e "${RED}Docker Compose installation failed. Manual install: https://docs.docker.com/compose/install/${NC}"
             exit 1
         fi
         echo -e "${GREEN}Docker Compose installed successfully.${NC}"
     else
-        echo -e "${RED}Docker Compose is required. Exiting.${NC}"
+        echo -e "${RED}Docker Compose not found. Make sure Docker Desktop is running.${NC}"
         exit 1
     fi
 fi
 
 open_ports() {
+    if [[ "$OS" != "Linux" ]]; then
+        echo -e "${YELLOW}Skipping firewall configuration on macOS.${NC}"
+        return
+    fi
+
     local ports=("80" "443" "3434" "5656" "2019")
     if command -v ufw &> /dev/null; then
         echo -e "${YELLOW}Configuring ufw firewall...${NC}"
@@ -100,14 +130,24 @@ DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
 APP_KEY="base64:$(openssl rand -base64 32)"
 ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -d '/+=' | head -c 24)
 
-sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
-sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
-sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${DB_PASSWORD}|" .env.docker
-
-if grep -q "^ADMIN_PASSWORD=" .env.docker; then
-    sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.docker
+if [[ "$OS" == "Darwin" ]]; then
+    sed -i '' "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
+    sed -i '' "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
+    sed -i '' "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${DB_PASSWORD}|" .env.docker
+    if grep -q "^ADMIN_PASSWORD=" .env.docker; then
+        sed -i '' "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.docker
+    else
+        echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env.docker
+    fi
 else
-    echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env.docker
+    sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
+    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
+    sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${DB_PASSWORD}|" .env.docker
+    if grep -q "^ADMIN_PASSWORD=" .env.docker; then
+        sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.docker
+    else
+        echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env.docker
+    fi
 fi
 
 echo -e "${YELLOW}[4/6] Pulling images from registry...${NC}"
@@ -125,7 +165,7 @@ echo ""
 
 TAG="${TAG}" docker compose up -d
 
-PUBLIC_IP=$(curl -fsSL --max-time 5 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
+PUBLIC_IP=$(curl -fsSL --max-time 5 https://api.ipify.org 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
 
 echo ""
 echo -e "${GREEN}================================================${NC}"
@@ -145,11 +185,7 @@ echo -e "  Email:    ${CYAN}admin@proxypanther.com${NC}"
 echo -e "  Password: ${CYAN}${ADMIN_PASSWORD}${NC}"
 echo -e "  ${RED}⚠  Save this password — it won't be shown again!${NC}"
 echo ""
-echo -e "  Logs:        ${YELLOW}cd ${INSTALL_DIR} && docker compose logs -f app${NC}"
-echo -e "  Stop:        ${YELLOW}cd ${INSTALL_DIR} && docker compose down${NC}"
-echo -e "  Update:      ${YELLOW}cd ${INSTALL_DIR} && docker compose pull && docker compose up -d${NC}"
-echo ""
-echo -e "  Logs:        ${YELLOW}cd ${INSTALL_DIR} && docker compose logs -f app${NC}"
-echo -e "  Stop:        ${YELLOW}cd ${INSTALL_DIR} && docker compose down${NC}"
-echo -e "  Update:      ${YELLOW}cd ${INSTALL_DIR} && docker compose pull && docker compose up -d${NC}"
+echo -e "  Logs:    ${YELLOW}cd ${INSTALL_DIR} && docker compose logs -f app${NC}"
+echo -e "  Stop:    ${YELLOW}cd ${INSTALL_DIR} && docker compose down${NC}"
+echo -e "  Update:  ${YELLOW}cd ${INSTALL_DIR} && docker compose pull && docker compose up -d${NC}"
 echo ""

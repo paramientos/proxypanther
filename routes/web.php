@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BannedIpController;
 use App\Http\Controllers\LogExplorerController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PolicyOptimizerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProxySiteController;
 use App\Http\Controllers\SearchController;
@@ -65,6 +66,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/search', SearchController::class)->name('search');
+
+    // Policy Optimizer
+    Route::get('/policy-optimizer/analyze', [PolicyOptimizerController::class, 'analyze'])->name('policy-optimizer.analyze');
+    Route::post('/policy-optimizer/apply', [PolicyOptimizerController::class, 'apply'])->name('policy-optimizer.apply');
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
