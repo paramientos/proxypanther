@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
@@ -43,6 +44,9 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error'   => $request->session()->get('error'),
             ],
+            'unreadNotifications' => fn () => $request->user()
+                ? Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count()
+                : 0,
         ];
     }
 }

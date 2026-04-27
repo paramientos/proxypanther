@@ -31,5 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('caddy:sync')->everyFiveMinutes()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, $request) {
+            if ($request->inertia()) {
+                return back()->withErrors(['rate_limit' => 'Too many attempts. Please wait a minute before trying again.']);
+            }
+        });
     })->create();

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AppSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -73,10 +73,20 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => "required|email|unique:users,email,{$user->id}",
         ]);
 
+        $emailChanged = $validated['email'] !== $user->email;
+
         $user->update($validated);
+
+        if ($emailChanged) {
+            Auth::logoutOtherDevices($request->input('current_password', ''));
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->with('success', 'Email updated. Please log in again.');
+        }
 
         return redirect()->back()->with('success', 'Profile updated.');
     }
@@ -88,11 +98,17 @@ class SettingsController extends Controller
             'password'         => 'required|min:8|confirmed',
         ]);
 
-        auth()->user()->update([
+        $user = auth()->user();
+
+        $user->update([
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->back()->with('success', 'Password updated.');
+        Auth::logoutOtherDevices($request->password);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('success', 'Password updated. Please log in again.');
     }
 
     public function testSmtp(Request $request): RedirectResponse

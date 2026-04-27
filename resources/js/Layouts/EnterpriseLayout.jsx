@@ -8,11 +8,12 @@ import { useDisclosure } from '@mantine/hooks';
 import {
     IconLayoutDashboard, IconShield, IconLogout, IconUsers,
     IconLock, IconTrendingUp, IconMenu2, IconSettings,
-    IconBell, IconSearch, IconChevronDown, IconGlobe,
+    IconSearch, IconChevronDown, IconGlobe,
     IconChartBar, IconFileText, IconBolt, IconCircleCheck,
 } from '@tabler/icons-react';
-import { Link as InertiaLink, router } from '@inertiajs/react';
+import { Link as InertiaLink, router, usePage } from '@inertiajs/react';
 import GlobalSearch from '@/Components/GlobalSearch';
+import NotificationDropdown from '@/Components/NotificationDropdown';
 
 const NAV_ITEMS = [
     { name: 'Dashboard', icon: IconLayoutDashboard, route: 'dashboard' },
@@ -82,6 +83,8 @@ function NavItem({ item }) {
 }
 
 export default function EnterpriseLayout({ children, user }) {
+    const { props } = usePage();
+    const unreadNotifications = props.unreadNotifications ?? 0;
     const [opened, { toggle }] = useDisclosure();
     const [searchOpened, { open: openSearch, close: closeSearch }] = useDisclosure(false);
 
@@ -163,11 +166,10 @@ export default function EnterpriseLayout({ children, user }) {
                         </Group>
 
                         <Group gap={8}>
-                            <Indicator color="orange" size={7} offset={4}>
-                                <ActionIcon variant="subtle" color="gray" size="md">
-                                    <IconBell size={17} />
-                                </ActionIcon>
-                            </Indicator>
+                            <NotificationDropdown
+                                initialUnread={unreadNotifications}
+                                userId={user?.id}
+                            />
 
                             <Divider orientation="vertical" color={BORDER} />
 

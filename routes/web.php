@@ -4,6 +4,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BannedIpController;
 use App\Http\Controllers\LogExplorerController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProxySiteController;
 use App\Http\Controllers\SearchController;
@@ -65,13 +66,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/search', SearchController::class)->name('search');
 
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp');
     Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
     Route::post('/settings/app', [SettingsController::class, 'updateApp'])->name('settings.app');
-    Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
-    Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->middleware('throttle:1,1')->name('settings.profile');
+    Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->middleware('throttle:1,1')->name('settings.password');
 });
 
 Route::middleware('auth')->group(function () {

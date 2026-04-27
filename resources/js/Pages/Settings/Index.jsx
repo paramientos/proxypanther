@@ -99,6 +99,12 @@ export default function Index({ auth, smtp, app, profile }) {
                 </Alert>
             )}
 
+            {(profileForm.errors.rate_limit || passwordForm.errors.rate_limit) && (
+                <Alert icon={<IconAlertCircle size={16} />} color="red" mb={20} variant="light">
+                    {profileForm.errors.rate_limit || passwordForm.errors.rate_limit}
+                </Alert>
+            )}
+
             <Tabs value={activeTab} onChange={setActiveTab} styles={{
                 tab: { color: '#71717a', '&[dataActive]': { color: ACCENT } },
                 list: { borderColor: BORDER },
