@@ -113,14 +113,12 @@ services:
     restart: unless-stopped
     ports:
       - "5656:5432"
-    environment:
-      POSTGRES_DB: ${DB_DATABASE:-proxypanther}
-      POSTGRES_USER: ${DB_USERNAME:-proxypanther}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    env_file:
+      - .env.docker
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-proxypanther} -d ${DB_DATABASE:-proxypanther}"]
+      test: ["CMD-SHELL", "pg_isready -U proxypanther -d proxypanther"]
       interval: 5s
       timeout: 5s
       retries: 10

@@ -60,7 +60,29 @@ if ! docker compose version &> /dev/null 2>&1; then
     fi
 fi
 
-echo -e "${YELLOW}[1/5] Setting up install directory: ${INSTALL_DIR}${NC}"
+open_ports() {
+    local ports=("80" "443" "3434" "5656" "2019")
+    if command -v ufw &> /dev/null; then
+        echo -e "${YELLOW}Configuring ufw firewall...${NC}"
+        for port in "${ports[@]}"; do
+            ufw allow "$port"/tcp &>/dev/null && echo -e "  ${GREEN}✓${NC} Port $port opened"
+        done
+        ufw --force enable &>/dev/null || true
+    elif command -v firewall-cmd &> /dev/null; then
+        echo -e "${YELLOW}Configuring firewalld...${NC}"
+        for port in "${ports[@]}"; do
+            firewall-cmd --permanent --add-port="$port"/tcp &>/dev/null && echo -e "  ${GREEN}✓${NC} Port $port opened"
+        done
+        firewall-cmd --reload &>/dev/null
+    else
+        echo -e "${YELLOW}No firewall detected — skipping port configuration.${NC}"
+    fi
+}
+
+echo -e "${YELLOW}[1/6] Opening required ports...${NC}"
+open_ports
+
+echo -e "${YELLOW}[2/6] Setting up install directory: ${INSTALL_DIR}${NC}"
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
@@ -72,21 +94,22 @@ if [ ! -f ".env.docker" ]; then
     curl -fsSL "$ENV_URL" -o .env.docker
 fi
 
-echo -e "${YELLOW}[2/5] Generating secrets...${NC}"
+echo -e "${YELLOW}[3/6] Generating secrets...${NC}"
 
 DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
 APP_KEY="base64:$(openssl rand -base64 32)"
 
 sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
+sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${DB_PASSWORD}|" .env.docker
 
-echo -e "${YELLOW}[3/5] Pulling images from registry...${NC}"
+echo -e "${YELLOW}[4/6] Pulling images from registry...${NC}"
 TAG="${TAG}" docker compose pull
 
-echo -e "${YELLOW}[4/5] Starting infrastructure services...${NC}"
+echo -e "${YELLOW}[5/6] Starting infrastructure services...${NC}"
 TAG="${TAG}" docker compose up -d postgres redis caddy
 
-echo -e "${YELLOW}[5/5] Waiting for database...${NC}"
+echo -e "${YELLOW}[6/6] Waiting for database...${NC}"
 until docker compose exec -T postgres pg_isready -U proxypanther -d proxypanther &>/dev/null; do
     echo -n "."
     sleep 2
@@ -95,16 +118,18 @@ echo ""
 
 TAG="${TAG}" docker compose up -d
 
+PUBLIC_IP=$(curl -fsSL --max-time 5 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
+
 echo ""
 echo -e "${GREEN}================================================${NC}"
 echo -e "${GREEN}  ProxyPanther installed successfully!${NC}"
 echo -e "${GREEN}================================================${NC}"
 echo ""
-echo -e "  Dashboard:   ${CYAN}http://$(hostname -I | awk '{print $1}'):3434${NC}"
-echo -e "  Caddy HTTP:  ${CYAN}http://$(hostname -I | awk '{print $1}'):80${NC}"
-echo -e "  Caddy HTTPS: ${CYAN}https://$(hostname -I | awk '{print $1}'):443${NC}"
-echo -e "  Caddy Admin: ${CYAN}http://localhost:2019${NC}"
-echo -e "  PostgreSQL:  ${CYAN}localhost:5656${NC}"
+echo -e "  Dashboard:   ${CYAN}http://${PUBLIC_IP}:3434${NC}"
+echo -e "  Caddy HTTP:  ${CYAN}http://${PUBLIC_IP}:80${NC}"
+echo -e "  Caddy HTTPS: ${CYAN}https://${PUBLIC_IP}:443${NC}"
+echo -e "  Caddy Admin: ${CYAN}http://localhost:2019${NC}  (local only)"
+echo -e "  PostgreSQL:  ${CYAN}localhost:5656${NC}         (local only)"
 echo -e "  DB Password: ${CYAN}${DB_PASSWORD}${NC}"
 echo -e "  Install Dir: ${CYAN}${INSTALL_DIR}${NC}"
 echo ""
