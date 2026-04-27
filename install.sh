@@ -19,12 +19,12 @@ echo -e "${GREEN}ProxyPanther Docker Installer${NC}"
 echo "================================================"
 
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Docker bulunamadı. Lütfen Docker'ı kurun: https://docs.docker.com/engine/install/${NC}"
+    echo -e "${RED}Docker bulunamadı. Kurulum: https://docs.docker.com/engine/install/${NC}"
     exit 1
 fi
 
 if ! docker compose version &> /dev/null 2>&1; then
-    echo -e "${RED}Docker Compose (v2) bulunamadı. Lütfen güncelleyin.${NC}"
+    echo -e "${RED}Docker Compose v2 bulunamadı. Lütfen güncelleyin.${NC}"
     exit 1
 fi
 
@@ -33,28 +33,36 @@ if [ ! -f ".env.docker" ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}[1/5] Ortam hazırlanıyor...${NC}"
+echo -e "${YELLOW}[1/6] Ortam hazırlanıyor...${NC}"
 
 DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
 APP_KEY="base64:$(openssl rand -base64 32)"
 
-sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
-sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
+    sed -i '' "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
+else
+    sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
+    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
+fi
 
-echo -e "${YELLOW}[2/5] Docker imajları build ediliyor (bu birkaç dakika sürebilir)...${NC}"
-docker compose build --no-cache
+echo -e "${YELLOW}[2/6] Caddy (GeoIP modüllü) build ediliyor — bu 3-5 dakika sürebilir...${NC}"
+docker compose build caddy
 
-echo -e "${YELLOW}[3/5] Servisler başlatılıyor...${NC}"
-docker compose up -d postgres redis
+echo -e "${YELLOW}[3/6] Laravel uygulama imajı build ediliyor...${NC}"
+docker compose build app horizon scheduler reverb
 
-echo -e "${YELLOW}[4/5] Veritabanı hazır bekleniyor...${NC}"
+echo -e "${YELLOW}[4/6] Altyapı servisleri başlatılıyor...${NC}"
+docker compose up -d postgres redis caddy
+
+echo -e "${YELLOW}[5/6] Veritabanı hazır bekleniyor...${NC}"
 until docker compose exec -T postgres pg_isready -U proxypanther -d proxypanther &>/dev/null; do
     echo -n "."
     sleep 2
 done
 echo ""
 
-echo -e "${YELLOW}[5/5] Uygulama başlatılıyor...${NC}"
+echo -e "${YELLOW}[6/6] Uygulama başlatılıyor...${NC}"
 docker compose up -d
 
 echo ""
@@ -62,10 +70,14 @@ echo -e "${GREEN}================================================${NC}"
 echo -e "${GREEN}  ProxyPanther başarıyla kuruldu!${NC}"
 echo -e "${GREEN}================================================${NC}"
 echo ""
-echo -e "  Arayüz:     ${CYAN}http://localhost:3434${NC}"
+echo -e "  Dashboard:  ${CYAN}http://localhost:3434${NC}"
+echo -e "  Caddy HTTP: ${CYAN}http://localhost:80${NC}"
+echo -e "  Caddy HTTPS:${CYAN}https://localhost:443${NC}"
+echo -e "  Caddy Admin:${CYAN}http://localhost:2019${NC}"
 echo -e "  PostgreSQL: ${CYAN}localhost:5656${NC}"
 echo -e "  DB Şifresi: ${CYAN}${DB_PASSWORD}${NC}"
 echo ""
-echo -e "  Loglar için: ${YELLOW}docker compose logs -f app${NC}"
-echo -e "  Durdurmak:   ${YELLOW}docker compose down${NC}"
+echo -e "  Loglar:     ${YELLOW}docker compose logs -f app${NC}"
+echo -e "  Durdurmak:  ${YELLOW}docker compose down${NC}"
+echo -e "  Güncelleme: ${YELLOW}docker compose build && docker compose up -d${NC}"
 echo ""

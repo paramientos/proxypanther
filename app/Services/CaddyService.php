@@ -14,7 +14,7 @@ class CaddyService
 
     public function __construct()
     {
-        $this->caddyfilePath = base_path('Caddyfile');
+        $this->caddyfilePath = config('services.caddy.caddyfile', env('CADDYFILE_PATH', base_path('Caddyfile')));
     }
 
     public function sync(): bool
@@ -462,11 +462,31 @@ class CaddyService
 
     protected function reloadCaddy(): bool
     {
-        // On Forge, we usually need the full path to caddy
-        $result = Process::run("/usr/bin/caddy reload --config {$this->caddyfilePath}");
-        
-        if (!$result->successful()) {
-            \Log::error("Caddy reload failed: " . $result->errorOutput());
+        $adminApi = config('services.caddy.admin_api', 'http://caddy:2019');
+
+        try {
+            $caddyfileContent = File::get($this->caddyfilePath);
+
+            $response = Http::timeout(10)
+                ->withBody($caddyfileContent, 'text/caddyfile')
+                ->post("{$adminApi}/load");
+
+            if ($response->successful()) {
+                return true;
+            }
+
+            \Log::error('Caddy reload via API failed', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Caddy reload exception', ['message' => $e->getMessage()]);
+        }
+
+        $result = Process::run("caddy reload --config {$this->caddyfilePath} 2>&1");
+
+        if (! $result->successful()) {
+            \Log::error('Caddy reload via CLI failed', ['output' => $result->output()]);
         }
 
         return $result->successful();

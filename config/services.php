@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'caddy' => [
+        'admin_api'    => env('CADDY_ADMIN_API', 'http://caddy:2019'),
+        'caddyfile'    => env('CADDYFILE_PATH', '/etc/caddy/Caddyfile'),
+        'geoip_db'     => env('GEOIP_DB_PATH', '/etc/caddy/GeoLite2-Country.mmdb'),
+    ],
+
 ];

@@ -146,6 +146,27 @@ php artisan schedule:run
 | Modern Protocols (HTTP/3) | No | Yes | Yes |
 | Zero Data to Third Parties | Yes | No | Yes |
 
+internet
+    │
+    ▼
+[caddy container] :80/:443
+    │  GeoIP modüllü xcaddy binary
+    │  /etc/caddy/Caddyfile  ←── shared volume
+    │  /etc/caddy/GeoLite2-Country.mmdb
+    │
+    ▼ (reverse proxy)
+[app container] :8000 (dışarıya 3434)
+    │  Laravel + Octane/RoadRunner
+    │  Caddyfile'ı yazar → Caddy Admin API'ye POST /load
+    │
+    ├── [horizon]    Redis queue worker
+    ├── [scheduler]  schedule:work
+    └── [reverb]     WebSocket :8080
+
+[postgres] :5432 (dışarıya 5656)
+[redis]    :6379
+
+
 ## Integration with PingPanther
 
 ProxyPanther works seamlessly alongside PingPanther for a complete infrastructure monitoring and protection stack. When PingPanther detects a service outage, ProxyPanther can automatically route traffic to failover backends, ensuring high availability without manual intervention.
