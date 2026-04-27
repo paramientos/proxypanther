@@ -14,7 +14,6 @@ services:
       - caddy_config:/etc/caddy
       - caddy_data:/data/caddy
       - caddy_logs:/var/log/caddy
-      - app_storage:/var/www/html/storage:ro
     networks:
       - proxypanther
 
