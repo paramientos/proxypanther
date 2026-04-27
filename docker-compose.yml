@@ -1,5 +1,6 @@
 services:
   caddy:
+    image: ${REGISTRY:-ghcr.io/paramientos/proxypanther}-caddy:${TAG:-latest}
     build:
       context: .
       dockerfile: docker/caddy/Dockerfile
@@ -18,6 +19,7 @@ services:
       - proxypanther
 
   app:
+    image: ${REGISTRY:-ghcr.io/paramientos/proxypanther}-app:${TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -42,6 +44,7 @@ services:
       - proxypanther
 
   horizon:
+    image: ${REGISTRY:-ghcr.io/paramientos/proxypanther}-app:${TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -62,6 +65,7 @@ services:
       - proxypanther
 
   scheduler:
+    image: ${REGISTRY:-ghcr.io/paramientos/proxypanther}-app:${TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -83,6 +87,7 @@ services:
       - proxypanther
 
   reverb:
+    image: ${REGISTRY:-ghcr.io/paramientos/proxypanther}-app:${TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

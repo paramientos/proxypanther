@@ -94,17 +94,16 @@ The fastest path. One command sets everything up including Caddy with GeoIP, Pos
 **Requirements:** Docker 24+ and Docker Compose v2
 
 ```bash
-git clone https://github.com/paramientos/proxypanther
-cd proxypanther
-bash install.sh
+curl -fsSL https://raw.githubusercontent.com/paramientos/proxypanther/main/install.sh | bash
 ```
 
 That's it. The script will:
+- Install Docker automatically if not present (Ubuntu/Debian)
+- Pull pre-built images from GitHub Container Registry — no local build needed
 - Generate a secure `APP_KEY` and `DB_PASSWORD` automatically
-- Build Caddy with the GeoIP module via `xcaddy` (takes ~3-5 min on first run)
 - Download the DB-IP GeoLite2 country database
 - Run all database migrations
-- Start all services
+- Start all services under `/opt/proxypanther`
 
 **Ports after install:**
 
@@ -120,17 +119,46 @@ That's it. The script will:
 
 ```bash
 # View logs
-docker compose logs -f app
+docker compose -f /opt/proxypanther/docker-compose.yml logs -f app
 
 # Stop everything
-docker compose down
+docker compose -f /opt/proxypanther/docker-compose.yml down
 
-# Rebuild after code changes
-docker compose build && docker compose up -d
+# Update to latest version
+cd /opt/proxypanther && docker compose pull && docker compose up -d
 
 # Run artisan commands
-docker compose exec app php artisan <command>
+docker compose -f /opt/proxypanther/docker-compose.yml exec app php artisan <command>
 ```
+
+---
+
+### Option 1b — Single `docker run` (Quick Test)
+
+No Compose needed. Spins up just the app against an external or existing database.
+
+```bash
+docker run -d \
+  --name proxypanther \
+  -p 3434:8000 \
+  -e APP_KEY="base64:$(openssl rand -base64 32)" \
+  -e APP_ENV=production \
+  -e APP_DEBUG=false \
+  -e DB_CONNECTION=pgsql \
+  -e DB_HOST=host.docker.internal \
+  -e DB_PORT=5656 \
+  -e DB_DATABASE=proxypanther \
+  -e DB_USERNAME=proxypanther \
+  -e DB_PASSWORD=your_db_password \
+  -e QUEUE_CONNECTION=sync \
+  -e CACHE_STORE=file \
+  -e SESSION_DRIVER=file \
+  -e CADDY_ADMIN_API=http://host.docker.internal:2019 \
+  -e CADDYFILE_PATH=/etc/caddy/Caddyfile \
+  ghcr.io/paramientos/proxypanther-app:latest
+```
+
+> This mode uses `QUEUE_CONNECTION=sync` and file-based cache/session — suitable for evaluation only. For production use Option 1 (Compose) which includes Redis, Horizon, Reverb, and Caddy.
 
 ---
 
