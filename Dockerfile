@@ -1,4 +1,4 @@
-FROM php:8.3-cli-bookworm AS base
+FROM php:8.4-cli-bookworm AS base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
