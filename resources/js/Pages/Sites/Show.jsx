@@ -23,6 +23,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
+import ConfirmModal from '@/Components/ConfirmModal';
 
 const CARD_BG = '#111113';
 const BORDER = 'rgba(255,255,255,0.07)';
@@ -302,6 +303,25 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
     const [wafModalOpen, { open: openWafModal, close: closeWafModal }] = useDisclosure(false);
     const [pageRuleModalOpen, { open: openPageRuleModal, close: closePageRuleModal }] = useDisclosure(false);
     const [newWafRule, setNewWafRule] = useState({ type: 'path', pattern: '', action: 'block', header_name: '' });
+    const [confirmState, setConfirmState] = useState({ opened: false, type: null, target: null });
+
+    const openConfirm = (type, target) => setConfirmState({ opened: true, type, target });
+    const closeConfirm = () => setConfirmState({ opened: false, type: null, target: null });
+
+    const handleConfirm = () => {
+        const { type, target } = confirmState;
+        if (type === 'delete_rule') {
+            router.delete(route('sites.page-rules.destroy', { site: site.id, rule: target.id }), {
+                preserveScroll: true,
+                onSuccess: closeConfirm,
+            });
+        } else if (type === 'rollback') {
+            router.post(route('sites.audits.rollback', { site: site.id, audit: target.id }), {}, {
+                preserveScroll: true,
+                onSuccess: closeConfirm,
+            });
+        }
+    };
 
     const { data, setData, post: postForm, processing } = useForm({
         name: site.name || '',

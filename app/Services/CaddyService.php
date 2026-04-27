@@ -6,7 +6,6 @@ use App\Models\BannedIp;
 use App\Models\ProxySite;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Process;
 
 class CaddyService
 {
@@ -25,6 +24,11 @@ class CaddyService
             ->get();
         $bannedIps = BannedIp::all();
         $content = $this->generateCaddyfile($sites, $bannedIps);
+
+        $dir = dirname($this->caddyfilePath);
+        if (! File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0755, true, true);
+        }
 
         File::put($this->caddyfilePath, $content);
 
@@ -475,20 +479,14 @@ class CaddyService
                 return true;
             }
 
-            \Log::error('Caddy reload via API failed', [
+            \Log::warning('Caddy reload via API failed', [
                 'status' => $response->status(),
                 'body'   => $response->body(),
             ]);
         } catch (\Exception $e) {
-            \Log::error('Caddy reload exception', ['message' => $e->getMessage()]);
+            \Log::warning('Caddy reload skipped — Caddy not reachable', ['message' => $e->getMessage()]);
         }
 
-        $result = Process::run("caddy reload --config {$this->caddyfilePath} 2>&1");
-
-        if (! $result->successful()) {
-            \Log::error('Caddy reload via CLI failed', ['output' => $result->output()]);
-        }
-
-        return $result->successful();
+        return false;
     }
 }

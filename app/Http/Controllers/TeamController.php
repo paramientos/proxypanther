@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class TeamController extends Controller
@@ -43,19 +45,35 @@ class TeamController extends Controller
         $this->authorizeTeamAdmin($team);
 
         $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'role'  => 'required|in:admin,member,viewer',
         ]);
 
-        $invitee = User::where('email', $validated['email'])->firstOrFail();
+        $invitee = User::where('email', $validated['email'])->first();
+
+        $newPassword = null;
+
+        if (! $invitee) {
+            $newPassword = \Str::password(16, symbols: false);
+            $invitee = User::create([
+                'name'              => explode('@', $validated['email'])[0],
+                'email'             => $validated['email'],
+                'password'          => \Hash::make($newPassword),
+                'email_verified_at' => now(),
+            ]);
+        }
 
         if ($team->users()->where('user_id', $invitee->id)->exists()) {
-            return redirect()->back()->withErrors(['email' => 'User is already a member.']);
+            return redirect()->back()->withErrors(['email' => 'This user is already a member of the team.']);
         }
 
         $team->users()->attach($invitee->id, ['role' => $validated['role']]);
 
-        return redirect()->back()->with('success', 'User invited.');
+        $message = $newPassword
+            ? "User created and added. Temporary password: {$newPassword}"
+            : 'User added to team successfully.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function removeMember(Team $team, User $user)

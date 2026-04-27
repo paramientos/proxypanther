@@ -16,6 +16,7 @@ import {
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
+import ConfirmModal from '@/Components/ConfirmModal';
 
 const CARD_BG = '#111113';
 const BORDER = 'rgba(255,255,255,0.07)';
@@ -64,6 +65,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
     const [sites, setSites] = React.useState(initialSites);
     const [liveStats, setLiveStats] = React.useState({});
     const [opened, { open, close }] = useDisclosure(false);
+    const [deleteSite, setDeleteSite] = React.useState(null);
 
     React.useEffect(() => {
         if (!window.Echo) return;
@@ -530,11 +532,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                                                     <Menu.Item
                                                         leftSection={<IconTrash size={13} />}
                                                         color="red"
-                                                        onClick={() => {
-                                                            if (confirm('Are you sure you want to delete this site?')) {
-                                                                router.delete(route('sites.destroy', site.id));
-                                                            }
-                                                        }}
+                                                        onClick={() => setDeleteSite(site)}
                                                     >
                                                         Delete
                                                     </Menu.Item>
@@ -643,5 +641,14 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
                 </form>
             </Modal>
         </EnterpriseLayout>
+
+        <ConfirmModal
+            opened={!!deleteSite}
+            onClose={() => setDeleteSite(null)}
+            onConfirm={() => router.delete(route('sites.destroy', deleteSite.id), { onSuccess: () => setDeleteSite(null) })}
+            title={`Delete "${deleteSite?.name}"?`}
+            description="This will permanently remove the site and all its configuration from ProxyPanther."
+            confirmWord={deleteSite?.name}
+        />
     );
 }

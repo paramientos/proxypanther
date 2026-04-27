@@ -6,6 +6,8 @@ use App\Http\Controllers\BannedIpController;
 use App\Http\Controllers\LogExplorerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProxySiteController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SslController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UptimeController;
@@ -60,6 +62,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::get('/search', SearchController::class)->name('search');
+
+    // Settings
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp');
+    Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+    Route::post('/settings/app', [SettingsController::class, 'updateApp'])->name('settings.app');
+    Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
 });
 
 Route::middleware('auth')->group(function () {

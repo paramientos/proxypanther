@@ -100,10 +100,22 @@ curl -fsSL https://raw.githubusercontent.com/paramientos/proxypanther/main/insta
 That's it. The script will:
 - Install Docker automatically if not present (Ubuntu/Debian)
 - Pull pre-built images from GitHub Container Registry — no local build needed
-- Generate a secure `APP_KEY` and `DB_PASSWORD` automatically
+- Generate a secure `APP_KEY`, `DB_PASSWORD`, and `ADMIN_PASSWORD` automatically
 - Download the DB-IP GeoLite2 country database
 - Run all database migrations
 - Start all services under `/opt/proxypanther`
+
+**After install, the script will print your credentials:**
+
+```
+  Dashboard:   http://<your-ip>:3434
+  DB Password: <generated>
+
+  Default Login Credentials:
+  Email:    admin@proxypanther.com
+  Password: <randomly generated — shown once>
+  ⚠  Save this password — it won't be shown again!
+```
 
 **Ports after install:**
 

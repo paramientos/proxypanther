@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     AppShell, Group, Text, Box, NavLink, Avatar,
     Menu, ActionIcon, Indicator, Divider, Stack,
@@ -12,6 +12,7 @@ import {
     IconChartBar, IconFileText, IconBolt, IconCircleCheck,
 } from '@tabler/icons-react';
 import { Link as InertiaLink, router } from '@inertiajs/react';
+import GlobalSearch from '@/Components/GlobalSearch';
 
 const NAV_ITEMS = [
     { name: 'Dashboard', icon: IconLayoutDashboard, route: 'dashboard' },
@@ -82,212 +83,231 @@ function NavItem({ item }) {
 
 export default function EnterpriseLayout({ children, user }) {
     const [opened, { toggle }] = useDisclosure();
+    const [searchOpened, { open: openSearch, close: closeSearch }] = useDisclosure(false);
+
+    useEffect(() => {
+        const handler = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                openSearch();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
 
     return (
-        <AppShell
-            navbar={{ width: 240, breakpoint: 'md', collapsed: { mobile: !opened } }}
-            header={{ height: 60 }}
-            styles={{
-                root: { backgroundColor: CONTENT_BG },
-                navbar: {
-                    backgroundColor: SIDEBAR_BG,
-                    borderRight: `1px solid ${BORDER}`,
-                },
-                header: {
-                    backgroundColor: TOPBAR_BG,
-                    borderBottom: `1px solid ${BORDER}`,
-                },
-                main: {
-                    backgroundColor: CONTENT_BG,
-                    minHeight: '100vh',
-                },
-            }}
-        >
-            <AppShell.Header>
-                <Flex h="100%" px={20} align="center" justify="space-between">
-                    <Group gap={12}>
-                        <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            hiddenFrom="md"
-                            onClick={toggle}
-                            size="md"
-                        >
-                            <IconMenu2 size={18} />
-                        </ActionIcon>
-
-                        <Box
-                            visibleFrom="md"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                backgroundColor: '#18181b',
-                                border: `1px solid ${BORDER}`,
-                                padding: '6px 14px',
-                                borderRadius: 8,
-                                cursor: 'text',
-                                minWidth: 280,
-                            }}
-                        >
-                            <IconSearch size={14} color="#52525b" />
-                            <Text size="sm" c="dimmed">Search sites, logs, IPs...</Text>
-                            <Box
-                                ml="auto"
-                                style={{
-                                    padding: '1px 6px',
-                                    backgroundColor: '#27272a',
-                                    borderRadius: 4,
-                                    fontSize: 10,
-                                    color: '#52525b',
-                                }}
+        <>
+            <AppShell
+                navbar={{ width: 240, breakpoint: 'md', collapsed: { mobile: !opened } }}
+                header={{ height: 60 }}
+                styles={{
+                    root: { backgroundColor: CONTENT_BG },
+                    navbar: {
+                        backgroundColor: SIDEBAR_BG,
+                        borderRight: `1px solid ${BORDER}`,
+                    },
+                    header: {
+                        backgroundColor: TOPBAR_BG,
+                        borderBottom: `1px solid ${BORDER}`,
+                    },
+                    main: {
+                        backgroundColor: CONTENT_BG,
+                        minHeight: '100vh',
+                    },
+                }}
+            >
+                <AppShell.Header>
+                    <Flex h="100%" px={20} align="center" justify="space-between">
+                        <Group gap={12}>
+                            <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                hiddenFrom="md"
+                                onClick={toggle}
+                                size="md"
                             >
-                                ⌘K
-                            </Box>
-                        </Box>
-                    </Group>
-
-                    <Group gap={8}>
-                        <Indicator color="orange" size={7} offset={4}>
-                            <ActionIcon variant="subtle" color="gray" size="md">
-                                <IconBell size={17} />
+                                <IconMenu2 size={18} />
                             </ActionIcon>
-                        </Indicator>
 
-                        <Divider orientation="vertical" color={BORDER} />
-
-                        <Menu shadow="md" width={180} position="bottom-end">
-                            <Menu.Target>
-                                <UnstyledButton>
-                                    <Group gap={8} style={{ cursor: 'pointer' }}>
-                                        <Avatar
-                                            size={30}
-                                            radius="md"
-                                            color="orange"
-                                            style={{ backgroundColor: ACCENT }}
-                                        >
-                                            {user?.name?.charAt(0)?.toUpperCase()}
-                                        </Avatar>
-                                        <Box visibleFrom="md">
-                                            <Text size="sm" fw={500} c="white" lh={1.2}>
-                                                {user?.name}
-                                            </Text>
-                                            <Text size="xs" c="dimmed" lh={1.2}>Administrator</Text>
-                                        </Box>
-                                        <IconChevronDown size={13} color="#52525b" />
-                                    </Group>
-                                </UnstyledButton>
-                            </Menu.Target>
-                            <Menu.Dropdown
+                            <Box
+                                visibleFrom="md"
+                                onClick={openSearch}
                                 style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
                                     backgroundColor: '#18181b',
                                     border: `1px solid ${BORDER}`,
+                                    padding: '6px 14px',
+                                    borderRadius: 8,
+                                    cursor: 'pointer',
+                                    minWidth: 280,
                                 }}
                             >
-                                <Menu.Item
-                                    leftSection={<IconSettings size={14} />}
-                                    style={{ color: '#a1a1aa' }}
+                                <IconSearch size={14} color="#52525b" />
+                                <Text size="sm" c="dimmed">Search sites, logs, IPs...</Text>
+                                <Box
+                                    ml="auto"
+                                    style={{
+                                        padding: '1px 6px',
+                                        backgroundColor: '#27272a',
+                                        borderRadius: 4,
+                                        fontSize: 10,
+                                        color: '#52525b',
+                                    }}
                                 >
-                                    Settings
-                                </Menu.Item>
-                                <Menu.Item
-                                    leftSection={<IconUsers size={14} />}
-                                    style={{ color: '#a1a1aa' }}
-                                    component={InertiaLink}
-                                    href={route('teams.index')}
-                                >
-                                    Teams
-                                </Menu.Item>
-                                <Menu.Divider style={{ borderColor: BORDER }} />
-                                <Menu.Item
-                                    leftSection={<IconLogout size={14} />}
-                                    color="red"
-                                    onClick={() => router.post(route('logout'))}
-                                >
-                                    Logout
-                                </Menu.Item>
-                            </Menu.Dropdown>
-                        </Menu>
-                    </Group>
-                </Flex>
-            </AppShell.Header>
+                                    ⌘K
+                                </Box>
+                            </Box>
+                        </Group>
 
-            <AppShell.Navbar p={0}>
-                <Box p={16} style={{ borderBottom: `1px solid ${BORDER}` }}>
-                    <Group gap={10}>
-                        <Box
-                            style={{
-                                width: 32, height: 32,
-                                backgroundColor: ACCENT,
-                                borderRadius: 8,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: `0 0 16px rgba(243,128,32,0.3)`,
-                            }}
-                        >
-                            <IconBolt size={18} color="white" />
-                        </Box>
-                        <Box>
-                            <Text size="sm" fw={700} c="white" lh={1.2}>ProxyPanther</Text>
-                            <Text size="10px" c="dimmed" style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                                Enterprise
-                            </Text>
-                        </Box>
-                    </Group>
-                </Box>
-
-                <Box p={8} style={{ flex: 1, overflowY: 'auto' }}>
-                    <Text
-                        size="10px"
-                        c="dimmed"
-                        fw={600}
-                        style={{ letterSpacing: '0.1em', textTransform: 'uppercase', padding: '12px 12px 6px' }}
-                    >
-                        Navigation
-                    </Text>
-                    <Stack gap={2}>
-                        {NAV_ITEMS.map(item => (
-                            <NavItem key={item.name} item={item} />
-                        ))}
-                    </Stack>
-                </Box>
-
-                <Box p={12} style={{ borderTop: `1px solid ${BORDER}` }}>
-                    <Box
-                        style={{
-                            padding: '10px 12px',
-                            borderRadius: 8,
-                            backgroundColor: '#18181b',
-                            border: `1px solid ${BORDER}`,
-                        }}
-                    >
                         <Group gap={8}>
+                            <Indicator color="orange" size={7} offset={4}>
+                                <ActionIcon variant="subtle" color="gray" size="md">
+                                    <IconBell size={17} />
+                                </ActionIcon>
+                            </Indicator>
+
+                            <Divider orientation="vertical" color={BORDER} />
+
+                            <Menu shadow="md" width={180} position="bottom-end">
+                                <Menu.Target>
+                                    <UnstyledButton>
+                                        <Group gap={8} style={{ cursor: 'pointer' }}>
+                                            <Avatar
+                                                size={30}
+                                                radius="md"
+                                                color="orange"
+                                                style={{ backgroundColor: ACCENT }}
+                                            >
+                                                {user?.name?.charAt(0)?.toUpperCase()}
+                                            </Avatar>
+                                            <Box visibleFrom="md">
+                                                <Text size="sm" fw={500} c="white" lh={1.2}>
+                                                    {user?.name}
+                                                </Text>
+                                                <Text size="xs" c="dimmed" lh={1.2}>Administrator</Text>
+                                            </Box>
+                                            <IconChevronDown size={13} color="#52525b" />
+                                        </Group>
+                                    </UnstyledButton>
+                                </Menu.Target>
+                                <Menu.Dropdown
+                                    style={{
+                                        backgroundColor: '#18181b',
+                                        border: `1px solid ${BORDER}`,
+                                    }}
+                                >
+                                    <Menu.Item
+                                        leftSection={<IconSettings size={14} />}
+                                        style={{ color: '#a1a1aa' }}
+                                        component={InertiaLink}
+                                        href={route('settings.index')}
+                                    >
+                                        Settings
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        leftSection={<IconUsers size={14} />}
+                                        style={{ color: '#a1a1aa' }}
+                                        component={InertiaLink}
+                                        href={route('teams.index')}
+                                    >
+                                        Teams
+                                    </Menu.Item>
+                                    <Menu.Divider style={{ borderColor: BORDER }} />
+                                    <Menu.Item
+                                        leftSection={<IconLogout size={14} />}
+                                        color="red"
+                                        onClick={() => router.post(route('logout'))}
+                                    >
+                                        Logout
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
+                        </Group>
+                    </Flex>
+                </AppShell.Header>
+
+                <AppShell.Navbar p={0}>
+                    <Box p={16} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                        <Group gap={10}>
                             <Box
                                 style={{
-                                    width: 8, height: 8,
-                                    borderRadius: '50%',
-                                    backgroundColor: '#22c55e',
-                                    boxShadow: '0 0 6px rgba(34,197,94,0.8)',
-                                    flexShrink: 0,
+                                    width: 32, height: 32,
+                                    backgroundColor: ACCENT,
+                                    borderRadius: 8,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: `0 0 16px rgba(243,128,32,0.3)`,
                                 }}
-                            />
+                            >
+                                <IconBolt size={18} color="white" />
+                            </Box>
                             <Box>
-                                <Text size="10px" c="dimmed" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                                    System Status
+                                <Text size="sm" fw={700} c="white" lh={1.2}>ProxyPanther</Text>
+                                <Text size="10px" c="dimmed" style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                                    Enterprise
                                 </Text>
-                                <Text size="xs" c="white" fw={500}>All Systems Operational</Text>
                             </Box>
                         </Group>
                     </Box>
-                </Box>
-            </AppShell.Navbar>
 
-            <AppShell.Main>
-                <Box p={32}>
-                    {children}
-                </Box>
-            </AppShell.Main>
-        </AppShell>
+                    <Box p={8} style={{ flex: 1, overflowY: 'auto' }}>
+                        <Text
+                            size="10px"
+                            c="dimmed"
+                            fw={600}
+                            style={{ letterSpacing: '0.1em', textTransform: 'uppercase', padding: '12px 12px 6px' }}
+                        >
+                            Navigation
+                        </Text>
+                        <Stack gap={2}>
+                            {NAV_ITEMS.map(item => (
+                                <NavItem key={item.name} item={item} />
+                            ))}
+                        </Stack>
+                    </Box>
+
+                    <Box p={12} style={{ borderTop: `1px solid ${BORDER}` }}>
+                        <Box
+                            style={{
+                                padding: '10px 12px',
+                                borderRadius: 8,
+                                backgroundColor: '#18181b',
+                                border: `1px solid ${BORDER}`,
+                            }}
+                        >
+                            <Group gap={8}>
+                                <Box
+                                    style={{
+                                        width: 8, height: 8,
+                                        borderRadius: '50%',
+                                        backgroundColor: '#22c55e',
+                                        boxShadow: '0 0 6px rgba(34,197,94,0.8)',
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <Box>
+                                    <Text size="10px" c="dimmed" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                        System Status
+                                    </Text>
+                                    <Text size="xs" c="white" fw={500}>All Systems Operational</Text>
+                                </Box>
+                            </Group>
+                        </Box>
+                    </Box>
+                </AppShell.Navbar>
+
+                <AppShell.Main>
+                    <Box p={32}>
+                        {children}
+                    </Box>
+                </AppShell.Main>
+            </AppShell>
+
+            <GlobalSearch opened={searchOpened} onClose={closeSearch} />
+        </>
     );
 }
