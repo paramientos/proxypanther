@@ -18,8 +18,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
-            ProxySiteSeeder::class,
-            BannedIpSeeder::class,
+            //ProxySiteSeeder::class,
+            //BannedIpSeeder::class,
         ]);
     }
 }

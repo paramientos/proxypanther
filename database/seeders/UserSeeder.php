@@ -20,12 +20,5 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password'),
             'email_verified_at' => now(),
         ]);
-
-        User::create([
-            'name' => 'Aras Panther',
-            'email' => 'aras@proxypanther.com',
-            'password' => Hash::make('password'),
-            'email_verified_at' => now(),
-        ]);
     }
 }
