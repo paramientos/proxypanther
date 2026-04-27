@@ -2,6 +2,9 @@ FROM golang:1.23-alpine AS xcaddy-builder
 
 RUN apk add --no-cache git curl
 
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:$PATH
+
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
 RUN xcaddy build \
