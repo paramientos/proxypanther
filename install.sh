@@ -129,11 +129,16 @@ echo -e "${YELLOW}[3/6] Generating secrets...${NC}"
 DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
 APP_KEY="base64:$(openssl rand -base64 32)"
 ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -d '/+=' | head -c 24)
+REVERB_APP_KEY=$(openssl rand -hex 16)
+REVERB_APP_SECRET=$(openssl rand -hex 32)
 
 if [[ "$OS" == "Darwin" ]]; then
     sed -i '' "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
     sed -i '' "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
     sed -i '' "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${DB_PASSWORD}|" .env.docker
+    sed -i '' "s|^REVERB_APP_KEY=.*|REVERB_APP_KEY=${REVERB_APP_KEY}|" .env.docker
+    sed -i '' "s|^REVERB_APP_SECRET=.*|REVERB_APP_SECRET=${REVERB_APP_SECRET}|" .env.docker
+    sed -i '' "s|^VITE_REVERB_APP_KEY=.*|VITE_REVERB_APP_KEY=${REVERB_APP_KEY}|" .env.docker
     if grep -q "^ADMIN_PASSWORD=" .env.docker; then
         sed -i '' "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.docker
     else
@@ -143,6 +148,9 @@ else
     sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
     sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${DB_PASSWORD}|" .env.docker
+    sed -i "s|^REVERB_APP_KEY=.*|REVERB_APP_KEY=${REVERB_APP_KEY}|" .env.docker
+    sed -i "s|^REVERB_APP_SECRET=.*|REVERB_APP_SECRET=${REVERB_APP_SECRET}|" .env.docker
+    sed -i "s|^VITE_REVERB_APP_KEY=.*|VITE_REVERB_APP_KEY=${REVERB_APP_KEY}|" .env.docker
     if grep -q "^ADMIN_PASSWORD=" .env.docker; then
         sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.docker
     else
