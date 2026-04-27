@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS xcaddy-builder
+FROM golang:1.26-alpine AS xcaddy-builder
 
 RUN apk add --no-cache git curl
 
