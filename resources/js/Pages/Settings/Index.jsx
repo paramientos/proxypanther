@@ -3,12 +3,13 @@ import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import {
     Box, Title, Text, Button, Group, Stack, TextInput,
     PasswordInput, Select, Tabs, Paper, Flex, Divider,
-    Alert,
+    Alert, Textarea, Badge,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconMail, IconSettings, IconUser, IconKey,
     IconDeviceFloppy, IconSend, IconCheck, IconAlertCircle,
+    IconShieldLock,
 } from '@tabler/icons-react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 
@@ -34,7 +35,7 @@ function Section({ title, description, children }) {
     );
 }
 
-export default function Index({ auth, smtp, app, profile }) {
+export default function Index({ auth, smtp, app, profile, sshWhitelist }) {
     const { props } = usePage();
     const flash = props.flash || {};
 
@@ -78,6 +79,8 @@ export default function Index({ auth, smtp, app, profile }) {
     const testForm = useForm({ email: auth.user.email });
     const [testResult, setTestResult] = useState(null);
 
+    const sshForm = useForm({ ssh_whitelist: sshWhitelist || '' });
+
     const timezones = Intl.supportedValuesOf
         ? Intl.supportedValuesOf('timeZone').map(tz => ({ value: tz, label: tz }))
         : [{ value: 'UTC', label: 'UTC' }];
@@ -114,6 +117,10 @@ export default function Index({ auth, smtp, app, profile }) {
                     <Tabs.Tab value="password" leftSection={<IconKey size={14} />}>Password</Tabs.Tab>
                     <Tabs.Tab value="smtp" leftSection={<IconMail size={14} />}>Mail / SMTP</Tabs.Tab>
                     <Tabs.Tab value="app" leftSection={<IconSettings size={14} />}>Application</Tabs.Tab>
+                    <Tabs.Tab value="ssh" leftSection={<IconShieldLock size={14} />}>
+                        SSH Security
+                        <Badge size="xs" color="red" variant="filled" ml={6}>!</Badge>
+                    </Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="profile">
@@ -391,6 +398,62 @@ export default function Index({ auth, smtp, app, profile }) {
                             </Stack>
                         </form>
                     </Section>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="ssh">
+                    <Stack gap={16}>
+                        <Alert icon={<IconAlertCircle size={15} />} color="red" variant="light">
+                            <Text size="sm" fw={600} mb={4}>SSH is currently open to all IP addresses.</Text>
+                            <Text size="xs">
+                                Restricting SSH access to known IPs is strongly recommended.
+                                Leaving port 22 publicly accessible exposes your server to brute-force attacks.
+                                Add your IP(s) below — once saved, all other IPs will be blocked from SSH.
+                            </Text>
+                        </Alert>
+
+                        <Section
+                            title="SSH IP Whitelist"
+                            description="Only these IPs will be allowed to connect via SSH (port 22). One IP or CIDR per line."
+                        >
+                            <form onSubmit={e => {
+                                e.preventDefault();
+                                sshForm.post(route('settings.ssh-whitelist'), {
+                                    preserveScroll: true,
+                                    preserveState: true,
+                                    onSuccess: () => notifications.show({ title: 'Saved', message: 'SSH whitelist applied to firewall.', color: 'green' }),
+                                });
+                            }}>
+                                <Stack gap={16} maw={480}>
+                                    <Textarea
+                                        label="Allowed IPs / CIDRs"
+                                        placeholder={"203.0.113.10\n198.51.100.0/24"}
+                                        minRows={5}
+                                        value={sshForm.data.ssh_whitelist}
+                                        onChange={e => sshForm.setData('ssh_whitelist', e.target.value)}
+                                        error={sshForm.errors.ssh_whitelist}
+                                        styles={{
+                                            label: { color: '#71717a', fontSize: 12 },
+                                            input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7', fontFamily: 'monospace' },
+                                        }}
+                                    />
+                                    <Text size="xs" c="dimmed">
+                                        Supports IPv4, IPv6, and CIDR notation. Applies to ufw, firewalld, and iptables.
+                                        Make sure your current IP is included before saving.
+                                    </Text>
+                                    <Group>
+                                        <Button
+                                            type="submit"
+                                            loading={sshForm.processing}
+                                            leftSection={<IconDeviceFloppy size={15} />}
+                                            style={{ backgroundColor: ACCENT }}
+                                        >
+                                            Apply Whitelist
+                                        </Button>
+                                    </Group>
+                                </Stack>
+                            </form>
+                        </Section>
+                    </Stack>
                 </Tabs.Panel>
             </Tabs>
         </EnterpriseLayout>

@@ -90,6 +90,7 @@ export default function EnterpriseDashboard({ auth, sites: initialSites, analyti
     const { data, setData, post, reset } = useForm({
         name: '', domain: '', backend_url: '',
         backend_type: 'proxy', ssl_enabled: true, waf_enabled: true,
+        rate_limit_action: 'block', performance_level: 'balanced',
     });
 
     const totalBlocked = sites.reduce((a, s) => a + (s.blocked_requests || 0), 0);

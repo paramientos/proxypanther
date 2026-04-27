@@ -84,6 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/app', [SettingsController::class, 'updateApp'])->name('settings.app');
     Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->middleware('throttle:1,1')->name('settings.profile');
     Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->middleware('throttle:1,1')->name('settings.password');
+    Route::post('/settings/ssh-whitelist', [SettingsController::class, 'updateSshWhitelist'])->name('settings.ssh-whitelist');
 });
 
 Route::middleware('auth')->group(function () {

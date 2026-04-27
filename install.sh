@@ -91,19 +91,45 @@ open_ports() {
         return
     fi
 
-    local ports=("80" "443" "3434" "5656" "2019")
+    local app_ports=("80" "443" "3434" "5656" "2019")
+
+    echo ""
+    echo -e "${RED}  ╔══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}  ║              ⚠  SSH SECURITY WARNING                    ║${NC}"
+    echo -e "${RED}  ╠══════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${RED}  ║  Port 22 (SSH) is currently open to ALL IP addresses.   ║${NC}"
+    echo -e "${RED}  ║  This is a serious security risk on a public server.     ║${NC}"
+    echo -e "${RED}  ║                                                          ║${NC}"
+    echo -e "${RED}  ║  It is strongly recommended to restrict SSH access       ║${NC}"
+    echo -e "${RED}  ║  to your own IP only. You can do this from the           ║${NC}"
+    echo -e "${RED}  ║  ProxyPanther dashboard:                                 ║${NC}"
+    echo -e "${RED}  ║                                                          ║${NC}"
+    echo -e "${RED}  ║  Settings → Security → SSH IP Whitelist                  ║${NC}"
+    echo -e "${RED}  ╚══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
     if command -v ufw &> /dev/null; then
         echo -e "${YELLOW}Configuring ufw firewall...${NC}"
-        for port in "${ports[@]}"; do
+        ufw allow 22/tcp &>/dev/null && echo -e "  ${GREEN}✓${NC} Port 22 (SSH) opened — public access, restrict via dashboard"
+        for port in "${app_ports[@]}"; do
             ufw allow "$port"/tcp &>/dev/null && echo -e "  ${GREEN}✓${NC} Port $port opened"
         done
         ufw --force enable &>/dev/null || true
     elif command -v firewall-cmd &> /dev/null; then
         echo -e "${YELLOW}Configuring firewalld...${NC}"
-        for port in "${ports[@]}"; do
+        firewall-cmd --permanent --add-service=ssh &>/dev/null && echo -e "  ${GREEN}✓${NC} Port 22 (SSH) opened — public access, restrict via dashboard"
+        for port in "${app_ports[@]}"; do
             firewall-cmd --permanent --add-port="$port"/tcp &>/dev/null && echo -e "  ${GREEN}✓${NC} Port $port opened"
         done
         firewall-cmd --reload &>/dev/null
+    elif command -v iptables &> /dev/null; then
+        echo -e "${YELLOW}Configuring iptables...${NC}"
+        iptables -A INPUT -p tcp --dport 22 -j ACCEPT && echo -e "  ${GREEN}✓${NC} Port 22 (SSH) opened — public access, restrict via dashboard"
+        for port in "${app_ports[@]}"; do
+            iptables -A INPUT -p tcp --dport "$port" -j ACCEPT && echo -e "  ${GREEN}✓${NC} Port $port opened"
+        done
+        iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+        iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
     else
         echo -e "${YELLOW}No firewall detected — skipping port configuration.${NC}"
     fi

@@ -33,6 +33,7 @@ class SettingsController extends Controller
                 'name'  => $user->name,
                 'email' => $user->email,
             ],
+            'sshWhitelist' => AppSetting::get('ssh_whitelist', ''),
         ]);
     }
 
@@ -149,6 +150,55 @@ class SettingsController extends Controller
             return redirect()->back()->with('success', 'Test email sent successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['smtp' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public function updateSshWhitelist(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'ssh_whitelist' => 'nullable|string|max:2000',
+        ]);
+
+        $raw = $request->input('ssh_whitelist', '');
+
+        $ips = collect(preg_split('/[\s,]+/', $raw, -1, PREG_SPLIT_NO_EMPTY))
+            ->filter(fn ($ip) => filter_var(trim($ip), FILTER_VALIDATE_IP)
+                || preg_match('/^\d{1,3}(\.\d{1,3}){0,3}\/\d{1,2}$/', trim($ip)))
+            ->values()
+            ->all();
+
+        AppSetting::set('ssh_whitelist', implode("\n", $ips));
+
+        $this->applySshFirewallRules($ips);
+
+        return redirect()->back()->with('success', 'SSH whitelist updated.');
+    }
+
+    private function applySshFirewallRules(array $ips): void
+    {
+        if (PHP_OS_FAMILY !== 'Linux' || empty($ips)) {
+            return;
+        }
+
+        if (shell_exec('command -v ufw 2>/dev/null')) {
+            shell_exec('ufw delete allow 22/tcp 2>/dev/null');
+            foreach ($ips as $ip) {
+                shell_exec("ufw allow from {$ip} to any port 22 proto tcp 2>/dev/null");
+            }
+            shell_exec('ufw --force reload 2>/dev/null');
+        } elseif (shell_exec('command -v firewall-cmd 2>/dev/null')) {
+            shell_exec('firewall-cmd --permanent --remove-service=ssh 2>/dev/null');
+            foreach ($ips as $ip) {
+                shell_exec("firewall-cmd --permanent --add-rich-rule='rule family=ipv4 source address={$ip} service name=ssh accept' 2>/dev/null");
+            }
+            shell_exec('firewall-cmd --reload 2>/dev/null');
+        } elseif (shell_exec('command -v iptables 2>/dev/null')) {
+            shell_exec('iptables -D INPUT -p tcp --dport 22 -j ACCEPT 2>/dev/null');
+            foreach ($ips as $ip) {
+                shell_exec("iptables -I INPUT -p tcp --dport 22 -s {$ip} -j ACCEPT 2>/dev/null");
+            }
+            shell_exec('iptables -A INPUT -p tcp --dport 22 -j DROP 2>/dev/null');
+            shell_exec('iptables-save > /etc/iptables/rules.v4 2>/dev/null');
         }
     }
 }
