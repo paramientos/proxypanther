@@ -7,7 +7,6 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-REPO="ghcr.io/paramientos"
 TAG="${PROXYPANTHER_TAG:-latest}"
 INSTALL_DIR="${PROXYPANTHER_DIR:-/opt/proxypanther}"
 COMPOSE_URL="https://raw.githubusercontent.com/paramientos/proxypanther/main/docker-compose.yml"
@@ -82,10 +81,10 @@ sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
 
 echo -e "${YELLOW}[3/5] Pulling images from registry...${NC}"
-REGISTRY="${REPO}" TAG="${TAG}" docker compose pull
+TAG="${TAG}" docker compose pull
 
 echo -e "${YELLOW}[4/5] Starting infrastructure services...${NC}"
-REGISTRY="${REPO}" TAG="${TAG}" docker compose up -d postgres redis caddy
+TAG="${TAG}" docker compose up -d postgres redis caddy
 
 echo -e "${YELLOW}[5/5] Waiting for database...${NC}"
 until docker compose exec -T postgres pg_isready -U proxypanther -d proxypanther &>/dev/null; do
@@ -94,7 +93,7 @@ until docker compose exec -T postgres pg_isready -U proxypanther -d proxypanther
 done
 echo ""
 
-REGISTRY="${REPO}" TAG="${TAG}" docker compose up -d
+TAG="${TAG}" docker compose up -d
 
 echo ""
 echo -e "${GREEN}================================================${NC}"
