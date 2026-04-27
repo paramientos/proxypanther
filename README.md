@@ -94,7 +94,7 @@ The fastest path. One command sets everything up including Caddy with GeoIP, Pos
 **Requirements:** Docker 24+ and Docker Compose v2
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/paramientos/proxypanther
 cd proxypanther
 bash install.sh
 ```
@@ -148,7 +148,7 @@ docker compose exec app php artisan <command>
 #### 1. Clone and install dependencies
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/paramientos/proxypanther
 cd proxypanther
 
 composer install
