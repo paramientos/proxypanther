@@ -30,6 +30,8 @@ services:
       - "3434:8000"
     env_file:
       - .env.docker
+    environment:
+      - CONTAINER_ROLE=app
     volumes:
       - app_storage:/var/www/html/storage
       - caddy_config:/etc/caddy
@@ -40,6 +42,12 @@ services:
         condition: service_healthy
       caddy:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     networks:
       - proxypanther
 
@@ -51,15 +59,14 @@ services:
       target: app
     container_name: proxypanther_horizon
     restart: unless-stopped
-    command: ["php", "artisan", "horizon"]
     env_file:
       - .env.docker
+    environment:
+      - CONTAINER_ROLE=horizon
     volumes:
       - app_storage:/var/www/html/storage
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
+      app:
         condition: service_healthy
     networks:
       - proxypanther
@@ -72,16 +79,15 @@ services:
       target: app
     container_name: proxypanther_scheduler
     restart: unless-stopped
-    command: ["php", "artisan", "schedule:work"]
     env_file:
       - .env.docker
+    environment:
+      - CONTAINER_ROLE=scheduler
     volumes:
       - app_storage:/var/www/html/storage
       - caddy_config:/etc/caddy
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
+      app:
         condition: service_healthy
     networks:
       - proxypanther
@@ -94,15 +100,14 @@ services:
       target: app
     container_name: proxypanther_reverb
     restart: unless-stopped
-    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
     env_file:
       - .env.docker
+    environment:
+      - CONTAINER_ROLE=reverb
     volumes:
       - app_storage:/var/www/html/storage
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
+      app:
         condition: service_healthy
     networks:
       - proxypanther
