@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     libzip-dev \
     oniguruma-dev \
     icu-dev \
+    linux-headers \
     nodejs \
     npm \
     && docker-php-ext-install \
