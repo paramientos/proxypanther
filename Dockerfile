@@ -1,17 +1,14 @@
-FROM php:8.3-cli-alpine AS base
+FROM php:8.3-cli-bookworm AS base
 
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     curl \
     git \
     unzip \
     libpq-dev \
     libzip-dev \
-    oniguruma-dev \
-    icu-dev \
-    linux-headers \
-    nodejs \
-    npm \
+    libonig-dev \
+    libicu-dev \
     && docker-php-ext-install \
         pdo \
         pdo_pgsql \
@@ -23,9 +20,15 @@ RUN apk add --no-cache \
         pcntl \
         sockets \
     && pecl install redis \
-    && docker-php-ext-enable redis
+    && docker-php-ext-enable redis \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g yarn \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
