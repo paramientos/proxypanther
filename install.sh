@@ -98,10 +98,17 @@ echo -e "${YELLOW}[3/6] Generating secrets...${NC}"
 
 DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
 APP_KEY="base64:$(openssl rand -base64 32)"
+ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -d '/+=' | head -c 24)
 
 sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env.docker
 sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${DB_PASSWORD}|" .env.docker
+
+if grep -q "^ADMIN_PASSWORD=" .env.docker; then
+    sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.docker
+else
+    echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env.docker
+fi
 
 echo -e "${YELLOW}[4/6] Pulling images from registry...${NC}"
 TAG="${TAG}" docker compose pull
@@ -135,8 +142,8 @@ echo -e "  Install Dir: ${CYAN}${INSTALL_DIR}${NC}"
 echo ""
 echo -e "${YELLOW}  Default Login Credentials:${NC}"
 echo -e "  Email:    ${CYAN}admin@proxypanther.com${NC}"
-echo -e "  Password: ${CYAN}password${NC}"
-echo -e "  ${RED}⚠  Change your password after first login!${NC}"
+echo -e "  Password: ${CYAN}${ADMIN_PASSWORD}${NC}"
+echo -e "  ${RED}⚠  Save this password — it won't be shown again!${NC}"
 echo ""
 echo -e "  Logs:        ${YELLOW}cd ${INSTALL_DIR} && docker compose logs -f app${NC}"
 echo -e "  Stop:        ${YELLOW}cd ${INSTALL_DIR} && docker compose down${NC}"
