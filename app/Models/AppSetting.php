@@ -21,13 +21,16 @@ class AppSetting extends Model
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
         Cache::forget("setting:{$key}");
+        Cache::forget('app_settings_all');
     }
 
     public static function setMany(array $settings): void
     {
         foreach ($settings as $key => $value) {
-            static::set($key, $value);
+            static::updateOrCreate(['key' => $key], ['value' => $value]);
+            Cache::forget("setting:{$key}");
         }
+        Cache::forget('app_settings_all');
     }
 
     public static function getGroup(array $keys): array

@@ -5,6 +5,7 @@ import {
     PasswordInput, Select, Tabs, Paper, Flex, Divider,
     Alert,
 } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import {
     IconMail, IconSettings, IconUser, IconKey,
     IconDeviceFloppy, IconSend, IconCheck, IconAlertCircle,
@@ -37,6 +38,15 @@ export default function Index({ auth, smtp, app, profile }) {
     const { props } = usePage();
     const flash = props.flash || {};
 
+    const getInitialTab = () => {
+        if (typeof window !== 'undefined') {
+            return new URLSearchParams(window.location.search).get('tab') || 'profile';
+        }
+        return 'profile';
+    };
+
+    const [activeTab, setActiveTab] = React.useState(getInitialTab);
+
     const smtpForm = useForm({
         mail_mailer: smtp.mail_mailer || 'smtp',
         mail_host: smtp.mail_host || '',
@@ -66,6 +76,7 @@ export default function Index({ auth, smtp, app, profile }) {
     });
 
     const testForm = useForm({ email: auth.user.email });
+    const [testResult, setTestResult] = useState(null);
 
     const timezones = Intl.supportedValuesOf
         ? Intl.supportedValuesOf('timeZone').map(tz => ({ value: tz, label: tz }))
@@ -88,7 +99,7 @@ export default function Index({ auth, smtp, app, profile }) {
                 </Alert>
             )}
 
-            <Tabs defaultValue="profile" styles={{
+            <Tabs value={activeTab} onChange={setActiveTab} styles={{
                 tab: { color: '#71717a', '&[dataActive]': { color: ACCENT } },
                 list: { borderColor: BORDER },
             }}>
@@ -101,7 +112,7 @@ export default function Index({ auth, smtp, app, profile }) {
 
                 <Tabs.Panel value="profile">
                     <Section title="Profile Information" description="Update your name and email address.">
-                        <form onSubmit={e => { e.preventDefault(); profileForm.post(route('settings.profile')); }}>
+                        <form onSubmit={e => { e.preventDefault(); profileForm.post(route('settings.profile'), { preserveScroll: true, preserveState: true, onSuccess: () => notifications.show({ title: 'Saved', message: 'Profile updated.', color: 'green' }) }); }}>
                             <Stack gap={16} maw={480}>
                                 <TextInput
                                     label="Name"
@@ -137,7 +148,7 @@ export default function Index({ auth, smtp, app, profile }) {
 
                 <Tabs.Panel value="password">
                     <Section title="Change Password" description="Use a strong, unique password.">
-                        <form onSubmit={e => { e.preventDefault(); passwordForm.post(route('settings.password'), { onSuccess: () => passwordForm.reset() }); }}>
+                        <form onSubmit={e => { e.preventDefault(); passwordForm.post(route('settings.password'), { preserveScroll: true, preserveState: true, onSuccess: () => { passwordForm.reset(); notifications.show({ title: 'Saved', message: 'Password updated.', color: 'green' }); } }); }}>
                             <Stack gap={16} maw={480}>
                                 <PasswordInput
                                     label="Current Password"
@@ -181,7 +192,7 @@ export default function Index({ auth, smtp, app, profile }) {
                 <Tabs.Panel value="smtp">
                     <Stack gap={16}>
                         <Section title="Mail Configuration" description="Configure outgoing email settings for notifications and alerts.">
-                            <form onSubmit={e => { e.preventDefault(); smtpForm.post(route('settings.smtp')); }}>
+                            <form onSubmit={e => { e.preventDefault(); smtpForm.post(route('settings.smtp'), { preserveScroll: true, preserveState: true, onSuccess: () => notifications.show({ title: 'Saved', message: 'Mail settings saved.', color: 'green' }) }); }}>
                                 <Stack gap={16} maw={560}>
                                     <Select
                                         label="Mail Driver"
@@ -201,6 +212,7 @@ export default function Index({ auth, smtp, app, profile }) {
                                                 <TextInput
                                                     label="SMTP Host"
                                                     placeholder="smtp.example.com"
+                                                    required
                                                     value={smtpForm.data.mail_host}
                                                     onChange={e => smtpForm.setData('mail_host', e.target.value)}
                                                     error={smtpForm.errors.mail_host}
@@ -209,6 +221,7 @@ export default function Index({ auth, smtp, app, profile }) {
                                                 <TextInput
                                                     label="Port"
                                                     placeholder="587"
+                                                    required
                                                     value={smtpForm.data.mail_port}
                                                     onChange={e => smtpForm.setData('mail_port', e.target.value)}
                                                     error={smtpForm.errors.mail_port}
@@ -217,27 +230,31 @@ export default function Index({ auth, smtp, app, profile }) {
                                             </Group>
                                             <Select
                                                 label="Encryption"
-                                                value={smtpForm.data.mail_encryption}
-                                                onChange={v => smtpForm.setData('mail_encryption', v || '')}
+                                                value={smtpForm.data.mail_encryption || 'none'}
+                                                onChange={v => smtpForm.setData('mail_encryption', v === 'none' ? '' : v)}
                                                 data={[
                                                     { value: 'tls', label: 'TLS (recommended)' },
                                                     { value: 'ssl', label: 'SSL' },
                                                     { value: 'starttls', label: 'STARTTLS' },
-                                                    { value: '', label: 'None' },
+                                                    { value: 'none', label: 'None' },
                                                 ]}
                                                 styles={inputStyles}
                                             />
                                             <TextInput
                                                 label="Username"
                                                 placeholder="your@email.com"
+                                                required
                                                 value={smtpForm.data.mail_username}
                                                 onChange={e => smtpForm.setData('mail_username', e.target.value)}
+                                                error={smtpForm.errors.mail_username}
                                                 styles={inputStyles}
                                             />
                                             <PasswordInput
                                                 label="Password"
+                                                required
                                                 value={smtpForm.data.mail_password}
                                                 onChange={e => smtpForm.setData('mail_password', e.target.value)}
+                                                error={smtpForm.errors.mail_password}
                                                 styles={inputStyles}
                                             />
                                         </>
@@ -247,6 +264,7 @@ export default function Index({ auth, smtp, app, profile }) {
                                         <TextInput
                                             label="From Address"
                                             placeholder="noreply@yourdomain.com"
+                                            required
                                             value={smtpForm.data.mail_from_address}
                                             onChange={e => smtpForm.setData('mail_from_address', e.target.value)}
                                             error={smtpForm.errors.mail_from_address}
@@ -255,8 +273,10 @@ export default function Index({ auth, smtp, app, profile }) {
                                         <TextInput
                                             label="From Name"
                                             placeholder="ProxyPanther"
+                                            required
                                             value={smtpForm.data.mail_from_name}
                                             onChange={e => smtpForm.setData('mail_from_name', e.target.value)}
+                                            error={smtpForm.errors.mail_from_name}
                                             styles={inputStyles}
                                         />
                                     </Group>
@@ -275,28 +295,48 @@ export default function Index({ auth, smtp, app, profile }) {
                         </Section>
 
                         <Section title="Send Test Email" description="Verify your SMTP configuration is working.">
-                            <form onSubmit={e => { e.preventDefault(); testForm.post(route('settings.smtp.test')); }}>
-                                <Group align="flex-end" maw={480}>
-                                    <TextInput
-                                        label="Send test to"
-                                        type="email"
-                                        required
-                                        style={{ flex: 1 }}
-                                        value={testForm.data.email}
-                                        onChange={e => testForm.setData('email', e.target.value)}
-                                        error={testForm.errors.smtp}
-                                        styles={inputStyles}
-                                    />
-                                    <Button
-                                        type="submit"
-                                        loading={testForm.processing}
-                                        leftSection={<IconSend size={15} />}
-                                        variant="outline"
-                                        color="orange"
-                                    >
-                                        Send Test
-                                    </Button>
-                                </Group>
+                            <form onSubmit={e => {
+                                e.preventDefault();
+                                setTestResult(null);
+                                testForm.post(route('settings.smtp.test'), {
+                                    preserveState: true,
+                                    preserveScroll: true,
+                                    onSuccess: () => setTestResult({ ok: true, msg: 'Test email sent successfully.' }),
+                                    onError: (errors) => setTestResult({ ok: false, msg: errors.smtp || 'Failed to send test email.' }),
+                                });
+                            }}>
+                                <Stack gap={12} maw={480}>
+                                    <Group align="flex-end">
+                                        <TextInput
+                                            label="Send test to"
+                                            type="email"
+                                            required
+                                            style={{ flex: 1 }}
+                                            value={testForm.data.email}
+                                            onChange={e => testForm.setData('email', e.target.value)}
+                                            error={testForm.errors.email}
+                                            styles={inputStyles}
+                                        />
+                                        <Button
+                                            type="submit"
+                                            loading={testForm.processing}
+                                            leftSection={<IconSend size={15} />}
+                                            variant="outline"
+                                            color="orange"
+                                        >
+                                            Send Test
+                                        </Button>
+                                    </Group>
+                                    {testResult && (
+                                        <Alert
+                                            icon={testResult.ok ? <IconCheck size={15} /> : <IconAlertCircle size={15} />}
+                                            color={testResult.ok ? 'green' : 'red'}
+                                            variant="light"
+                                        >
+                                            {testResult.msg}
+                                        </Alert>
+                                    )}
+                                </Stack>
                             </form>
                         </Section>
                     </Stack>
@@ -304,7 +344,7 @@ export default function Index({ auth, smtp, app, profile }) {
 
                 <Tabs.Panel value="app">
                     <Section title="Application Settings" description="General application configuration.">
-                        <form onSubmit={e => { e.preventDefault(); appForm.post(route('settings.app')); }}>
+                        <form onSubmit={e => { e.preventDefault(); appForm.post(route('settings.app'), { preserveScroll: true, preserveState: true, onSuccess: () => notifications.show({ title: 'Saved', message: 'Application settings saved.', color: 'green' }) }); }}>
                             <Stack gap={16} maw={480}>
                                 <TextInput
                                     label="Application Name"

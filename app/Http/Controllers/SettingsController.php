@@ -7,7 +7,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,13 +40,13 @@ class SettingsController extends Controller
     {
         $validated = $request->validate([
             'mail_mailer'       => 'required|in:smtp,log,sendmail',
-            'mail_host'         => 'nullable|string|max:255',
-            'mail_port'         => 'nullable|integer|min:1|max:65535',
-            'mail_username'     => 'nullable|string|max:255',
-            'mail_password'     => 'nullable|string|max:255',
-            'mail_encryption'   => 'nullable|in:tls,ssl,starttls,',
-            'mail_from_address' => 'nullable|email|max:255',
-            'mail_from_name'    => 'nullable|string|max:255',
+            'mail_host'         => 'required_if:mail_mailer,smtp|nullable|string|max:255',
+            'mail_port'         => 'required_if:mail_mailer,smtp|nullable|string|max:5',
+            'mail_username'     => 'required_if:mail_mailer,smtp|nullable|string|max:255',
+            'mail_password'     => 'required_if:mail_mailer,smtp|nullable|string|max:255',
+            'mail_encryption'   => 'nullable|string|in:tls,ssl,starttls',
+            'mail_from_address' => 'required|email|max:255',
+            'mail_from_name'    => 'required|string|max:255',
         ]);
 
         AppSetting::setMany($validated);
@@ -100,10 +99,37 @@ class SettingsController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
+        $mailer = AppSetting::get('mail_mailer', 'log');
+
+        if ($mailer !== 'smtp') {
+            return redirect()->back()->withErrors(['smtp' => 'SMTP is not configured as the mail driver. Please save your mail settings first.']);
+        }
+
+        $host = AppSetting::get('mail_host');
+        $port = AppSetting::get('mail_port');
+
+        if (! $host || ! $port) {
+            return redirect()->back()->withErrors(['smtp' => 'SMTP host and port are required. Please save your mail settings first.']);
+        }
+
         try {
-            Mail::raw('This is a test email from ProxyPanther.', function ($msg) use ($request) {
+            config([
+                'mail.default'                    => 'smtp',
+                'mail.mailers.smtp.host'          => $host,
+                'mail.mailers.smtp.port'          => $port,
+                'mail.mailers.smtp.encryption'    => AppSetting::get('mail_encryption') ?: null,
+                'mail.mailers.smtp.username'      => AppSetting::get('mail_username'),
+                'mail.mailers.smtp.password'      => AppSetting::get('mail_password'),
+                'mail.from.address'               => AppSetting::get('mail_from_address'),
+                'mail.from.name'                  => AppSetting::get('mail_from_name', 'ProxyPanther'),
+            ]);
+
+            $mailerInstance = app('mail.manager')->mailer('smtp');
+
+            $mailerInstance->raw('This is a test email from ProxyPanther.', function ($msg) use ($request) {
                 $msg->to($request->email)->subject('ProxyPanther — SMTP Test');
             });
+
             return redirect()->back()->with('success', 'Test email sent successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['smtp' => 'Failed: ' . $e->getMessage()]);

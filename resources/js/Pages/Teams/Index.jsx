@@ -45,9 +45,20 @@ export default function Index({ auth, teams, ownedTeams, errors = {} }) {
     const handleInvite = (e) => {
         e.preventDefault();
         inviteForm.post(route('teams.invite', selectedTeam.id), {
-            onSuccess: () => {
+            preserveScroll: true,
+            onSuccess: (page) => {
                 closeInvite();
                 inviteForm.reset();
+                const msg = page.props.flash?.success;
+                if (msg) {
+                    const isNew = msg.toLowerCase().includes('password');
+                    notifications.show({
+                        title: isNew ? 'User Created' : 'Member Added',
+                        message: msg,
+                        color: isNew ? 'orange' : 'green',
+                        autoClose: isNew ? 10000 : 4000,
+                    });
+                }
             },
             onError: () => {
                 notifications.show({ title: 'Invite failed', message: inviteForm.errors.email, color: 'red' });
