@@ -3,6 +3,13 @@ set -e
 
 cd /var/www/html
 
+mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
+if [ ! -f ".env" ]; then
+    touch .env
+fi
+
 if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force
 fi
