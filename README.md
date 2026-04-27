@@ -46,130 +46,234 @@ Traditional reverse proxy tools like Nginx Proxy Manager handle traffic forwardi
 
 | Layer | Technology |
 |-------|------------|
-| Backend | Laravel 13 (PHP 8.4+) |
-| Frontend | React 19 + Inertia.js |
-| UI Framework | Manticore UI |
+| Backend | Laravel 13 (PHP 8.3+) |
+| Frontend | React 18 + Inertia.js |
+| UI Framework | Mantine UI |
 | Build Tool | Vite |
 | Charts | Apache ECharts |
 | Package Manager | Yarn |
-| Runtime | FrankenPHP / Caddy |
+| Runtime | Laravel Octane + RoadRunner |
+| Proxy / SSL | Caddy (xcaddy + GeoIP module) |
 | Queue | Redis + Laravel Horizon |
 | Realtime | Laravel Reverb |
-| Database | SQLite (default) / MySQL / PostgreSQL |
+| Database | PostgreSQL (Docker) / SQLite (local) |
 
-## Architecture Highlights
+## Architecture
 
-- **Caddy Integration**: Custom Caddyfile generation with dynamic reloading for instant configuration changes
-- **GeoIP Support**: MaxMind / DB-IP GeoLite2 database for country-level traffic analysis and blocking
-- **Health Checks**: Automated backend health monitoring with failover routing
-- **Log Ingestion**: Structured log parsing and security event detection from Caddy access logs
-- **SSL Automation**: Fully automatic certificate provisioning and renewal via Let's Encrypt
+```
+internet
+    │
+    ▼
+[caddy] :80 / :443
+    │  xcaddy binary with GeoIP module
+    │  /etc/caddy/Caddyfile  ── shared volume ──┐
+    │  /etc/caddy/GeoLite2-Country.mmdb          │
+    │                                            │
+    ▼ (reverse proxy to dashboard)               │
+[app] :8000 → exposed :3434                      │
+    │  Laravel + Octane/RoadRunner               │
+    │  writes Caddyfile ─────────────────────────┘
+    │  reloads via Caddy Admin API (POST /load)
+    │
+    ├── [horizon]    Redis queue workers
+    ├── [scheduler]  schedule:work (health checks, log ingestion)
+    └── [reverb]     WebSocket :8080
 
-## Quick Start
+[postgres] :5432 → exposed :5656
+[redis]    :6379
+```
 
-### Requirements
+---
 
-- PHP 8.4+
-- Composer
-- Node.js 20+
-- Yarn
-- Redis
-- Go (for custom Caddy build with GeoIP module)
+## Installation
 
-### Installation
+### Option 1 — Docker (Recommended)
+
+The fastest path. One command sets everything up including Caddy with GeoIP, PostgreSQL, Redis, Horizon, and the scheduler.
+
+**Requirements:** Docker 24+ and Docker Compose v2
 
 ```bash
-# Clone the repository
 git clone <repository-url>
-cd deploypanther
+cd proxypanther
+bash install.sh
+```
 
-# Install PHP dependencies
+That's it. The script will:
+- Generate a secure `APP_KEY` and `DB_PASSWORD` automatically
+- Build Caddy with the GeoIP module via `xcaddy` (takes ~3-5 min on first run)
+- Download the DB-IP GeoLite2 country database
+- Run all database migrations
+- Start all services
+
+**Ports after install:**
+
+| Service | URL |
+|---------|-----|
+| Dashboard | http://localhost:3434 |
+| Caddy HTTP | http://localhost:80 |
+| Caddy HTTPS | https://localhost:443 |
+| Caddy Admin API | http://localhost:2019 |
+| PostgreSQL | localhost:5656 |
+
+**Useful commands:**
+
+```bash
+# View logs
+docker compose logs -f app
+
+# Stop everything
+docker compose down
+
+# Rebuild after code changes
+docker compose build && docker compose up -d
+
+# Run artisan commands
+docker compose exec app php artisan <command>
+```
+
+---
+
+### Option 2 — Manual (Ubuntu / Debian)
+
+**Requirements:**
+
+- PHP 8.3+
+- Composer
+- Node.js 20+ and Yarn
+- Redis
+- PostgreSQL (or SQLite for local dev)
+- Go 1.21+ (for building Caddy with GeoIP module)
+
+#### 1. Clone and install dependencies
+
+```bash
+git clone <repository-url>
+cd proxypanther
+
 composer install
-
-# Install JavaScript dependencies
 yarn install
-
-# Build frontend assets
 yarn build
+```
 
-# Configure environment
+#### 2. Configure environment
+
+```bash
 cp .env.example .env
 php artisan key:generate
+```
 
-# Run migrations
+Edit `.env` and set your database connection:
+
+```dotenv
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=proxypanther
+DB_USERNAME=proxypanther
+DB_PASSWORD=your_password
+
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+CACHE_STORE=redis
+
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+```
+
+#### 3. Run migrations
+
+```bash
 php artisan migrate
+```
 
-# Build Caddy with GeoIP support
+#### 4. Build Caddy with GeoIP module
+
+```bash
+# Install Go (Ubuntu/Debian via snap)
 sudo snap install go --classic
+
+# Install xcaddy
 go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 export PATH=$PATH:$(go env GOPATH)/bin
-xcaddy build --with github.com/porech/caddy-maxmind-geolocation
 
-# Download GeoIP database
+# Build Caddy with GeoIP support
+xcaddy build \
+    --with github.com/porech/caddy-maxmind-geolocation \
+    --output /usr/local/bin/caddy
+
+sudo chmod +x /usr/local/bin/caddy
+```
+
+#### 5. Download GeoIP database
+
+```bash
 sudo mkdir -p /etc/caddy
-sudo wget -O /etc/caddy/GeoLite2-Country.mmdb.gz https://download.db-ip.com/free/dbip-country-lite-$(date +%Y-%m).mmdb.gz
+
+YEAR_MONTH=$(date +%Y-%m)
+sudo wget -O /etc/caddy/GeoLite2-Country.mmdb.gz \
+    "https://download.db-ip.com/free/dbip-country-lite-${YEAR_MONTH}.mmdb.gz"
+
 sudo gunzip /etc/caddy/GeoLite2-Country.mmdb.gz
 sudo chmod 644 /etc/caddy/GeoLite2-Country.mmdb
+```
 
-# Start services
-php artisan serve
+#### 6. Configure environment for Caddy
+
+Add to your `.env`:
+
+```dotenv
+CADDY_ADMIN_API=http://localhost:2019
+CADDYFILE_PATH=/etc/caddy/Caddyfile
+GEOIP_DB_PATH=/etc/caddy/GeoLite2-Country.mmdb
+```
+
+#### 7. Start Caddy
+
+```bash
+sudo caddy start --config /etc/caddy/Caddyfile
+```
+
+Or as a systemd service:
+
+```bash
+sudo caddy run --config /etc/caddy/Caddyfile &
+```
+
+#### 8. Start application services
+
+Run each in a separate terminal or configure as systemd services:
+
+```bash
+# Application server (Octane + RoadRunner)
+php artisan octane:start --server=roadrunner --host=0.0.0.0 --port=8000
+
+# Queue worker
 php artisan horizon
+
+# WebSocket server
 php artisan reverb:start
+
+# Scheduler (keep running)
+php artisan schedule:work
 ```
 
-### Caddy Configuration
-
-ProxyPanther generates a dynamic `Caddyfile` based on your configured sites. To apply changes:
-
-```bash
-php artisan sync:caddy
-```
-
-For log ingestion and health checks, schedule the following commands:
-
-```bash
-php artisan schedule:run
-```
+---
 
 ## Key Differences
 
 | Feature | Nginx Proxy Manager | Cloudflare | ProxyPanther |
 |---------|-------------------|------------|--------------|
-| Reverse Proxy | Yes | Yes | Yes |
-| Automatic SSL | Yes | Yes | Yes |
-| WAF / Security | Limited | Yes | Yes |
-| On-Premise Control | Yes | No | Yes |
-| Bot Protection | No | Yes | Yes |
-| Rate Limiting | Basic | Yes | Yes |
-| GeoIP Blocking | No | Yes | Yes |
-| Uptime Monitoring | No | Yes | Yes |
-| Modern Protocols (HTTP/3) | No | Yes | Yes |
-| Zero Data to Third Parties | Yes | No | Yes |
-
-internet
-    │
-    ▼
-[caddy container] :80/:443
-    │  GeoIP modüllü xcaddy binary
-    │  /etc/caddy/Caddyfile  ←── shared volume
-    │  /etc/caddy/GeoLite2-Country.mmdb
-    │
-    ▼ (reverse proxy)
-[app container] :8000 (dışarıya 3434)
-    │  Laravel + Octane/RoadRunner
-    │  Caddyfile'ı yazar → Caddy Admin API'ye POST /load
-    │
-    ├── [horizon]    Redis queue worker
-    ├── [scheduler]  schedule:work
-    └── [reverb]     WebSocket :8080
-
-[postgres] :5432 (dışarıya 5656)
-[redis]    :6379
-
-
-## Integration with PingPanther
-
-ProxyPanther works seamlessly alongside PingPanther for a complete infrastructure monitoring and protection stack. When PingPanther detects a service outage, ProxyPanther can automatically route traffic to failover backends, ensuring high availability without manual intervention.
+| Reverse Proxy | ✓ | ✓ | ✓ |
+| Automatic SSL | ✓ | ✓ | ✓ |
+| WAF / Security | Limited | ✓ | ✓ |
+| On-Premise Control | ✓ | ✗ | ✓ |
+| Bot Protection | ✗ | ✓ | ✓ |
+| Rate Limiting | Basic | ✓ | ✓ |
+| GeoIP Blocking | ✗ | ✓ | ✓ |
+| Uptime Monitoring | ✗ | ✓ | ✓ |
+| Modern Protocols (HTTP/3) | ✗ | ✓ | ✓ |
+| Zero Data to Third Parties | ✓ | ✗ | ✓ |
 
 ## License
 
