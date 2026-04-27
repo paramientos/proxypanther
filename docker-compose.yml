@@ -1,6 +1,5 @@
 services:
   caddy:
-    image: ghcr.io/paramientos/proxypanther-caddy:${TAG:-latest}
     build:
       context: .
       dockerfile: docker/caddy/Dockerfile
