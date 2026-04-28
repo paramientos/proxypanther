@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BannedIp;
 use App\Models\ConfigAudit;
 use App\Models\DailyMetric;
+use App\Models\PageRule;
 use App\Models\ProxySite;
 use App\Models\SecurityEvent;
 use App\Services\CaddyService;
@@ -53,7 +54,6 @@ class ProxySiteController extends Controller
 
     public function show(ProxySite $site)
     {
-        $site->load(['pageRules', 'configAudits.user']);
         $this->logParser->parseForSite($site);
 
         $analytics = DailyMetric::where('proxy_site_id', $site->id)
@@ -71,6 +71,7 @@ class ProxySiteController extends Controller
 
         return Inertia::render('Sites/Show', [
             'site' => $site->load([
+                'pageRules',
                 'securityEvents' => fn ($q) => $q->latest()->limit(50),
                 'configAudits' => fn ($q) => $q->with('user')->latest()->limit(20),
                 'uptimeEvents' => fn ($q) => $q->latest()->limit(30),
@@ -100,7 +101,7 @@ class ProxySiteController extends Controller
 
         $this->caddy->sync();
 
-        return redirect()->back()->with('success', 'Proxy site added successfully.');
+        return redirect()->route('dashboard')->with('success', 'Proxy site added successfully.');
     }
 
     public function update(Request $request, ProxySite $site)
@@ -208,13 +209,15 @@ class ProxySiteController extends Controller
 
     public function storePageRule(Request $request, ProxySite $site)
     {
-        $request->validate([
+        $validated = $request->validate([
             'path' => 'required|string',
             'type' => 'required|in:redirect,rewrite,header',
             'value' => 'required|string',
+            'priority' => 'integer|min:0',
+            'is_active' => 'boolean',
         ]);
 
-        $site->pageRules()->create($request->all());
+        $site->pageRules()->create($validated);
 
         $this->caddy->sync();
 

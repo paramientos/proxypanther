@@ -19,7 +19,7 @@ import {
     IconCloudUpload, IconNetwork, IconShieldCheck, IconRocket,
     IconActivity, IconClock, IconUser, IconTag,
 } from '@tabler/icons-react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
@@ -210,18 +210,7 @@ function PageRuleRow({ rule, siteId, onDelete }) {
                 <Badge size="xs" color={rule.is_active ? 'green' : 'gray'}>{rule.is_active ? 'Active' : 'Inactive'}</Badge>
             </Table.Td>
             <Table.Td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    color="red"
-                    onClick={() => {
-                        if (confirm('Delete this page rule?')) {
-                            router.delete(route('sites.page-rules.destroy', { site: siteId, rule: rule.id }), {
-                                preserveScroll: true,
-                            });
-                        }
-                    }}
-                >
+                <ActionIcon size="sm" variant="subtle" color="red" onClick={() => onDelete(rule)}>
                     <IconTrash size={12} />
                 </ActionIcon>
             </Table.Td>
@@ -297,7 +286,8 @@ function AuditRow({ audit, siteId }) {
     );
 }
 
-export default function Show({ auth, site, analytics, bandwidth, wafPresets, errorTemplates, healthLogs, sslCertificates }) {
+export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemplates, healthLogs, sslCertificates }) {
+    const { site } = usePage().props;
     const [activeTab, setActiveTab] = useState('overview');
     const [showPassword, setShowPassword] = useState(false);
     const [wafModalOpen, { open: openWafModal, close: closeWafModal }] = useDisclosure(false);
@@ -313,6 +303,7 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
         if (type === 'delete_rule') {
             router.delete(route('sites.page-rules.destroy', { site: site.id, rule: target.id }), {
                 preserveScroll: true,
+                preserveState: false,
                 onSuccess: closeConfirm,
             });
         } else if (type === 'rollback') {
@@ -430,6 +421,7 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
         e.preventDefault();
         pageRuleForm.post(route('sites.page-rules.store', site.id), {
             preserveScroll: true,
+            preserveState: false,
             onSuccess: () => {
                 pageRuleForm.reset();
                 closePageRuleModal();
@@ -596,6 +588,18 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                     </Group>
                 </Box>
                 <Group gap={8}>
+                    <Button
+                        size="sm"
+                        variant={site.under_attack_mode ? 'filled' : 'outline'}
+                        color="red"
+                        leftSection={<IconBolt size={14} />}
+                        onClick={() => router.post(route('sites.update', site.id), {
+                            ...data,
+                            under_attack_mode: !site.under_attack_mode,
+                        }, { preserveScroll: true })}
+                    >
+                        {site.under_attack_mode ? 'Under Attack: ON' : 'Under Attack'}
+                    </Button>
                     <Button
                         size="sm"
                         variant="outline"
@@ -1166,7 +1170,7 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                             </Button>
                         }
                     >
-                        {(site.pageRules || []).length > 0 ? (
+                        {(site.page_rules || []).length > 0 ? (
                             <Table style={{ color: '#e4e4e7' }}>
                                 <Table.Thead>
                                     <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
@@ -1178,8 +1182,8 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {(site.pageRules || []).map(rule => (
-                                        <PageRuleRow key={rule.id} rule={rule} siteId={site.id} />
+                                    {(site.page_rules || []).map(rule => (
+                                        <PageRuleRow key={rule.id} rule={rule} siteId={site.id} onDelete={r => openConfirm('delete_rule', r)} />
                                     ))}
                                 </Table.Tbody>
                             </Table>
@@ -1565,6 +1569,14 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                     </Stack>
                 </form>
             </Modal>
+
+            <ConfirmModal
+                opened={confirmState.opened}
+                onClose={closeConfirm}
+                onConfirm={handleConfirm}
+                title="Delete Page Rule"
+                description={`"${confirmState.target?.path}" rule will be permanently deleted.`}
+            />
         </EnterpriseLayout>
     );
 }
