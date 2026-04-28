@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: ghcr.io/paramientos/proxypanther-caddy:${TAG:-latest}
+    image: proxypanther-caddy:local
     container_name: proxypanther_caddy
     restart: unless-stopped
     ports:

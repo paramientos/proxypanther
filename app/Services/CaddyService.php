@@ -135,11 +135,7 @@ class CaddyService
             if ($site->hsts_enabled) {
                 $out .= "    header Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
             }
-            if ($site->brotli_enabled) {
-                $out .= "    encode brotli gzip\n";
-            } else {
-                $out .= "    encode gzip\n";
-            }
+            $out .= "    encode gzip\n";
 
             // WAF
             if ($site->waf_enabled) {

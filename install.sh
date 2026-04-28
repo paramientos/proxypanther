@@ -11,6 +11,9 @@ TAG="${PROXYPANTHER_TAG:-latest}"
 INSTALL_DIR="${PROXYPANTHER_DIR:-/opt/proxypanther}"
 COMPOSE_URL="https://raw.githubusercontent.com/paramientos/proxypanther/main/docker-compose.yml"
 ENV_URL="https://raw.githubusercontent.com/paramientos/proxypanther/main/.env.docker"
+CADDY_DOCKERFILE_URL="https://raw.githubusercontent.com/paramientos/proxypanther/main/docker/caddy/Dockerfile"
+CADDY_ENTRYPOINT_URL="https://raw.githubusercontent.com/paramientos/proxypanther/main/docker/caddy/entrypoint.sh"
+CADDY_GEOIP_URL="https://raw.githubusercontent.com/paramientos/proxypanther/main/docker/caddy/download-geoip.sh"
 
 echo -e "${CYAN}"
 echo "  ____                      ____             _   _               "
@@ -190,10 +193,16 @@ else
     fi
 fi
 
-echo -e "${YELLOW}[4/6] Pulling images from registry...${NC}"
-TAG="${TAG}" docker compose pull --ignore-pull-failures 2>/dev/null || true
+echo -e "${YELLOW}[4/6] Building Caddy image (this may take a few minutes)...${NC}"
+mkdir -p "$INSTALL_DIR/docker/caddy"
+curl -fsSL "$CADDY_DOCKERFILE_URL" -o "$INSTALL_DIR/docker/caddy/Dockerfile"
+curl -fsSL "$CADDY_ENTRYPOINT_URL" -o "$INSTALL_DIR/docker/caddy/entrypoint.sh"
+curl -fsSL "$CADDY_GEOIP_URL"     -o "$INSTALL_DIR/docker/caddy/download-geoip.sh"
+chmod +x "$INSTALL_DIR/docker/caddy/entrypoint.sh" "$INSTALL_DIR/docker/caddy/download-geoip.sh"
+docker build -t proxypanther-caddy:local -f "$INSTALL_DIR/docker/caddy/Dockerfile" "$INSTALL_DIR"
 
-echo -e "${YELLOW}[5/6] Starting infrastructure services...${NC}"
+echo -e "${YELLOW}[5/6] Pulling app images and starting infrastructure...${NC}"
+TAG="${TAG}" docker compose pull --ignore-pull-failures 2>/dev/null || true
 TAG="${TAG}" docker compose up -d postgres redis
 
 echo -e "${YELLOW}[6/6] Waiting for database...${NC}"
