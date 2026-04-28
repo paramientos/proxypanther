@@ -9,6 +9,8 @@ services:
       - "2019:2019"
     environment:
       - CADDY_ADMIN=0.0.0.0:2019
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - caddy_config:/etc/caddy
       - caddy_data:/data/caddy

@@ -309,6 +309,20 @@ php artisan schedule:work
 
 ---
 
+## Tips
+
+### Proxying to a service running on the host machine
+
+When ProxyPanther runs inside Docker and you want to proxy traffic to a service running directly on the host (e.g. a local app on port 3535), use `host.docker.internal` as the backend URL instead of `localhost`:
+
+```
+http://host.docker.internal:3535
+```
+
+`localhost` inside the Caddy container refers to the container itself, not the host machine. `host.docker.internal` is automatically resolved to the host's gateway IP via the `extra_hosts` setting in `docker-compose.yml`.
+
+---
+
 ## Key Differences
 
 | Feature | Nginx Proxy Manager | Cloudflare | ProxyPanther |
