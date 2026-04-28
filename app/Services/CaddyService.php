@@ -30,7 +30,12 @@ class CaddyService
             File::makeDirectory($dir, 0755, true, true);
         }
 
-        File::put($this->caddyfilePath, $content);
+        try {
+            File::put($this->caddyfilePath, $content);
+        } catch (\Exception $e) {
+            \Log::warning('Caddyfile write failed', ['path' => $this->caddyfilePath, 'message' => $e->getMessage()]);
+            return false;
+        }
 
         return $this->reloadCaddy();
     }

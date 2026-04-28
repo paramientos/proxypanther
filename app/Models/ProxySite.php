@@ -129,10 +129,6 @@ class ProxySite extends Model
 
     protected static function booted(): void
     {
-        static::saved(function ($site) {
-            app(CaddyService::class)->sync();
-        });
-
         static::deleted(function ($site) {
             app(CaddyService::class)->sync();
         });

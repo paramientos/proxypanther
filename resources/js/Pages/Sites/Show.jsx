@@ -362,6 +362,10 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
         geoip_denylist: site.geoip_denylist || [],
         header_rules: site.header_rules || [],
         redirect_rules: site.redirect_rules || [],
+        rate_limit_burst: site.rate_limit_burst || 0,
+        rate_limit_action: site.rate_limit_action || 'block',
+        bot_challenge_force: !!site.bot_challenge_force,
+        route_policies: site.route_policies || [],
     });
 
     const pageRuleForm = useForm({

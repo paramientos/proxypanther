@@ -121,7 +121,7 @@ class ProxySiteController extends Controller
 
         $this->caddy->sync();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Configuration saved successfully.');
     }
 
     public function toggle(ProxySite $site)
@@ -280,7 +280,7 @@ class ProxySiteController extends Controller
             'waf_enabled' => 'boolean',
             'rate_limit_rps' => 'integer|min:1|max:10000',
             'rate_limit_burst' => 'integer|min:0|max:10000',
-            'rate_limit_action' => 'required|string|in:block,delay',
+            'rate_limit_action' => 'nullable|string|in:block,delay',
             'auth_user' => 'nullable|string|max:255',
             'auth_password' => 'nullable|string|max:255',
             'protect_sensitive_files' => 'boolean',
@@ -302,10 +302,10 @@ class ProxySiteController extends Controller
             'circuit_breaker_retry_seconds' => 'integer|min:5|max:600',
             'custom_error_403' => 'nullable|string',
             'custom_error_503' => 'nullable|string',
-            'ip_allowlist' => 'nullable|string',
-            'ip_denylist' => 'nullable|string',
-            'geoip_allowlist' => 'nullable|string',
-            'geoip_denylist' => 'nullable|string',
+            'ip_allowlist' => 'nullable',
+            'ip_denylist' => 'nullable',
+            'geoip_allowlist' => 'nullable',
+            'geoip_denylist' => 'nullable',
             'geoip_enabled' => 'boolean',
             'block_common_bad_bots' => 'boolean',
             'bot_challenge_mode' => 'boolean',
@@ -314,7 +314,7 @@ class ProxySiteController extends Controller
             'bot_fight_mode' => 'boolean',
             'brotli_enabled' => 'boolean',
             'hsts_enabled' => 'boolean',
-            'performance_level' => 'required|string|in:balanced,aggressive,off',
+            'performance_level' => 'nullable|string|in:balanced,aggressive,off',
         ];
     }
 
@@ -325,6 +325,9 @@ class ProxySiteController extends Controller
                 $validated[$field] = preg_split('/[,\s]+/', $validated[$field], -1, PREG_SPLIT_NO_EMPTY);
             }
         }
+
+        $validated['rate_limit_action'] ??= 'block';
+        $validated['performance_level'] ??= 'balanced';
 
         if (isset($validated['route_policies'])) {
             $validated['route_policies'] = $this->normalizeRoutePolicies($validated['route_policies']);
