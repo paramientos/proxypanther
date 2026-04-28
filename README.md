@@ -1,5 +1,7 @@
 # ProxyPanther
 
+> **Beta Notice:** ProxyPanther is currently in beta. It works and is actively used, but you may encounter bugs. Please [open an issue](https://github.com/paramientos/proxypanther/issues) to report them — your feedback directly shapes the roadmap.
+
 ProxyPanther is an enterprise-grade reverse proxy and web application firewall (WAF) platform built for professionals who demand control, security, and performance. It brings Cloudflare-like capabilities on-premise, powered by modern infrastructure and a clean, enterprise-focused interface.
 
 ## Why ProxyPanther?

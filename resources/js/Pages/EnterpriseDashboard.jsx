@@ -19,11 +19,11 @@ import * as echarts from 'echarts';
 import ConfirmModal from '@/Components/ConfirmModal';
 import PolicyOptimizerModal from '@/Components/PolicyOptimizerModal';
 
-const CARD_BG = '#111113';
-const BORDER = 'rgba(255,255,255,0.07)';
-const ROW_HOVER = '#18181b';
+const CARD_BG = '#1c1c21';
+const BORDER = 'rgba(255,255,255,0.13)';
+const ROW_HOVER = '#22222a';
 const ACCENT = '#f38020';
-const ACCENT_DIM = 'rgba(243,128,32,0.1)';
+const ACCENT_DIM = 'rgba(243,128,32,0.15)';
 
 function StatCard({ label, value, sub, icon: Icon, iconColor, iconBg, badge, badgeColor, progress }) {
     return (
@@ -54,9 +54,9 @@ function StatCard({ label, value, sub, icon: Icon, iconColor, iconBg, badge, bad
                 </Badge>
             </Flex>
             <Text size="28px" fw={700} c="white" lh={1}>{value}</Text>
-            <Text size="xs" c="dimmed" mt={4} mb={progress !== undefined ? 12 : 0}>{label}</Text>
+            <Text size="xs" mt={4} mb={progress !== undefined ? 12 : 0} style={{ color: '#b4b4be' }}>{label}</Text>
             {progress !== undefined && (
-                <Progress value={progress} size="xs" color="orange" style={{ backgroundColor: '#27272a' }} radius="xl" />
+                <Progress value={progress} size="xs" color="orange" style={{ backgroundColor: '#2a2a32' }} radius="xl" />
             )}
         </Paper>
     );

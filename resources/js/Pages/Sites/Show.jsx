@@ -25,31 +25,31 @@ import * as echarts from 'echarts';
 import EnterpriseLayout from '@/Layouts/EnterpriseLayout';
 import ConfirmModal from '@/Components/ConfirmModal';
 
-const CARD_BG = '#111113';
-const BORDER = 'rgba(255,255,255,0.07)';
+const CARD_BG = '#1c1c21';
+const BORDER = 'rgba(255,255,255,0.13)';
 const ACCENT = '#f38020';
-const ACCENT_DIM = 'rgba(243,128,32,0.1)';
+const ACCENT_DIM = 'rgba(243,128,32,0.15)';
 const INPUT_STYLES = {
-    label: { color: '#71717a', fontSize: 12, marginBottom: 4 },
-    input: { backgroundColor: '#0a0a0b', borderColor: BORDER, color: '#e4e4e7' },
-    description: { color: '#52525b', fontSize: 11 },
+    label: { color: '#c4c4ce', fontSize: 12, marginBottom: 4, fontWeight: 600 },
+    input: { backgroundColor: '#13131a', borderColor: 'rgba(255,255,255,0.15)', color: '#f4f4f5' },
+    description: { color: '#8b8b9a', fontSize: 11 },
 };
 const SECTION_LABEL = {
     fontSize: 10,
-    color: '#52525b',
-    fontWeight: 600,
-    letterSpacing: '0.1em',
+    color: '#8b8b9a',
+    fontWeight: 700,
+    letterSpacing: '0.12em',
     textTransform: 'uppercase',
     marginBottom: 12,
 };
 
 function SectionCard({ title, description, children, action }) {
     return (
-        <Paper p="xl" style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}` }} mb={16}>
+        <Paper p="xl" style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} mb={16}>
             <Flex justify="space-between" align="flex-start" mb={20}>
                 <Box>
-                    <Text fw={600} c="white" size="sm">{title}</Text>
-                    {description && <Text size="xs" c="dimmed" mt={2}>{description}</Text>}
+                    <Text fw={700} c="white" size="sm" style={{ letterSpacing: '-0.01em' }}>{title}</Text>
+                    {description && <Text size="xs" mt={3} style={{ color: '#b4b4be' }}>{description}</Text>}
                 </Box>
                 {action}
             </Flex>
@@ -72,10 +72,10 @@ function StatusDot({ online }) {
 
 function ToggleRow({ label, description, checked, onChange, disabled }) {
     return (
-        <Flex justify="space-between" align="center" py={12} style={{ borderBottom: `1px solid ${BORDER}` }}>
+        <Flex justify="space-between" align="center" py={13} style={{ borderBottom: `1px solid rgba(255,255,255,0.08)` }}>
             <Box>
-                <Text size="sm" c="white" fw={500}>{label}</Text>
-                {description && <Text size="xs" c="dimmed" mt={2}>{description}</Text>}
+                <Text size="sm" fw={500} style={{ color: '#e8e8f0' }}>{label}</Text>
+                {description && <Text size="xs" mt={2} style={{ color: '#b4b4be' }}>{description}</Text>}
             </Box>
             <Switch
                 checked={!!checked}
@@ -100,7 +100,7 @@ function KeyValueEditor({ label, description, value, onChange, keyPlaceholder = 
     return (
         <Box>
             <Text style={SECTION_LABEL}>{label}</Text>
-            {description && <Text size="xs" c="dimmed" mb={8}>{description}</Text>}
+            {description && <Text size="xs" style={{ color: "#b4b4be" }} mb={8}>{description}</Text>}
             <Stack gap={6}>
                 {pairs.map((pair, i) => (
                     <Group key={i} gap={8}>
@@ -168,11 +168,11 @@ function WafRuleRow({ rule, onRemove }) {
                 <Badge size="xs" variant="outline" color="gray">{rule.type}</Badge>
             </Table.Td>
             <Table.Td style={{ padding: '10px 12px' }}>
-                <Code style={{ backgroundColor: '#0a0a0b', color: '#a1a1aa', fontSize: 11 }}>{rule.pattern}</Code>
+                <Code style={{ backgroundColor: '#13131a', color: '#a1a1aa', fontSize: 11 }}>{rule.pattern}</Code>
             </Table.Td>
             <Table.Td style={{ padding: '10px 12px' }}>
                 {rule.header_name && (
-                    <Text size="xs" c="dimmed">{rule.header_name}</Text>
+                    <Text size="xs" style={{ color: "#b4b4be" }}>{rule.header_name}</Text>
                 )}
             </Table.Td>
             <Table.Td style={{ padding: '10px 12px' }}>
@@ -191,7 +191,7 @@ function PageRuleRow({ rule, siteId, onDelete }) {
     return (
         <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
             <Table.Td style={{ padding: '10px 12px' }}>
-                <Code style={{ backgroundColor: '#0a0a0b', color: '#e4e4e7', fontSize: 11 }}>{rule.path}</Code>
+                <Code style={{ backgroundColor: '#13131a', color: '#e4e4e7', fontSize: 11 }}>{rule.path}</Code>
             </Table.Td>
             <Table.Td style={{ padding: '10px 12px' }}>
                 <Badge
@@ -202,7 +202,7 @@ function PageRuleRow({ rule, siteId, onDelete }) {
                 </Badge>
             </Table.Td>
             <Table.Td style={{ padding: '10px 12px' }}>
-                <Text size="xs" c="dimmed" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Text size="xs" style={{ color: "#b4b4be" }} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {rule.value}
                 </Text>
             </Table.Td>
@@ -232,7 +232,7 @@ function AuditRow({ audit, siteId }) {
                     <Text size="xs" c="white">{audit.user?.name || 'System'}</Text>
                 </Table.Td>
                 <Table.Td style={{ padding: '10px 12px' }}>
-                    <Text size="xs" c="dimmed">{new Date(audit.created_at).toLocaleString()}</Text>
+                    <Text size="xs" style={{ color: "#b4b4be" }}>{new Date(audit.created_at).toLocaleString()}</Text>
                 </Table.Td>
                 <Table.Td style={{ padding: '10px 12px', textAlign: 'right' }}>
                     <Group gap={4} justify="flex-end">
@@ -259,13 +259,13 @@ function AuditRow({ audit, siteId }) {
                 </Table.Td>
             </Table.Tr>
             {expanded && (
-                <Table.Tr style={{ backgroundColor: '#0a0a0b' }}>
+                <Table.Tr style={{ backgroundColor: '#13131a' }}>
                     <Table.Td colSpan={4} style={{ padding: '12px 16px' }}>
                         <SimpleGrid cols={2} spacing={12}>
                             {audit.before_state && (
                                 <Box>
                                     <Text style={SECTION_LABEL}>Before</Text>
-                                    <Code block style={{ backgroundColor: '#111113', color: '#a1a1aa', fontSize: 11, maxHeight: 200, overflow: 'auto' }}>
+                                    <Code block style={{ backgroundColor: '#1c1c21', color: '#a1a1aa', fontSize: 11, maxHeight: 200, overflow: 'auto' }}>
                                         {JSON.stringify(audit.before_state, null, 2)}
                                     </Code>
                                 </Box>
@@ -273,7 +273,7 @@ function AuditRow({ audit, siteId }) {
                             {audit.after_state && (
                                 <Box>
                                     <Text style={SECTION_LABEL}>After</Text>
-                                    <Code block style={{ backgroundColor: '#111113', color: '#e4e4e7', fontSize: 11, maxHeight: 200, overflow: 'auto' }}>
+                                    <Code block style={{ backgroundColor: '#1c1c21', color: '#e4e4e7', fontSize: 11, maxHeight: 200, overflow: 'auto' }}>
                                         {JSON.stringify(audit.after_state, null, 2)}
                                     </Code>
                                 </Box>
@@ -440,7 +440,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
         },
         legend: {
             data: ['Requests', 'Blocked'],
-            textStyle: { color: '#71717a', fontSize: 11 },
+            textStyle: { color: '#b4b4be', fontSize: 11 },
             top: 0,
         },
         grid: { left: 40, right: 20, top: 36, bottom: 30 },
@@ -448,13 +448,13 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
             type: 'category',
             data: analytics.map(d => d.date),
             axisLine: { lineStyle: { color: BORDER } },
-            axisLabel: { color: '#52525b', fontSize: 10 },
+            axisLabel: { color: '#8b8b9a', fontSize: 10 },
         },
         yAxis: {
             type: 'value',
             axisLine: { show: false },
             splitLine: { lineStyle: { color: BORDER } },
-            axisLabel: { color: '#52525b', fontSize: 10 },
+            axisLabel: { color: '#8b8b9a', fontSize: 10 },
         },
         series: [
             {
@@ -501,13 +501,13 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
             type: 'category',
             data: bandwidth.map(d => d.date),
             axisLine: { lineStyle: { color: BORDER } },
-            axisLabel: { color: '#52525b', fontSize: 10 },
+            axisLabel: { color: '#8b8b9a', fontSize: 10 },
         },
         yAxis: {
             type: 'value',
             axisLine: { show: false },
             splitLine: { lineStyle: { color: BORDER } },
-            axisLabel: { color: '#52525b', fontSize: 10 },
+            axisLabel: { color: '#8b8b9a', fontSize: 10 },
         },
         series: [{
             name: 'Requests',
@@ -531,14 +531,14 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
             type: 'category',
             data: healthLogs.map(l => new Date(l.created_at).toLocaleTimeString()),
             axisLine: { lineStyle: { color: BORDER } },
-            axisLabel: { color: '#52525b', fontSize: 9, rotate: 30 },
+            axisLabel: { color: '#8b8b9a', fontSize: 9, rotate: 30 },
         },
         yAxis: {
             type: 'value',
             name: 'ms',
             axisLine: { show: false },
             splitLine: { lineStyle: { color: BORDER } },
-            axisLabel: { color: '#52525b', fontSize: 10 },
+            axisLabel: { color: '#8b8b9a', fontSize: 10 },
         },
         series: [{
             name: 'Response Time',
@@ -582,9 +582,9 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                         )}
                     </Group>
                     <Group gap={8}>
-                        <Text size="sm" c="dimmed">{site.domain}</Text>
-                        <Text c="dimmed" size="sm">→</Text>
-                        <Text size="sm" c="dimmed">{site.backend_url}</Text>
+                        <Text size="sm" style={{ color: '#c4c4ce' }}>{site.domain}</Text>
+                        <Text size="sm" style={{ color: '#8b8b9a' }}>→</Text>
+                        <Text size="sm" style={{ color: '#c4c4ce' }}>{site.backend_url}</Text>
                     </Group>
                 </Box>
                 <Group gap={8}>
@@ -660,7 +660,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                             </Box>
                         </Flex>
                         <Text size="xl" fw={700} c="white" lh={1}>{stat.value}</Text>
-                        <Text size="xs" c="dimmed" mt={4}>{stat.label}</Text>
+                        <Text size="xs" style={{ color: '#b4b4be' }} mt={4}>{stat.label}</Text>
                         {stat.sub && <Text size="xs" style={{ color: stat.color }} mt={2}>{stat.sub}</Text>}
                     </Paper>
                 ))}
@@ -673,7 +673,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                 styles={{
                     root: { '--tabs-color': ACCENT },
                     tab: {
-                        color: '#71717a',
+                        color: '#b4b4be',
                         fontSize: 13,
                         fontWeight: 500,
                         '&[dataActive]': { color: ACCENT },
@@ -718,13 +718,13 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                             <Stack gap={0}>
                                 {[
                                     { label: 'Backend Status', value: site.is_online ? 'Online' : 'Offline', color: site.is_online ? '#22c55e' : '#ef4444' },
-                                    { label: 'SSL', value: site.ssl_enabled ? 'Enabled' : 'Disabled', color: site.ssl_enabled ? '#22c55e' : '#71717a' },
-                                    { label: 'WAF', value: site.waf_enabled ? 'Active' : 'Inactive', color: site.waf_enabled ? ACCENT : '#71717a' },
-                                    { label: 'Cache', value: site.cache_enabled ? `TTL ${site.cache_ttl}s` : 'Disabled', color: site.cache_enabled ? '#a855f7' : '#71717a' },
-                                    { label: 'Backend Type', value: site.backend_type === 'php_fpm' ? 'PHP-FPM' : 'HTTP Proxy', color: '#71717a' },
-                                    { label: 'Performance', value: site.performance_level || 'balanced', color: '#71717a' },
-                                    { label: 'Circuit Breaker', value: site.circuit_breaker_enabled ? 'Enabled' : 'Disabled', color: site.circuit_breaker_enabled ? '#22c55e' : '#71717a' },
-                                    { label: 'Last Health Check', value: site.last_check_at ? new Date(site.last_check_at).toLocaleString() : 'Never', color: '#71717a' },
+                                    { label: 'SSL', value: site.ssl_enabled ? 'Enabled' : 'Disabled', color: site.ssl_enabled ? '#22c55e' : '#b4b4be' },
+                                    { label: 'WAF', value: site.waf_enabled ? 'Active' : 'Inactive', color: site.waf_enabled ? ACCENT : '#b4b4be' },
+                                    { label: 'Cache', value: site.cache_enabled ? `TTL ${site.cache_ttl}s` : 'Disabled', color: site.cache_enabled ? '#a855f7' : '#b4b4be' },
+                                    { label: 'Backend Type', value: site.backend_type === 'php_fpm' ? 'PHP-FPM' : 'HTTP Proxy', color: '#b4b4be' },
+                                    { label: 'Performance', value: site.performance_level || 'balanced', color: '#b4b4be' },
+                                    { label: 'Circuit Breaker', value: site.circuit_breaker_enabled ? 'Enabled' : 'Disabled', color: site.circuit_breaker_enabled ? '#22c55e' : '#b4b4be' },
+                                    { label: 'Last Health Check', value: site.last_check_at ? new Date(site.last_check_at).toLocaleString() : 'Never', color: '#b4b4be' },
                                 ].map(row => (
                                     <Flex
                                         key={row.label}
@@ -733,7 +733,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                         py={10}
                                         style={{ borderBottom: `1px solid ${BORDER}` }}
                                     >
-                                        <Text size="sm" c="dimmed">{row.label}</Text>
+                                        <Text size="sm" style={{ color: "#b4b4be" }}>{row.label}</Text>
                                         <Text size="sm" fw={500} style={{ color: row.color }}>{row.value}</Text>
                                     </Flex>
                                 ))}
@@ -752,7 +752,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 <Table.Thead>
                                     <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                                         {['Domain', 'Issuer', 'Expires', 'Status'].map(h => (
-                                            <Table.Th key={h} style={{ fontSize: 10, color: '#52525b', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
+                                            <Table.Th key={h} style={{ fontSize: 10, color: '#8b8b9a', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
                                                 {h}
                                             </Table.Th>
                                         ))}
@@ -762,15 +762,15 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                     {sslCertificates.map((cert, i) => (
                                         <Table.Tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
                                             <Table.Td style={{ padding: '10px 12px' }}><Text size="sm" c="white">{cert.domain || cert.subject}</Text></Table.Td>
-                                            <Table.Td style={{ padding: '10px 12px' }}><Text size="xs" c="dimmed">{cert.issuer || 'Let\'s Encrypt'}</Text></Table.Td>
-                                            <Table.Td style={{ padding: '10px 12px' }}><Text size="xs" c="dimmed">{cert.expires || '—'}</Text></Table.Td>
+                                            <Table.Td style={{ padding: '10px 12px' }}><Text size="xs" style={{ color: "#b4b4be" }}>{cert.issuer || 'Let\'s Encrypt'}</Text></Table.Td>
+                                            <Table.Td style={{ padding: '10px 12px' }}><Text size="xs" style={{ color: "#b4b4be" }}>{cert.expires || '—'}</Text></Table.Td>
                                             <Table.Td style={{ padding: '10px 12px' }}><Badge size="xs" color="green">Active</Badge></Table.Td>
                                         </Table.Tr>
                                     ))}
                                 </Table.Tbody>
                             </Table>
                         ) : (
-                            <Text size="sm" c="dimmed" ta="center" py={24}>No SSL certificates found for this domain.</Text>
+                            <Text size="sm" style={{ color: "#b4b4be" }} ta="center" py={24}>No SSL certificates found for this domain.</Text>
                         )}
                     </SectionCard>
                 </Tabs.Panel>
@@ -792,21 +792,21 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 value={data.name}
                                 onChange={e => setData('name', e.target.value)}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconTag size={14} color="#52525b" />}
+                                leftSection={<IconTag size={14} color="#8b8b9a" />}
                             />
                             <TextInput
                                 label="Domain"
                                 value={data.domain}
                                 onChange={e => setData('domain', e.target.value)}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconGlobe size={14} color="#52525b" />}
+                                leftSection={<IconGlobe size={14} color="#8b8b9a" />}
                             />
                             <TextInput
                                 label="Backend URL"
                                 value={data.backend_url}
                                 onChange={e => setData('backend_url', e.target.value)}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconServer size={14} color="#52525b" />}
+                                leftSection={<IconServer size={14} color="#8b8b9a" />}
                                 placeholder="http://localhost:8080"
                             />
                             <TextInput
@@ -814,7 +814,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 value={data.backup_backend_url}
                                 onChange={e => setData('backup_backend_url', e.target.value)}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconNetwork size={14} color="#52525b" />}
+                                leftSection={<IconNetwork size={14} color="#8b8b9a" />}
                                 placeholder="http://localhost:8081 (failover)"
                                 description="Used when primary backend is unreachable"
                             />
@@ -827,7 +827,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                     { value: 'php_fpm', label: 'PHP-FPM (FastCGI)' },
                                 ]}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconCpu size={14} color="#52525b" />}
+                                leftSection={<IconCpu size={14} color="#8b8b9a" />}
                             />
                             {data.backend_type === 'php_fpm' && (
                                 <TextInput
@@ -835,7 +835,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                     value={data.root_path}
                                     onChange={e => setData('root_path', e.target.value)}
                                     styles={INPUT_STYLES}
-                                    leftSection={<IconDatabase size={14} color="#52525b" />}
+                                    leftSection={<IconDatabase size={14} color="#8b8b9a" />}
                                     placeholder="/var/www/html"
                                     description="Document root for PHP-FPM"
                                 />
@@ -850,7 +850,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                     { value: 'aggressive', label: 'Aggressive — Maximum speed' },
                                 ]}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconRocket size={14} color="#52525b" />}
+                                leftSection={<IconRocket size={14} color="#8b8b9a" />}
                             />
                             <NumberInput
                                 label="Rate Limit (req/s)"
@@ -859,7 +859,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 min={1}
                                 max={10000}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconBolt size={14} color="#52525b" />}
+                                leftSection={<IconBolt size={14} color="#8b8b9a" />}
                                 description="Maximum requests per second per IP"
                             />
                         </SimpleGrid>
@@ -906,7 +906,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 value={data.auth_user}
                                 onChange={e => setData('auth_user', e.target.value)}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconUser size={14} color="#52525b" />}
+                                leftSection={<IconUser size={14} color="#8b8b9a" />}
                                 placeholder="Leave empty to disable"
                             />
                             <TextInput
@@ -915,7 +915,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 value={data.auth_password}
                                 onChange={e => setData('auth_password', e.target.value)}
                                 styles={INPUT_STYLES}
-                                leftSection={<IconKey size={14} color="#52525b" />}
+                                leftSection={<IconKey size={14} color="#8b8b9a" />}
                                 rightSection={
                                     <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setShowPassword(v => !v)}>
                                         {showPassword ? <IconEyeOff size={13} /> : <IconEye size={13} />}
@@ -957,7 +957,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                             value={data.notification_webhook_url}
                             onChange={e => setData('notification_webhook_url', e.target.value)}
                             styles={INPUT_STYLES}
-                            leftSection={<IconCloudUpload size={14} color="#52525b" />}
+                            leftSection={<IconCloudUpload size={14} color="#8b8b9a" />}
                             placeholder="https://hooks.slack.com/..."
                         />
                     </SectionCard>
@@ -1109,13 +1109,13 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 <Paper
                                     key={key}
                                     p="md"
-                                    style={{ backgroundColor: '#0a0a0b', border: `1px solid ${BORDER}`, cursor: 'pointer' }}
+                                    style={{ backgroundColor: '#13131a', border: `1px solid ${BORDER}`, cursor: 'pointer' }}
                                 >
                                     <Flex justify="space-between" align="flex-start" mb={8}>
                                         <Text size="sm" fw={600} c="white">{preset.name}</Text>
                                         <Badge size="xs" variant="outline" color="orange">{preset.rules?.length} rules</Badge>
                                     </Flex>
-                                    <Text size="xs" c="dimmed" mb={12}>{preset.description}</Text>
+                                    <Text size="xs" style={{ color: "#b4b4be" }} mb={12}>{preset.description}</Text>
                                     <Button
                                         size="xs"
                                         variant="subtle"
@@ -1135,7 +1135,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 <Table.Thead>
                                     <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                                         {['Type', 'Pattern', 'Header', 'Action', ''].map(h => (
-                                            <Table.Th key={h} style={{ fontSize: 10, color: '#52525b', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
+                                            <Table.Th key={h} style={{ fontSize: 10, color: '#8b8b9a', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
                                                 {h}
                                             </Table.Th>
                                         ))}
@@ -1148,7 +1148,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 </Table.Tbody>
                             </Table>
                         ) : (
-                            <Text size="sm" c="dimmed" ta="center" py={24}>No custom WAF rules configured.</Text>
+                            <Text size="sm" style={{ color: "#b4b4be" }} ta="center" py={24}>No custom WAF rules configured.</Text>
                         )}
                     </SectionCard>
 
@@ -1175,7 +1175,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 <Table.Thead>
                                     <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                                         {['Path', 'Type', 'Value', 'Status', ''].map(h => (
-                                            <Table.Th key={h} style={{ fontSize: 10, color: '#52525b', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
+                                            <Table.Th key={h} style={{ fontSize: 10, color: '#8b8b9a', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
                                                 {h}
                                             </Table.Th>
                                         ))}
@@ -1192,7 +1192,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 <ThemeIcon size={48} variant="light" color="orange" radius="xl">
                                     <IconFilter size={24} />
                                 </ThemeIcon>
-                                <Text c="dimmed" size="sm">No page rules configured yet.</Text>
+                                <Text style={{ color: "#b4b4be" }} size="sm">No page rules configured yet.</Text>
                                 <Button size="xs" variant="outline" color="orange" leftSection={<IconPlus size={12} />} onClick={openPageRuleModal}>
                                     Create First Rule
                                 </Button>
@@ -1207,9 +1207,9 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 { type: 'rewrite', color: 'violet', desc: 'Internally rewrite the request path without changing the browser URL.' },
                                 { type: 'header', color: 'teal', desc: 'Inject a custom response header for requests matching the path.' },
                             ].map(item => (
-                                <Box key={item.type} p={14} style={{ backgroundColor: '#0a0a0b', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                                <Box key={item.type} p={14} style={{ backgroundColor: '#13131a', borderRadius: 8, border: `1px solid ${BORDER}` }}>
                                     <Badge size="sm" color={item.color} mb={8}>{item.type}</Badge>
-                                    <Text size="xs" c="dimmed">{item.desc}</Text>
+                                    <Text size="xs" style={{ color: "#b4b4be" }}>{item.desc}</Text>
                                 </Box>
                             ))}
                         </SimpleGrid>
@@ -1227,7 +1227,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                         ].map(stat => (
                             <Paper key={stat.label} p="lg" style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}` }}>
                                 <Text size="xl" fw={700} style={{ color: stat.color }} lh={1}>{stat.value}</Text>
-                                <Text size="xs" c="dimmed" mt={6}>{stat.label}</Text>
+                                <Text size="xs" style={{ color: "#b4b4be" }} mt={6}>{stat.label}</Text>
                             </Paper>
                         ))}
                     </SimpleGrid>
@@ -1246,7 +1246,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                             <Table.Thead>
                                 <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                                     {['Time', 'Status', 'Response Time', 'HTTP Code'].map(h => (
-                                        <Table.Th key={h} style={{ fontSize: 10, color: '#52525b', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
+                                        <Table.Th key={h} style={{ fontSize: 10, color: '#8b8b9a', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
                                             {h}
                                         </Table.Th>
                                     ))}
@@ -1256,7 +1256,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 {(healthLogs || []).slice(0, 10).map((log, i) => (
                                     <Table.Tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
                                         <Table.Td style={{ padding: '10px 12px' }}>
-                                            <Text size="xs" c="dimmed">{new Date(log.created_at).toLocaleString()}</Text>
+                                            <Text size="xs" style={{ color: "#b4b4be" }}>{new Date(log.created_at).toLocaleString()}</Text>
                                         </Table.Td>
                                         <Table.Td style={{ padding: '10px 12px' }}>
                                             <Group gap={6}>
@@ -1279,7 +1279,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 ))}
                                 {(!healthLogs || healthLogs.length === 0) && (
                                     <Table.Tr>
-                                        <Table.Td colSpan={4} style={{ textAlign: 'center', padding: '32px 16px', color: '#52525b' }}>
+                                        <Table.Td colSpan={4} style={{ textAlign: 'center', padding: '32px 16px', color: '#8b8b9a' }}>
                                             No health check data available.
                                         </Table.Td>
                                     </Table.Tr>
@@ -1293,7 +1293,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                             <Table.Thead>
                                 <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                                     {['Time', 'IP', 'Country', 'Type', 'Path'].map(h => (
-                                        <Table.Th key={h} style={{ fontSize: 10, color: '#52525b', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
+                                        <Table.Th key={h} style={{ fontSize: 10, color: '#8b8b9a', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
                                             {h}
                                         </Table.Th>
                                     ))}
@@ -1303,19 +1303,19 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 {(site.securityEvents || []).map((ev, i) => (
                                     <Table.Tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
                                         <Table.Td style={{ padding: '10px 12px' }}>
-                                            <Text size="xs" c="dimmed">{new Date(ev.created_at).toLocaleString()}</Text>
+                                            <Text size="xs" style={{ color: "#b4b4be" }}>{new Date(ev.created_at).toLocaleString()}</Text>
                                         </Table.Td>
                                         <Table.Td style={{ padding: '10px 12px' }}>
                                             <Text size="xs" c="white" style={{ fontFamily: 'monospace' }}>{ev.ip_address}</Text>
                                         </Table.Td>
                                         <Table.Td style={{ padding: '10px 12px' }}>
-                                            <Text size="xs" c="dimmed">{ev.country_code || '—'}</Text>
+                                            <Text size="xs" style={{ color: "#b4b4be" }}>{ev.country_code || '—'}</Text>
                                         </Table.Td>
                                         <Table.Td style={{ padding: '10px 12px' }}>
                                             <Badge size="xs" color="red">{ev.event_type || 'blocked'}</Badge>
                                         </Table.Td>
                                         <Table.Td style={{ padding: '10px 12px' }}>
-                                            <Text size="xs" c="dimmed" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            <Text size="xs" style={{ color: "#b4b4be" }} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {ev.request_path || '—'}
                                             </Text>
                                         </Table.Td>
@@ -1323,7 +1323,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 ))}
                                 {(!site.securityEvents || site.securityEvents.length === 0) && (
                                     <Table.Tr>
-                                        <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '32px 16px', color: '#52525b' }}>
+                                        <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '32px 16px', color: '#8b8b9a' }}>
                                             No security events recorded.
                                         </Table.Td>
                                     </Table.Tr>
@@ -1347,9 +1347,9 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                         <Text style={SECTION_LABEL}>Error Page Templates</Text>
                         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing={12} mb={24}>
                             {Object.entries(errorTemplates || {}).map(([key, tpl]) => (
-                                <Paper key={key} p="md" style={{ backgroundColor: '#0a0a0b', border: `1px solid ${BORDER}` }}>
+                                <Paper key={key} p="md" style={{ backgroundColor: '#13131a', border: `1px solid ${BORDER}` }}>
                                     <Text size="sm" fw={600} c="white" mb={4}>{tpl.name}</Text>
-                                    <Text size="xs" c="dimmed" mb={12}>{tpl.description || 'Custom error template'}</Text>
+                                    <Text size="xs" style={{ color: "#b4b4be" }} mb={12}>{tpl.description || 'Custom error template'}</Text>
                                     <Group gap={6}>
                                         <Button
                                             size="xs"
@@ -1426,7 +1426,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                             <Table.Thead>
                                 <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                                     {['Action', 'User', 'Timestamp', ''].map(h => (
-                                        <Table.Th key={h} style={{ fontSize: 10, color: '#52525b', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
+                                        <Table.Th key={h} style={{ fontSize: 10, color: '#8b8b9a', fontWeight: 600, letterSpacing: '0.08em', padding: '10px 12px', backgroundColor: CARD_BG }}>
                                             {h}
                                         </Table.Th>
                                     ))}
@@ -1438,7 +1438,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                 ))}
                                 {(!site.configAudits || site.configAudits.length === 0) && (
                                     <Table.Tr>
-                                        <Table.Td colSpan={4} style={{ textAlign: 'center', padding: '48px 16px', color: '#52525b' }}>
+                                        <Table.Td colSpan={4} style={{ textAlign: 'center', padding: '48px 16px', color: '#8b8b9a' }}>
                                             No audit records found.
                                         </Table.Td>
                                     </Table.Tr>
@@ -1456,8 +1456,8 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                 title={<Text fw={600} c="white">Add WAF Rule</Text>}
                 size="md"
                 styles={{
-                    content: { backgroundColor: '#111113', border: `1px solid ${BORDER}` },
-                    header: { backgroundColor: '#111113', borderBottom: `1px solid ${BORDER}` },
+                    content: { backgroundColor: '#1c1c21', border: `1px solid ${BORDER}` },
+                    header: { backgroundColor: '#1c1c21', borderBottom: `1px solid ${BORDER}` },
                 }}
             >
                 <Stack gap={14} pt={8}>
@@ -1518,8 +1518,8 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                 title={<Text fw={600} c="white">Add Page Rule</Text>}
                 size="md"
                 styles={{
-                    content: { backgroundColor: '#111113', border: `1px solid ${BORDER}` },
-                    header: { backgroundColor: '#111113', borderBottom: `1px solid ${BORDER}` },
+                    content: { backgroundColor: '#1c1c21', border: `1px solid ${BORDER}` },
+                    header: { backgroundColor: '#1c1c21', borderBottom: `1px solid ${BORDER}` },
                 }}
             >
                 <form onSubmit={submitPageRule}>

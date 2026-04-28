@@ -27,12 +27,12 @@ const NAV_ITEMS = [
 ];
 
 const ACCENT = '#f38020';
-const SIDEBAR_BG = '#0d0d0f';
-const TOPBAR_BG = '#0d0d0f';
-const CONTENT_BG = '#0a0a0b';
-const BORDER = 'rgba(255,255,255,0.07)';
-const HOVER_BG = 'rgba(255,255,255,0.04)';
-const ACTIVE_BG = 'rgba(243,128,32,0.1)';
+const SIDEBAR_BG = '#16161a';
+const TOPBAR_BG = '#16161a';
+const CONTENT_BG = '#111116';
+const BORDER = 'rgba(255,255,255,0.12)';
+const HOVER_BG = 'rgba(255,255,255,0.07)';
+const ACTIVE_BG = 'rgba(243,128,32,0.15)';
 
 function NavItem({ item }) {
     const currentView = typeof window !== 'undefined'
@@ -54,7 +54,7 @@ function NavItem({ item }) {
                     padding: '8px 12px',
                     borderRadius: 8,
                     backgroundColor: isActive ? ACTIVE_BG : 'transparent',
-                    color: isActive ? ACCENT : '#71717a',
+                    color: isActive ? ACCENT : '#b4b4be',
                     fontWeight: isActive ? 600 : 500,
                     fontSize: 13,
                     transition: 'all 0.15s',
@@ -65,13 +65,13 @@ function NavItem({ item }) {
                 onMouseEnter={e => {
                     if (!isActive) {
                         e.currentTarget.style.backgroundColor = HOVER_BG;
-                        e.currentTarget.style.color = '#e4e4e7';
+                        e.currentTarget.style.color = '#ffffff';
                     }
                 }}
                 onMouseLeave={e => {
                     if (!isActive) {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = '#71717a';
+                        e.currentTarget.style.color = '#b4b4be';
                     }
                 }}
             >
@@ -140,24 +140,24 @@ export default function EnterpriseLayout({ children, user }) {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 8,
-                                    backgroundColor: '#18181b',
-                                    border: `1px solid ${BORDER}`,
+                                    backgroundColor: '#1e1e24',
+                                    border: `1px solid rgba(255,255,255,0.12)`,
                                     padding: '6px 14px',
                                     borderRadius: 8,
                                     cursor: 'pointer',
                                     minWidth: 280,
                                 }}
                             >
-                                <IconSearch size={14} color="#52525b" />
-                                <Text size="sm" c="dimmed">Search sites, logs, IPs...</Text>
+                                <IconSearch size={14} color="#8b8b9a" />
+                                <Text size="sm" style={{ color: '#b4b4be' }}>Search sites, logs, IPs...</Text>
                                 <Box
                                     ml="auto"
                                     style={{
                                         padding: '1px 6px',
-                                        backgroundColor: '#27272a',
+                                        backgroundColor: '#2a2a32',
                                         borderRadius: 4,
                                         fontSize: 10,
-                                        color: '#52525b',
+                                        color: '#8b8b9a',
                                     }}
                                 >
                                     ⌘K
@@ -248,7 +248,10 @@ export default function EnterpriseLayout({ children, user }) {
                                 <IconBolt size={18} color="white" />
                             </Box>
                             <Box>
-                                <Text size="sm" fw={700} c="white" lh={1.2}>ProxyPanther</Text>
+                                <Group gap={6} align="center">
+                                    <Text size="sm" fw={700} c="white" lh={1.2}>ProxyPanther</Text>
+                                    <Badge size="xs" color="orange" variant="light" style={{ fontSize: 9, padding: '1px 5px' }}>BETA</Badge>
+                                </Group>
                                 <Text size="10px" c="dimmed" style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                                     Enterprise
                                 </Text>
