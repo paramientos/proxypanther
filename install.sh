@@ -152,11 +152,17 @@ fi
 
 echo -e "${YELLOW}[3/6] Generating secrets...${NC}"
 
-DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
 APP_KEY="base64:$(openssl rand -base64 32)"
 ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -d '/+=' | head -c 24)
 REVERB_APP_KEY=$(openssl rand -hex 16)
 REVERB_APP_SECRET=$(openssl rand -hex 32)
+
+if docker volume inspect proxypanther_postgres_data &>/dev/null 2>&1; then
+    echo -e "${YELLOW}  Existing database volume detected — reusing stored credentials.${NC}"
+    DB_PASSWORD=$(grep "^DB_PASSWORD=" .env.docker 2>/dev/null | cut -d= -f2 || openssl rand -base64 24 | tr -d '/+=' | head -c 32)
+else
+    DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
+fi
 
 if [[ "$OS" == "Darwin" ]]; then
     sed -i '' "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env.docker
