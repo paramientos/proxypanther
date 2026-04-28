@@ -141,6 +141,15 @@ cd /opt/proxypanther && docker compose pull && docker compose up -d
 
 # Run artisan commands
 docker compose -f /opt/proxypanther/docker-compose.yml exec app php artisan <command>
+
+# Reset admin password (generates a new random password)
+docker compose -f /opt/proxypanther/docker-compose.yml exec app php artisan admin:reset-password
+
+# Reset password for a specific user
+docker compose -f /opt/proxypanther/docker-compose.yml exec app php artisan admin:reset-password user@example.com
+
+# Set a specific password
+docker compose -f /opt/proxypanther/docker-compose.yml exec app php artisan admin:reset-password --password=MyNewPass123
 ```
 
 ---
