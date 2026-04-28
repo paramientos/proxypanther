@@ -1,0 +1,34 @@
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy/Dockerfile
+    container_name: proxypanther_caddy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: proxypanther_app
+
+  horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: proxypanther_horizon
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: proxypanther_scheduler
+
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: proxypanther_reverb

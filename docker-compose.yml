@@ -1,8 +1,6 @@
 services:
   caddy:
-    build:
-      context: .
-      dockerfile: docker/caddy/Dockerfile
+    image: ghcr.io/paramientos/proxypanther-caddy:${TAG:-latest}
     container_name: proxypanther_caddy
     restart: unless-stopped
     ports:
@@ -18,10 +16,6 @@ services:
 
   app:
     image: ghcr.io/paramientos/proxypanther-app:${TAG:-latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app
     container_name: proxypanther_app
     restart: unless-stopped
     ports:
@@ -51,10 +45,6 @@ services:
 
   horizon:
     image: ghcr.io/paramientos/proxypanther-app:${TAG:-latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app
     container_name: proxypanther_horizon
     restart: unless-stopped
     env_file:
@@ -71,10 +61,6 @@ services:
 
   scheduler:
     image: ghcr.io/paramientos/proxypanther-app:${TAG:-latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app
     container_name: proxypanther_scheduler
     restart: unless-stopped
     env_file:
@@ -92,10 +78,6 @@ services:
 
   reverb:
     image: ghcr.io/paramientos/proxypanther-app:${TAG:-latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app
     container_name: proxypanther_reverb
     restart: unless-stopped
     env_file:

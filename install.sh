@@ -185,10 +185,10 @@ else
 fi
 
 echo -e "${YELLOW}[4/6] Pulling images from registry...${NC}"
-TAG="${TAG}" docker compose pull
+TAG="${TAG}" docker compose pull --ignore-pull-failures 2>/dev/null || true
 
 echo -e "${YELLOW}[5/6] Starting infrastructure services...${NC}"
-TAG="${TAG}" docker compose up -d postgres redis caddy
+TAG="${TAG}" docker compose up -d postgres redis
 
 echo -e "${YELLOW}[6/6] Waiting for database...${NC}"
 until docker compose exec -T postgres pg_isready -U proxypanther -d proxypanther &>/dev/null; do
