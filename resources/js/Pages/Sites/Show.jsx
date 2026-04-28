@@ -351,7 +351,6 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
         bot_challenge_mode: !!site.bot_challenge_mode,
         bot_fight_mode: !!site.bot_fight_mode,
         under_attack_mode: !!site.under_attack_mode,
-        brotli_enabled: !!site.brotli_enabled,
         hsts_enabled: !!site.hsts_enabled,
         performance_level: site.performance_level || 'balanced',
         circuit_breaker_enabled: !!site.circuit_breaker_enabled,
@@ -865,7 +864,6 @@ export default function Show({ auth, site, analytics, bandwidth, wafPresets, err
                         <Text style={SECTION_LABEL}>Feature Toggles</Text>
                         <Stack gap={0}>
                             <ToggleRow label="SSL / HTTPS" description="Automatic Let's Encrypt certificate" checked={data.ssl_enabled} onChange={v => setData('ssl_enabled', v)} />
-                            <ToggleRow label="Brotli Compression" description="Compress responses with Brotli for faster delivery" checked={data.brotli_enabled} onChange={v => setData('brotli_enabled', v)} />
                             <ToggleRow label="HSTS" description="Strict-Transport-Security header enforcement" checked={data.hsts_enabled} onChange={v => setData('hsts_enabled', v)} />
                             <ToggleRow label="Response Cache" description="Cache backend responses at the proxy layer" checked={data.cache_enabled} onChange={v => setData('cache_enabled', v)} />
                             {data.cache_enabled && (

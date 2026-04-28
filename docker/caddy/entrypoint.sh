@@ -4,11 +4,12 @@ set -e
 /download-geoip.sh
 
 CADDYFILE="/etc/caddy/Caddyfile"
+ADMIN_ADDR="${CADDY_ADMIN:-0.0.0.0:2019}"
 
 if [ ! -f "$CADDYFILE" ]; then
-    cat > "$CADDYFILE" <<'EOF'
+    cat > "$CADDYFILE" <<EOF
 {
-    admin 0.0.0.0:2019
+    admin ${ADMIN_ADDR}
     email admin@proxypanther.com
 }
 

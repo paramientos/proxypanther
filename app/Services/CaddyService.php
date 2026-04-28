@@ -42,7 +42,7 @@ class CaddyService
 
     protected function generateCaddyfile($sites, $bannedIps): string
     {
-        $out = "{\n    # Global Options\n    email admin@proxypanther.com\n}\n\n";
+        $out = "{\n    email admin@proxypanther.com\n}\n\n";
 
         $out .= "(common_security_headers) {\n    header {\n";
         $out .= "        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
@@ -385,7 +385,11 @@ class CaddyService
                 $out .= "    }\n";
             } else {
                 $out .= "    handle_errors {\n";
-                $out .= "        respond \"ProxyPanther Secure Gateway: Error {err.status_code}\" {err.status_code}\n";
+                $out .= "        @5xx expression {err.status_code} >= 500\n";
+                $out .= "        @4xx expression {err.status_code} >= 400 && {err.status_code} < 500\n";
+                $out .= "        respond @5xx \"ProxyPanther Secure Gateway: Error {err.status_code}\" 500\n";
+                $out .= "        respond @4xx \"ProxyPanther Secure Gateway: Error {err.status_code}\" 403\n";
+                $out .= "        respond \"ProxyPanther Secure Gateway: Error {err.status_code}\" 502\n";
                 $out .= "    }\n";
             }
 

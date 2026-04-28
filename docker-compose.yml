@@ -7,6 +7,8 @@ services:
       - "80:80"
       - "443:443"
       - "2019:2019"
+    environment:
+      - CADDY_ADMIN=0.0.0.0:2019
     volumes:
       - caddy_config:/etc/caddy
       - caddy_data:/data/caddy

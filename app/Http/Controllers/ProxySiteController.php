@@ -312,7 +312,6 @@ class ProxySiteController extends Controller
             'bot_challenge_force' => 'boolean',
             'under_attack_mode' => 'boolean',
             'bot_fight_mode' => 'boolean',
-            'brotli_enabled' => 'boolean',
             'hsts_enabled' => 'boolean',
             'performance_level' => 'nullable|string|in:balanced,aggressive,off',
         ];
