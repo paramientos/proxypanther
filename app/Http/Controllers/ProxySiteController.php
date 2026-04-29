@@ -36,7 +36,7 @@ class ProxySiteController extends Controller
             ->orderBy('date')
             ->get();
         $recentEvents = SecurityEvent::with('proxySite')->latest()->limit(10)->get();
-        
+
         $threatsByCountry = SecurityEvent::selectRaw('country_code, COUNT(*) as count')
             ->whereNotNull('country_code')
             ->groupBy('country_code')
@@ -300,6 +300,8 @@ class ProxySiteController extends Controller
             'header_rules' => 'nullable|array',
             'redirect_rules' => 'nullable|array',
             'route_policies' => 'nullable|array',
+            'advanced_routes' => 'nullable|array',
+            'forward_auth' => 'nullable|array',
             'circuit_breaker_enabled' => 'boolean',
             'circuit_breaker_threshold' => 'integer|min:1|max:20',
             'circuit_breaker_retry_seconds' => 'integer|min:5|max:600',
@@ -335,6 +337,14 @@ class ProxySiteController extends Controller
             $validated['route_policies'] = $this->normalizeRoutePolicies($validated['route_policies']);
         }
 
+        if (isset($validated['advanced_routes'])) {
+            $validated['advanced_routes'] = $this->normalizeAdvancedRoutes($validated['advanced_routes']);
+        }
+
+        if (isset($validated['forward_auth'])) {
+            $validated['forward_auth'] = $this->normalizeForwardAuth($validated['forward_auth']);
+        }
+
         return $validated;
     }
 
@@ -350,7 +360,7 @@ class ProxySiteController extends Controller
             'ip_allowlist', 'ip_denylist', 'geoip_allowlist', 'geoip_denylist', 'geoip_enabled',
             'custom_waf_rules', 'env_vars', 'header_rules', 'redirect_rules',
             'block_common_bad_bots', 'bot_challenge_mode', 'bot_challenge_force',
-            'route_policies', 'circuit_breaker_enabled',
+            'route_policies', 'advanced_routes', 'forward_auth', 'circuit_breaker_enabled',
             'circuit_breaker_threshold', 'circuit_breaker_retry_seconds',
         ];
     }
@@ -372,5 +382,55 @@ class ProxySiteController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function normalizeAdvancedRoutes(array $routes): array
+    {
+        return collect($routes)
+            ->filter(fn ($route) => \is_array($route) && ! empty($route['upstream_url']))
+            ->map(function ($route) {
+                $matcherType = (string) ($route['matcher_type'] ?? 'path');
+                $transport = (string) ($route['transport'] ?? 'http');
+
+                return [
+                    'name' => (string) ($route['name'] ?? ''),
+                    'priority' => (int) ($route['priority'] ?? 100),
+                    'matcher_type' => in_array($matcherType, ['path', 'path_prefix', 'header'], true) ? $matcherType : 'path',
+                    'matcher_value' => $route['matcher_value'] ?? '/*',
+                    'upstream_url' => (string) $route['upstream_url'],
+                    'transport' => in_array($transport, ['http', 'https', 'h2c', 'https_skip_verify'], true) ? $transport : 'http',
+                    'preserve_host' => (bool) ($route['preserve_host'] ?? false),
+                    'header_up' => \is_array($route['header_up'] ?? null) ? $route['header_up'] : [],
+                    'is_active' => (bool) ($route['is_active'] ?? true),
+                ];
+            })
+            ->sortBy('priority')
+            ->values()
+            ->all();
+    }
+
+    private function normalizeForwardAuth(array $config): array
+    {
+        return [
+            'enabled' => (bool) ($config['enabled'] ?? false),
+            'auth_upstream_url' => (string) ($config['auth_upstream_url'] ?? ''),
+            'auth_uri' => (string) ($config['auth_uri'] ?? '/'),
+            'copy_headers' => $this->normalizeStringList($config['copy_headers'] ?? []),
+            'trusted_proxies' => $this->normalizeStringList($config['trusted_proxies'] ?? []),
+            'bypass_routes' => $this->normalizeAdvancedRoutes($config['bypass_routes'] ?? []),
+        ];
+    }
+
+    private function normalizeStringList(array|string|null $value): array
+    {
+        if (\is_string($value)) {
+            return preg_split('/[,\s]+/', $value, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        }
+
+        if (! \is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('strval', $value)));
     }
 }

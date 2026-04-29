@@ -23,7 +23,7 @@ class CaddyService
             ->where('is_active', true)
             ->get();
         $bannedIps = BannedIp::all();
-        $content = $this->generateCaddyfile($sites, $bannedIps);
+        $content = $this->renderCaddyfile($sites, $bannedIps);
 
         $dir = dirname($this->caddyfilePath);
         if (! File::isDirectory($dir)) {
@@ -34,13 +34,14 @@ class CaddyService
             File::put($this->caddyfilePath, $content);
         } catch (\Exception $e) {
             \Log::warning('Caddyfile write failed', ['path' => $this->caddyfilePath, 'message' => $e->getMessage()]);
+
             return false;
         }
 
         return $this->reloadCaddy();
     }
 
-    protected function generateCaddyfile($sites, $bannedIps): string
+    public function renderCaddyfile($sites, $bannedIps): string
     {
         $out = "{\n    email admin@proxypanther.com\n}\n\n";
 
@@ -76,6 +77,7 @@ class CaddyService
                 $out .= "    header Content-Type \"text/html; charset=utf-8\"\n";
                 $out .= "    respond `{$html}` 429\n";
                 $out .= "}\n\n";
+
                 continue;
             }
 
@@ -248,13 +250,17 @@ class CaddyService
 
             // Cloudflare-style Page Rules (Redirect / Rewrite / Headers)
             foreach ($site->pageRules as $idx => $rule) {
-                if (!$rule->is_active) continue;
-                
+                if (! $rule->is_active) {
+                    continue;
+                }
+
                 $mn = "pagerule_{$rule->id}";
                 $path = $rule->path;
-                
+
                 // Ensure path starts with / and add wildcard if not present for better matching
-                if (!str_starts_with($path, '/')) $path = "/{$path}";
+                if (! str_starts_with($path, '/')) {
+                    $path = "/{$path}";
+                }
                 $matcherPath = str_contains($path, '*') ? $path : "{$path}*";
 
                 switch ($rule->type) {
@@ -270,7 +276,7 @@ class CaddyService
                         // Format: "Header-Name: Header-Value"
                         if (str_contains($rule->value, ':')) {
                             [$hName, $hVal] = explode(':', $rule->value, 2);
-                            $out .= "    header " . trim($hName) . " \"" . trim($hVal) . "\"\n";
+                            $out .= '    header '.trim($hName).' "'.trim($hVal)."\"\n";
                         }
                         break;
                 }
@@ -297,54 +303,7 @@ class CaddyService
                 }
             }
 
-            // Backend
-            if ($site->backend_type === 'php_fpm') {
-                $backend = $site->backend_url;
-                if (str_starts_with($backend, '/') && ! str_starts_with($backend, 'unix/')) {
-                    $backend = "unix/{$backend}";
-                }
-                $out .= "    root * {$site->root_path}\n";
-                $out .= "    php_fastcgi {$backend} {\n";
-                if ($site->env_vars && \count($site->env_vars) > 0) {
-                    foreach ($site->env_vars as $k => $v) {
-                        $out .= "        env {$k} \"{$v}\"\n";
-                    }
-                }
-                $out .= "    }\n";
-            } else {
-                $backends = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
-                $backendStr = implode(' ', $backends);
-                $hasEnv = $site->env_vars && \count($site->env_vars) > 0;
-                $hasBackup = ! empty($site->backup_backend_url);
-                $hasCB = (bool) $site->circuit_breaker_enabled;
-
-                if ($hasEnv || $hasBackup || \count($backends) > 1 || $hasCB) {
-                    $out .= "    reverse_proxy {$backendStr} {\n";
-                    if (\count($backends) > 1) {
-                        $out .= "        lb_policy random\n";
-                    }
-                    if ($hasBackup) {
-                        $out .= "        lb_policy first\n        fail_timeout 5s\n        max_fails 2\n";
-                        $out .= "        to {$site->backup_backend_url}\n";
-                    }
-                    if ($hasCB) {
-                        $t = max(1, (int) $site->circuit_breaker_threshold);
-                        $r = max(5, (int) $site->circuit_breaker_retry_seconds);
-                        $out .= "        max_fails {$t}\n        fail_duration {$r}s\n";
-                        $out .= "        unhealthy_status 500 502 503 504\n";
-                        $out .= "        health_interval 10s\n        health_timeout 3s\n";
-                    }
-                    if ($hasEnv) {
-                        foreach ($site->env_vars as $k => $v) {
-                            $out .= "        header_up X-Env-{$k} \"{$v}\"\n";
-                        }
-                        $out .= "        header_down -X-Env-*\n";
-                    }
-                    $out .= "        header_up Host {host}\n        header_up X-Real-IP {remote_host}\n    }\n";
-                } else {
-                    $out .= "    reverse_proxy {$backendStr}\n";
-                }
-            }
+            $out .= $this->renderTrafficFlow($site);
 
             // Header manipulation rules
             if ($site->header_rules && \count($site->header_rules) > 0) {
@@ -397,6 +356,265 @@ class CaddyService
         }
 
         return $out;
+    }
+
+    protected function renderTrafficFlow(ProxySite $site): string
+    {
+        $advancedRoutes = $this->activeAdvancedRoutes($site);
+        $forwardAuth = $this->forwardAuthConfig($site);
+
+        if ($advancedRoutes === [] && $forwardAuth === null) {
+            return $this->renderBackend($site);
+        }
+
+        $out = "    route {\n";
+
+        if ($forwardAuth !== null) {
+            foreach ($forwardAuth['bypass_routes'] as $idx => $route) {
+                $matcher = "forward_auth_bypass_{$idx}";
+                $out .= $this->renderRouteMatcher($matcher, $route, 2);
+                $out .= "        handle @{$matcher} {\n";
+                $out .= $this->renderAdvancedRouteProxy($route, 3);
+                $out .= "        }\n";
+            }
+
+            $out .= "        forward_auth {$forwardAuth['auth_upstream_url']} {\n";
+            $out .= "            uri {$forwardAuth['auth_uri']}\n";
+
+            if ($forwardAuth['copy_headers'] !== []) {
+                $out .= '            copy_headers '.implode(' ', $forwardAuth['copy_headers'])."\n";
+            }
+
+            if ($forwardAuth['trusted_proxies'] !== []) {
+                $out .= '            trusted_proxies '.implode(' ', $forwardAuth['trusted_proxies'])."\n";
+            }
+
+            $out .= "        }\n";
+        }
+
+        if ($advancedRoutes !== []) {
+            foreach ($advancedRoutes as $idx => $route) {
+                $matcher = "advanced_route_{$idx}";
+                $out .= $this->renderRouteMatcher($matcher, $route, 2);
+                $out .= "        handle @{$matcher} {\n";
+                $out .= $this->renderAdvancedRouteProxy($route, 3);
+                $out .= "        }\n";
+            }
+
+            $out .= "        handle {\n";
+            $out .= $this->renderBackend($site, 3);
+            $out .= "        }\n";
+        } else {
+            $out .= $this->renderBackend($site, 2);
+        }
+
+        $out .= "    }\n";
+
+        return $out;
+    }
+
+    protected function renderBackend(ProxySite $site, int $indent = 1): string
+    {
+        $pad = str_repeat('    ', $indent);
+        $inner = str_repeat('    ', $indent + 1);
+        $out = '';
+
+        if ($site->backend_type === 'php_fpm') {
+            $backend = $site->backend_url;
+            if (str_starts_with($backend, '/') && ! str_starts_with($backend, 'unix/')) {
+                $backend = "unix/{$backend}";
+            }
+            $out .= "{$pad}root * {$site->root_path}\n";
+            $out .= "{$pad}php_fastcgi {$backend} {\n";
+            if ($site->env_vars && \count($site->env_vars) > 0) {
+                foreach ($site->env_vars as $k => $v) {
+                    $out .= "{$inner}env {$k} \"{$v}\"\n";
+                }
+            }
+            $out .= "{$pad}}\n";
+
+            return $out;
+        }
+
+        $backends = preg_split('/[,\s]+/', $site->backend_url, -1, PREG_SPLIT_NO_EMPTY);
+        $backendStr = implode(' ', $backends);
+        $hasEnv = $site->env_vars && \count($site->env_vars) > 0;
+        $hasBackup = ! empty($site->backup_backend_url);
+        $hasCB = (bool) $site->circuit_breaker_enabled;
+
+        if ($hasEnv || $hasBackup || \count($backends) > 1 || $hasCB) {
+            $out .= "{$pad}reverse_proxy {$backendStr} {\n";
+            if (\count($backends) > 1) {
+                $out .= "{$inner}lb_policy random\n";
+            }
+            if ($hasBackup) {
+                $out .= "{$inner}lb_policy first\n{$inner}fail_timeout 5s\n{$inner}max_fails 2\n";
+                $out .= "{$inner}to {$site->backup_backend_url}\n";
+            }
+            if ($hasCB) {
+                $t = max(1, (int) $site->circuit_breaker_threshold);
+                $r = max(5, (int) $site->circuit_breaker_retry_seconds);
+                $out .= "{$inner}max_fails {$t}\n{$inner}fail_duration {$r}s\n";
+                $out .= "{$inner}unhealthy_status 500 502 503 504\n";
+                $out .= "{$inner}health_interval 10s\n{$inner}health_timeout 3s\n";
+            }
+            if ($hasEnv) {
+                foreach ($site->env_vars as $k => $v) {
+                    $out .= "{$inner}header_up X-Env-{$k} \"{$v}\"\n";
+                }
+                $out .= "{$inner}header_down -X-Env-*\n";
+            }
+            $out .= "{$inner}header_up Host {host}\n{$inner}header_up X-Real-IP {remote_host}\n{$pad}}\n";
+
+            return $out;
+        }
+
+        return "{$pad}reverse_proxy {$backendStr}\n";
+    }
+
+    protected function renderRouteMatcher(string $name, array $route, int $indent): string
+    {
+        $pad = str_repeat('    ', $indent);
+        $type = $route['matcher_type'] ?? 'path';
+        $value = $route['matcher_value'] ?? '';
+
+        if (\is_array($value)) {
+            $value = implode(' ', array_filter($value));
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
+            $value = '/*';
+        }
+
+        return match ($type) {
+            'path_prefix' => "{$pad}@{$name} path {$this->pathPrefixMatcher($value)}\n",
+            'header' => $this->renderHeaderMatcher($name, $value, $indent),
+            default => "{$pad}@{$name} path {$value}\n",
+        };
+    }
+
+    protected function renderHeaderMatcher(string $name, string $value, int $indent): string
+    {
+        $pad = str_repeat('    ', $indent);
+        $inner = str_repeat('    ', $indent + 1);
+        [$header, $expected] = array_pad(explode(':', $value, 2), 2, '*');
+
+        return "{$pad}@{$name} {\n{$inner}header ".trim($header).' "'.trim($expected)."\"\n{$pad}}\n";
+    }
+
+    protected function renderAdvancedRouteProxy(array $route, int $indent): string
+    {
+        $pad = str_repeat('    ', $indent);
+        $inner = str_repeat('    ', $indent + 1);
+        $upstream = $this->routeUpstream($route);
+        $headerUp = $this->normalizeHeaderPairs($route['header_up'] ?? []);
+        $preserveHost = (bool) ($route['preserve_host'] ?? false);
+        $skipVerify = ($route['transport'] ?? 'http') === 'https_skip_verify';
+
+        if (! $preserveHost && $headerUp === [] && ! $skipVerify) {
+            return "{$pad}reverse_proxy {$upstream}\n";
+        }
+
+        $out = "{$pad}reverse_proxy {$upstream} {\n";
+        if ($preserveHost) {
+            $out .= "{$inner}header_up Host {host}\n";
+        }
+        foreach ($headerUp as $name => $value) {
+            $out .= "{$inner}header_up {$name} \"{$value}\"\n";
+        }
+        if ($skipVerify) {
+            $out .= "{$inner}transport http {\n";
+            $out .= str_repeat('    ', $indent + 2)."tls_insecure_skip_verify\n";
+            $out .= "{$inner}}\n";
+        }
+        $out .= "{$pad}}\n";
+
+        return $out;
+    }
+
+    protected function routeUpstream(array $route): string
+    {
+        $url = trim((string) ($route['upstream_url'] ?? ''));
+        $transport = $route['transport'] ?? 'http';
+
+        if ($transport === 'h2c') {
+            return 'h2c://'.preg_replace('~^https?://~', '', $url);
+        }
+
+        if ($transport === 'https_skip_verify' && ! str_starts_with($url, 'https://')) {
+            return 'https://'.preg_replace('~^https?://~', '', $url);
+        }
+
+        return $url;
+    }
+
+    protected function activeAdvancedRoutes(ProxySite $site): array
+    {
+        return collect($site->advanced_routes ?? [])
+            ->filter(fn ($route) => \is_array($route) && ($route['is_active'] ?? true) && ! empty($route['upstream_url']))
+            ->sortBy(fn ($route) => (int) ($route['priority'] ?? 100))
+            ->values()
+            ->all();
+    }
+
+    protected function forwardAuthConfig(ProxySite $site): ?array
+    {
+        $config = $site->forward_auth ?? [];
+        if (! \is_array($config) || ! ($config['enabled'] ?? false)) {
+            return null;
+        }
+
+        $authUpstream = trim((string) ($config['auth_upstream_url'] ?? ''));
+        if ($authUpstream === '') {
+            return null;
+        }
+
+        return [
+            'auth_upstream_url' => $authUpstream,
+            'auth_uri' => trim((string) ($config['auth_uri'] ?? '/')),
+            'copy_headers' => $this->normalizeList($config['copy_headers'] ?? []),
+            'trusted_proxies' => $this->normalizeList($config['trusted_proxies'] ?? []),
+            'bypass_routes' => collect($config['bypass_routes'] ?? [])
+                ->filter(fn ($route) => \is_array($route) && ! empty($route['upstream_url']))
+                ->values()
+                ->all(),
+        ];
+    }
+
+    protected function normalizeHeaderPairs(array $headers): array
+    {
+        if (array_is_list($headers)) {
+            return collect($headers)
+                ->filter(fn ($header) => \is_array($header) && ! empty($header['name']))
+                ->mapWithKeys(fn ($header) => [trim((string) $header['name']) => (string) ($header['value'] ?? '')])
+                ->all();
+        }
+
+        return collect($headers)
+            ->mapWithKeys(fn ($value, $key) => [trim((string) $key) => (string) $value])
+            ->filter(fn ($value, $key) => $key !== '')
+            ->all();
+    }
+
+    protected function normalizeList(array|string|null $value): array
+    {
+        if (\is_string($value)) {
+            return preg_split('/[,\s]+/', $value, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        }
+
+        if (! \is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('strval', $value)));
+    }
+
+    protected function pathPrefixMatcher(string $value): string
+    {
+        return collect(preg_split('/\s+/', $value, -1, PREG_SPLIT_NO_EMPTY))
+            ->map(fn ($path) => str_ends_with($path, '*') ? $path : rtrim($path, '/').'*')
+            ->implode(' ');
     }
 
     /**
@@ -486,7 +704,7 @@ class CaddyService
 
             \Log::warning('Caddy reload via API failed', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
+                'body' => $response->body(),
             ]);
         } catch (\Exception $e) {
             \Log::warning('Caddy reload skipped — Caddy not reachable', ['message' => $e->getMessage()]);
