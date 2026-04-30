@@ -89,6 +89,96 @@ internet
 
 ---
 
+## Local Development
+
+For active development, use `docker-compose.dev.yml`. It pulls the pre-built app image from GHCR (no local `apt-get` build needed) and mounts your source code as a volume so changes are reflected immediately.
+
+**SQLite is used as the database in dev** — no PostgreSQL container needed. The database file lives at `database/database.sqlite` inside the project and is persisted via the volume mount.
+
+### Prerequisites
+
+- Docker 24+ and Docker Compose v2
+- Node.js 20 (`nvm use 20.19.0`) and Yarn — for running Vite outside Docker
+
+### 1. Create the SQLite database file
+
+```bash
+touch database/database.sqlite
+```
+
+### 2. Start the dev stack
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+This starts:
+- `proxypanther_app_dev` — Laravel Octane on port 3434
+- `proxypanther_horizon_dev` — Queue workers
+- `proxypanther_scheduler_dev` — Cron scheduler
+- `proxypanther_reverb_dev` — WebSocket server on port 8080
+- `proxypanther_caddy_dev` — Caddy proxy on ports 80/443
+- `proxypanther_redis_dev` — Redis on port 6379
+
+> PostgreSQL is not started in dev mode. SQLite handles all persistence locally with zero setup.
+
+### 3. Run the Vite dev server (hot reload)
+
+In a separate terminal:
+
+```bash
+nvm use 20.19.0
+yarn install
+yarn dev
+```
+
+Vite runs on `http://localhost:5173` and proxies API requests to the app container.
+
+### 4. Run artisan commands
+
+```bash
+docker compose -f docker-compose.dev.yml exec app php artisan <command>
+```
+
+### 5. View logs
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f app
+docker compose -f docker-compose.dev.yml logs -f horizon
+```
+
+### 6. Stop the dev stack
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+### Dev endpoints
+
+| Service | URL |
+|---------|-----|
+| Dashboard | http://localhost:3434 |
+| Redis | localhost:6379 |
+| WebSocket | ws://localhost:8080 |
+
+> The dev stack uses `.env.docker.dev` for configuration. Edit it to override any values.
+
+### Why not build locally?
+
+The dev Dockerfile (`docker/Dockerfile.dev`) is based on the pre-built GHCR image, which already has all PHP extensions compiled. This avoids running `apt-get` during the build — which can fail if a local proxy (VPN, Proxyman, Charles, etc.) intercepts Docker's build network traffic.
+
+If you need to build the full production image locally (e.g. to test Dockerfile changes), make sure your proxy is not intercepting Docker's build network, or temporarily disable it:
+
+```bash
+# Build with no proxy interference (Linux only)
+docker build --network=host -t proxypanther-app:local .
+
+# Or disable your proxy tool before building on macOS
+docker build -t proxypanther-app:local .
+```
+
+---
+
 ## Installation
 
 ### Option 1 — Docker (Recommended)

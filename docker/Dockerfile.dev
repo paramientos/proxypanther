@@ -1,0 +1,12 @@
+FROM ghcr.io/paramientos/proxypanther-app:latest
+
+WORKDIR /var/www/html
+
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8000 8080
+
+ENTRYPOINT ["/entrypoint.sh"]
