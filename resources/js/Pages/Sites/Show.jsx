@@ -161,6 +161,43 @@ function IpListEditor({ label, description, value, onChange }) {
     );
 }
 
+function JsonEditor({ label, description, value, onChange, placeholder }) {
+    const [text, setText] = useState(JSON.stringify(value || {}, null, 2));
+    const [error, setError] = useState(null);
+
+    const apply = () => {
+        if (!text.trim()) {
+            onChange(Array.isArray(value) ? [] : {});
+            setError(null);
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(text);
+            onChange(parsed);
+            setError(null);
+        } catch (e) {
+            setError(e.message);
+        }
+    };
+
+    return (
+        <Textarea
+            label={label}
+            description={description}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onBlur={apply}
+            error={error}
+            minRows={7}
+            autosize
+            styles={INPUT_STYLES}
+            placeholder={placeholder}
+            style={{ fontFamily: 'monospace' }}
+        />
+    );
+}
+
 function WafRuleRow({ rule, onRemove }) {
     return (
         <Table.Tr style={{ borderBottom: `1px solid ${BORDER}` }}>
@@ -202,7 +239,7 @@ function PageRuleRow({ rule, siteId, onDelete }) {
                 </Badge>
             </Table.Td>
             <Table.Td style={{ padding: '10px 12px' }}>
-                <Text size="xs" style={{ color: "#b4b4be" }} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Text size="xs" style={{ color: "#b4b4be", maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {rule.value}
                 </Text>
             </Table.Td>
@@ -356,6 +393,15 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
         rate_limit_action: site.rate_limit_action || 'block',
         bot_challenge_force: !!site.bot_challenge_force,
         route_policies: site.route_policies || [],
+        advanced_routes: site.advanced_routes || [],
+        forward_auth: site.forward_auth || {
+            enabled: false,
+            auth_upstream_url: '',
+            auth_uri: '/outpost.goauthentik.io/auth/caddy',
+            copy_headers: [],
+            trusted_proxies: [],
+            bypass_routes: [],
+        },
     });
 
     const pageRuleForm = useForm({
@@ -982,6 +1028,50 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                         />
                     </SectionCard>
 
+                    <SectionCard title="Advanced Edge Routing" description="Path, prefix, or header matched routes for complex Caddy edge traffic">
+                        <JsonEditor
+                            label="Routes"
+                            value={data.advanced_routes}
+                            onChange={v => setData('advanced_routes', Array.isArray(v) ? v : [])}
+                            placeholder={`[
+  {
+    "name": "NetBird gRPC",
+    "priority": 10,
+    "matcher_type": "path",
+    "matcher_value": "/signalexchange.SignalExchange/* /management.ManagementService/*",
+    "upstream_url": "netbird-server:80",
+    "transport": "h2c",
+    "preserve_host": false,
+    "header_up": {},
+    "is_active": true
+  }
+]`}
+                        />
+                    </SectionCard>
+
+                    <SectionCard title="Forward Auth" description="Generic Caddy forward_auth policy with bypass routes for auth outposts">
+                        <JsonEditor
+                            label="Policy"
+                            value={data.forward_auth}
+                            onChange={v => setData('forward_auth', v && !Array.isArray(v) ? v : {})}
+                            placeholder={`{
+  "enabled": true,
+  "auth_upstream_url": "http://authentik-server:9000",
+  "auth_uri": "/outpost.goauthentik.io/auth/caddy",
+  "copy_headers": ["X-Authentik-Username", "X-Authentik-Email"],
+  "trusted_proxies": ["private_ranges"],
+  "bypass_routes": [
+    {
+      "matcher_type": "path",
+      "matcher_value": "/outpost.goauthentik.io/*",
+      "upstream_url": "http://authentik-server:9000",
+      "transport": "http"
+    }
+  ]
+}`}
+                        />
+                    </SectionCard>
+
                     <SectionCard title="Redirect Rules" description="Path-based redirects handled at the proxy layer">
                         <KeyValueEditor
                             label="Redirects"
@@ -1315,7 +1405,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                                             <Badge size="xs" color="red">{ev.event_type || 'blocked'}</Badge>
                                         </Table.Td>
                                         <Table.Td style={{ padding: '10px 12px' }}>
-                                            <Text size="xs" style={{ color: "#b4b4be" }} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            <Text size="xs" style={{ color: "#b4b4be", maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {ev.request_path || '—'}
                                             </Text>
                                         </Table.Td>
