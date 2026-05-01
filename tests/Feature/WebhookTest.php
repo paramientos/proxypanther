@@ -1,36 +1,32 @@
 <?php
 
-use App\Models\Project;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Queue;
-use App\Jobs\DeployProjectJob;
+use App\Models\ProxySite;
+use App\Services\CaddyService;
 
-test('webhook triggers deployment', function () {
-    Queue::fake();
+test('webhook activates failover for a matching proxy site token', function () {
+    $this->mock(CaddyService::class, function ($mock) {
+        $mock->shouldReceive('sync')->once()->andReturnTrue();
+    });
 
-    $project = Project::create([
-        'name' => 'Webhook Project',
-        'path' => '/tmp',
-        'webhook_token' => 'secret-token',
+    $site = ProxySite::create([
+        'name' => 'Webhook Site',
+        'domain' => 'webhook.example.com',
+        'backend_url' => 'http://127.0.0.1:8080',
+        'notification_webhook_url' => 'https://ping.example/hooks/secret-token',
+        'is_maintenance' => false,
     ]);
 
-    $response = $this->postJson("/api/webhook/secret-token", [
-        'push_data' => ['tag' => 'v1.0.0']
+    $response = $this->postJson('/api/webhook/secret-token', [
+        'action' => 'failover',
     ]);
 
     $response->assertStatus(200);
-    $response->assertJsonPath('message', 'Deployment triggered');
+    $response->assertJsonPath('status', 'failover activated');
 
-    $this->assertDatabaseHas('deployments', [
-        'project_id' => $project->id,
-        'version' => 'v1.0.0',
-        'status' => 'pending'
-    ]);
-
-    Queue::assertPushed(DeployProjectJob::class);
+    expect($site->refresh()->is_maintenance)->toBeTrue();
 });
 
 test('webhook fails with invalid token', function () {
-    $response = $this->postJson("/api/webhook/invalid-token");
+    $response = $this->postJson('/api/webhook/invalid-token');
     $response->assertStatus(404);
 });

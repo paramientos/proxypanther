@@ -27,10 +27,10 @@ class SettingsController extends Controller
         $user = auth()->user();
 
         return Inertia::render('Settings/Index', [
-            'smtp'    => AppSetting::getGroup($this->smtpKeys),
-            'app'     => AppSetting::getGroup($this->appKeys),
+            'smtp' => AppSetting::getGroup($this->smtpKeys),
+            'app' => AppSetting::getGroup($this->appKeys),
             'profile' => [
-                'name'  => $user->name,
+                'name' => $user->name,
                 'email' => $user->email,
             ],
             'sshWhitelist' => AppSetting::get('ssh_whitelist', ''),
@@ -40,14 +40,14 @@ class SettingsController extends Controller
     public function updateSmtp(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'mail_mailer'       => 'required|in:smtp,log,sendmail',
-            'mail_host'         => 'required_if:mail_mailer,smtp|nullable|string|max:255',
-            'mail_port'         => 'required_if:mail_mailer,smtp|nullable|string|max:5',
-            'mail_username'     => 'required_if:mail_mailer,smtp|nullable|string|max:255',
-            'mail_password'     => 'required_if:mail_mailer,smtp|nullable|string|max:255',
-            'mail_encryption'   => 'nullable|string|in:tls,ssl,starttls',
+            'mail_mailer' => 'required|in:smtp,log,sendmail',
+            'mail_host' => 'required_if:mail_mailer,smtp|nullable|string|max:255',
+            'mail_port' => 'required_if:mail_mailer,smtp|nullable|string|max:5',
+            'mail_username' => 'required_if:mail_mailer,smtp|nullable|string|max:255',
+            'mail_password' => 'required_if:mail_mailer,smtp|nullable|string|max:255',
+            'mail_encryption' => 'nullable|string|in:tls,ssl,starttls',
             'mail_from_address' => 'required|email|max:255',
-            'mail_from_name'    => 'required|string|max:255',
+            'mail_from_name' => 'required|string|max:255',
         ]);
 
         AppSetting::setMany($validated);
@@ -58,8 +58,8 @@ class SettingsController extends Controller
     public function updateApp(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'app_name'     => 'required|string|max:100',
-            'app_url'      => 'required|url|max:255',
+            'app_name' => 'required|string|max:100',
+            'app_url' => 'required|url|max:255',
             'app_timezone' => 'required|timezone',
         ]);
 
@@ -73,7 +73,7 @@ class SettingsController extends Controller
         $user = auth()->user();
 
         $validated = $request->validate([
-            'name'  => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => "required|email|unique:users,email,{$user->id}",
         ]);
 
@@ -83,6 +83,7 @@ class SettingsController extends Controller
 
         if ($emailChanged) {
             Auth::logoutOtherDevices($request->input('current_password', ''));
+            Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
@@ -96,7 +97,7 @@ class SettingsController extends Controller
     {
         $request->validate([
             'current_password' => 'required|current_password',
-            'password'         => 'required|min:8|confirmed',
+            'password' => 'required|min:8|confirmed',
         ]);
 
         $user = auth()->user();
@@ -106,6 +107,7 @@ class SettingsController extends Controller
         ]);
 
         Auth::logoutOtherDevices($request->password);
+        Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -131,14 +133,14 @@ class SettingsController extends Controller
 
         try {
             config([
-                'mail.default'                    => 'smtp',
-                'mail.mailers.smtp.host'          => $host,
-                'mail.mailers.smtp.port'          => $port,
-                'mail.mailers.smtp.encryption'    => AppSetting::get('mail_encryption') ?: null,
-                'mail.mailers.smtp.username'      => AppSetting::get('mail_username'),
-                'mail.mailers.smtp.password'      => AppSetting::get('mail_password'),
-                'mail.from.address'               => AppSetting::get('mail_from_address'),
-                'mail.from.name'                  => AppSetting::get('mail_from_name', 'ProxyPanther'),
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.host' => $host,
+                'mail.mailers.smtp.port' => $port,
+                'mail.mailers.smtp.encryption' => AppSetting::get('mail_encryption') ?: null,
+                'mail.mailers.smtp.username' => AppSetting::get('mail_username'),
+                'mail.mailers.smtp.password' => AppSetting::get('mail_password'),
+                'mail.from.address' => AppSetting::get('mail_from_address'),
+                'mail.from.name' => AppSetting::get('mail_from_name', 'ProxyPanther'),
             ]);
 
             $mailerInstance = app('mail.manager')->mailer('smtp');
@@ -149,7 +151,7 @@ class SettingsController extends Controller
 
             return redirect()->back()->with('success', 'Test email sent successfully.');
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['smtp' => 'Failed: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['smtp' => 'Failed: '.$e->getMessage()]);
         }
     }
 
