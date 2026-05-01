@@ -165,15 +165,17 @@ function JsonEditor({ label, description, value, onChange, placeholder }) {
     const [text, setText] = useState(JSON.stringify(value || {}, null, 2));
     const [error, setError] = useState(null);
 
-    const apply = () => {
-        if (!text.trim()) {
+    const apply = nextText => {
+        setText(nextText);
+
+        if (!nextText.trim()) {
             onChange(Array.isArray(value) ? [] : {});
             setError(null);
             return;
         }
 
         try {
-            const parsed = JSON.parse(text);
+            const parsed = JSON.parse(nextText);
             onChange(parsed);
             setError(null);
         } catch (e) {
@@ -186,8 +188,8 @@ function JsonEditor({ label, description, value, onChange, placeholder }) {
             label={label}
             description={description}
             value={text}
-            onChange={e => setText(e.target.value)}
-            onBlur={apply}
+            onChange={e => apply(e.target.value)}
+            onBlur={() => apply(text)}
             error={error}
             minRows={7}
             autosize
