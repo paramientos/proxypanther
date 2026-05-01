@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\NotificationSent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -30,15 +31,15 @@ class Notification extends Model
     {
         $notification = static::create([
             'user_id' => $userId,
-            'type'    => $type,
-            'title'   => $title,
-            'body'    => $options['body'] ?? null,
-            'icon'    => $options['icon'] ?? 'bell',
-            'color'   => $options['color'] ?? 'blue',
-            'link'    => $options['link'] ?? null,
+            'type' => $type,
+            'title' => $title,
+            'body' => $options['body'] ?? null,
+            'icon' => $options['icon'] ?? 'bell',
+            'color' => $options['color'] ?? 'blue',
+            'link' => $options['link'] ?? null,
         ]);
 
-        broadcast(new \App\Events\NotificationSent($notification))->toOthers();
+        broadcast(new NotificationSent($notification))->toOthers();
 
         return $notification;
     }

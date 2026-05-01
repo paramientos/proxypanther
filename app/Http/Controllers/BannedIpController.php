@@ -9,9 +9,7 @@ use Inertia\Inertia;
 
 class BannedIpController extends Controller
 {
-    public function __construct(protected CaddyService $caddy)
-    {
-    }
+    public function __construct(protected CaddyService $caddy) {}
 
     public function index()
     {

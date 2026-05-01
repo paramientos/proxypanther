@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Config;
+use App\Models\AppSetting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         try {
             $settings = Cache::remember('app_settings_all', 3600, function () {
-                return \App\Models\AppSetting::all()->pluck('value', 'key')->toArray();
+                return AppSetting::all()->pluck('value', 'key')->toArray();
             });
         } catch (\Throwable) {
             return;
@@ -34,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
     private function applyMailSettings(array $s): void
     {
         $mailer = $s['mail_mailer'] ?? null;
-        
+
         if (! $mailer) {
             return;
         }
@@ -42,13 +43,13 @@ class AppServiceProvider extends ServiceProvider
         Config::set('mail.default', $mailer);
 
         Config::set('mail.mailers.smtp', [
-            'transport'  => 'smtp',
-            'host'       => $s['mail_host'] ?? config('mail.mailers.smtp.host'),
-            'port'       => $s['mail_port'] ?? config('mail.mailers.smtp.port'),
+            'transport' => 'smtp',
+            'host' => $s['mail_host'] ?? config('mail.mailers.smtp.host'),
+            'port' => $s['mail_port'] ?? config('mail.mailers.smtp.port'),
             'encryption' => $s['mail_encryption'] ?: null,
-            'username'   => $s['mail_username'] ?? config('mail.mailers.smtp.username'),
-            'password'   => $s['mail_password'] ?? config('mail.mailers.smtp.password'),
-            'timeout'    => null,
+            'username' => $s['mail_username'] ?? config('mail.mailers.smtp.username'),
+            'password' => $s['mail_password'] ?? config('mail.mailers.smtp.password'),
+            'timeout' => null,
         ]);
 
         if (! empty($s['mail_from_address'])) {

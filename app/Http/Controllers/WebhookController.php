@@ -18,7 +18,7 @@ class WebhookController extends Controller
     {
         $site = ProxySite::where('notification_webhook_url', 'like', "%{$token}%")->first();
 
-        if (!$site) {
+        if (! $site) {
             return response()->json(['error' => 'Unknown token'], 404);
         }
 
@@ -28,12 +28,14 @@ class WebhookController extends Controller
             // PingPanther detected downtime - enable maintenance or failover
             $site->update(['is_maintenance' => true]);
             $this->caddy->sync();
+
             return response()->json(['status' => 'failover activated']);
         }
 
         if ($action === 'recover') {
             $site->update(['is_maintenance' => false]);
             $this->caddy->sync();
+
             return response()->json(['status' => 'recovery activated']);
         }
 

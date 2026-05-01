@@ -3,10 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SecurityEvent;
-use App\Models\ProxySite;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
@@ -45,13 +42,13 @@ class AnalyticsController extends Controller
             ->get();
 
         return Inertia::render('Analytics/Index', [
-            'eventsOverTime'    => $eventsOverTime,
-            'typeDistribution'  => $typeDistribution,
-            'topSites'          => $topSites,
-            'topAttackerIps'    => $topAttackerIps,
-            'methodDistribution'=> $methodDistribution,
-            'totalEvents'       => SecurityEvent::count(),
-            'uniqueIps'         => SecurityEvent::distinct('ip_address')->count('ip_address'),
+            'eventsOverTime' => $eventsOverTime,
+            'typeDistribution' => $typeDistribution,
+            'topSites' => $topSites,
+            'topAttackerIps' => $topAttackerIps,
+            'methodDistribution' => $methodDistribution,
+            'totalEvents' => SecurityEvent::count(),
+            'uniqueIps' => SecurityEvent::distinct('ip_address')->count('ip_address'),
         ]);
     }
 }

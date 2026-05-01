@@ -1,8 +1,13 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Services\LogParserService;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,24 +19,24 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            HandleInertiaRequests::class,
+            AddLinkHeadersForPreloadedAssets::class,
         ]);
     })
-    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+    ->withSchedule(function (Schedule $schedule): void {
         // Health checks every minute
         $schedule->command('health:check')->everyMinute();
 
         // Parse Caddy logs every minute for real-time stats
         $schedule->call(function () {
-            app(\App\Services\LogParserService::class)->parseAll();
+            app(LogParserService::class)->parseAll();
         })->everyMinute()->name('parse-caddy-logs')->withoutOverlapping();
 
         // Sync Caddy config every 5 minutes (catch any drift)
         $schedule->command('caddy:sync')->everyFiveMinutes()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, $request) {
+        $exceptions->render(function (ThrottleRequestsException $e, $request) {
             if ($request->inertia()) {
                 return back()->withErrors(['rate_limit' => 'Too many attempts. Please wait a minute before trying again.']);
             }

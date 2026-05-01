@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('config_audits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('proxy_site_id')->constrained()->cascadeOnDelete();
-            
+
             // Explicitly defining user_id to avoid datatype mismatch with users.id (integer vs bigint)
             $table->unsignedInteger('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();

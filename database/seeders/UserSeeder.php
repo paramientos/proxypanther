@@ -13,8 +13,8 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@proxypanther.com'],
             [
-                'name'              => 'Admin User',
-                'password'          => Hash::make(env('ADMIN_PASSWORD', 'password')),
+                'name' => 'Admin User',
+                'password' => Hash::make(env('ADMIN_PASSWORD', 'password')),
                 'email_verified_at' => now(),
             ]
         );

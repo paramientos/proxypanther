@@ -7,6 +7,9 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -25,17 +28,17 @@ class User extends Authenticatable
         ];
     }
 
-    public function teams(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class)->withPivot('role')->withTimestamps();
     }
 
-    public function ownedTeams(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function ownedTeams(): HasMany
     {
         return $this->hasMany(Team::class, 'owner_id');
     }
 
-    public function currentTeam(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function currentTeam(): BelongsTo
     {
         return $this->belongsTo(Team::class, 'current_team_id');
     }
