@@ -13,6 +13,7 @@ class AppSetting extends Model
     {
         return Cache::remember("setting:{$key}", 3600, function () use ($key, $default) {
             $setting = static::where('key', $key)->first();
+
             return $setting ? $setting->value : $default;
         });
     }
@@ -40,6 +41,7 @@ class AppSetting extends Model
         foreach ($keys as $key) {
             $result[$key] = $rows[$key] ?? null;
         }
+
         return $result;
     }
 }

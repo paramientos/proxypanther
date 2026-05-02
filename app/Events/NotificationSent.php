@@ -18,7 +18,7 @@ class NotificationSent implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('notifications.' . $this->notification->user_id),
+            new PrivateChannel('notifications.'.$this->notification->user_id),
         ];
     }
 
@@ -30,14 +30,14 @@ class NotificationSent implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'id'         => $this->notification->id,
-            'type'       => $this->notification->type,
-            'title'      => $this->notification->title,
-            'body'       => $this->notification->body,
-            'icon'       => $this->notification->icon,
-            'color'      => $this->notification->color,
-            'link'       => $this->notification->link,
-            'read_at'    => null,
+            'id' => $this->notification->id,
+            'type' => $this->notification->type,
+            'title' => $this->notification->title,
+            'body' => $this->notification->body,
+            'icon' => $this->notification->icon,
+            'color' => $this->notification->color,
+            'link' => $this->notification->link,
+            'read_at' => null,
             'created_at' => $this->notification->created_at->toISOString(),
         ];
     }

@@ -26,10 +26,10 @@ class SearchController extends Controller
             ->get()
             ->each(function ($site) use (&$results) {
                 $results[] = [
-                    'type'     => 'site',
-                    'label'    => $site->name,
+                    'type' => 'site',
+                    'label' => $site->name,
                     'sublabel' => $site->domain,
-                    'url'      => route('sites.show', $site),
+                    'url' => route('sites.show', $site),
                 ];
             });
 
@@ -41,10 +41,10 @@ class SearchController extends Controller
             ->get()
             ->each(function ($event) use (&$results) {
                 $results[] = [
-                    'type'     => 'log',
-                    'label'    => $event->type . ' — ' . $event->ip_address,
+                    'type' => 'log',
+                    'label' => $event->type.' — '.$event->ip_address,
                     'sublabel' => $event->request_path,
-                    'url'      => route('logs.index', ['search' => $event->ip_address]),
+                    'url' => route('logs.index', ['search' => $event->ip_address]),
                 ];
             });
 
@@ -54,10 +54,10 @@ class SearchController extends Controller
             ->get()
             ->each(function ($ip) use (&$results) {
                 $results[] = [
-                    'type'     => 'ip',
-                    'label'    => $ip->ip_address,
+                    'type' => 'ip',
+                    'label' => $ip->ip_address,
                     'sublabel' => $ip->reason ?: 'Banned IP',
-                    'url'      => route('banned-ips.index'),
+                    'url' => route('banned-ips.index'),
                 ];
             });
 

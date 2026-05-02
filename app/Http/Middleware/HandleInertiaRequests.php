@@ -42,7 +42,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
-                'error'   => $request->session()->get('error'),
+                'error' => $request->session()->get('error'),
             ],
             'unreadNotifications' => fn () => $request->user()
                 ? Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count()

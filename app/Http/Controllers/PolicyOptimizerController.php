@@ -18,8 +18,8 @@ class PolicyOptimizerController extends Controller
     public function apply(Request $request): JsonResponse
     {
         $request->validate([
-            'actions'          => 'required|array|min:1',
-            'actions.*.type'   => 'required|string',
+            'actions' => 'required|array|min:1',
+            'actions.*.type' => 'required|string',
             'actions.*.payload' => 'required|array',
         ]);
 
@@ -27,7 +27,7 @@ class PolicyOptimizerController extends Controller
 
         return response()->json([
             'applied' => $applied,
-            'count'   => count($applied),
+            'count' => count($applied),
         ]);
     }
 }

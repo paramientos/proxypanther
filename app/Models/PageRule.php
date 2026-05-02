@@ -13,12 +13,12 @@ class PageRule extends Model
         'type',
         'value',
         'priority',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'priority' => 'integer'
+        'priority' => 'integer',
     ];
 
     public function proxySite(): BelongsTo

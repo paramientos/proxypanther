@@ -17,9 +17,9 @@ class LogExplorerController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('ip_address', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhere('request_path', 'like', "%{$search}%")
-                  ->orWhere('user_agent', 'like', "%{$search}%");
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhere('request_path', 'like', "%{$search}%")
+                    ->orWhere('user_agent', 'like', "%{$search}%");
             });
         }
 
@@ -40,10 +40,10 @@ class LogExplorerController extends Controller
         }
 
         return Inertia::render('Logs/Index', [
-            'events'  => $query->paginate(50)->withQueryString(),
+            'events' => $query->paginate(50)->withQueryString(),
             'filters' => $request->only(['search', 'site_id', 'type', 'from', 'to']),
-            'sites'   => ProxySite::select('id', 'name', 'domain')->get(),
-            'types'   => SecurityEvent::distinct()->pluck('type'),
+            'sites' => ProxySite::select('id', 'name', 'domain')->get(),
+            'types' => SecurityEvent::distinct()->pluck('type'),
         ]);
     }
 
@@ -54,8 +54,8 @@ class LogExplorerController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('ip_address', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhere('request_path', 'like', "%{$search}%");
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhere('request_path', 'like', "%{$search}%");
             });
         }
         if ($siteId = $request->get('site_id')) {
@@ -91,7 +91,7 @@ class LogExplorerController extends Controller
             });
 
             fclose($handle);
-        }, 'security-events-' . now()->format('Y-m-d') . '.csv', [
+        }, 'security-events-'.now()->format('Y-m-d').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }

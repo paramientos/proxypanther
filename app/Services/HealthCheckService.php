@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Events\BackendHealthUpdated;
+use App\Models\HealthCheckLog;
 use App\Models\ProxySite;
 use App\Models\UptimeEvent;
-use App\Models\HealthCheckLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -53,7 +53,7 @@ class HealthCheckService
 
         // Uptime tracking
         if ($oldStatus !== $isOnline) {
-            if (!$isOnline) {
+            if (! $isOnline) {
                 // Site went down
                 UptimeEvent::create([
                     'proxy_site_id' => $site->id,
@@ -87,7 +87,7 @@ class HealthCheckService
         }
 
         // Set monitoring start if not set
-        if (!$site->monitoring_started_at) {
+        if (! $site->monitoring_started_at) {
             $site->update(['monitoring_started_at' => now()]);
         }
     }
@@ -99,7 +99,7 @@ class HealthCheckService
         $downSeconds = $site->total_downtime_seconds;
 
         // Also add current ongoing downtime if site is down
-        if (!$site->is_online) {
+        if (! $site->is_online) {
             $lastDown = UptimeEvent::where('proxy_site_id', $site->id)
                 ->where('type', 'down')
                 ->whereNull('duration_seconds')
@@ -117,8 +117,8 @@ class HealthCheckService
     private function checkHttp($url)
     {
         // Ensure URL has protocol
-        if (!preg_match('~^(?:f|ht)tps?://~i', $url)) {
-            $url = "http://" . $url;
+        if (! preg_match('~^(?:f|ht)tps?://~i', $url)) {
+            $url = 'http://'.$url;
         }
 
         try {
@@ -126,14 +126,15 @@ class HealthCheckService
             $response = Http::timeout(3)
                 ->connectTimeout(2)
                 ->get($url);
-            
+
             return [
                 'online' => $response->successful() || $response->status() === 503 || $response->status() === 401 || $response->status() === 403,
                 'code' => $response->status(),
-                'error' => $response->successful() ? null : "HTTP Response: " . $response->status(),
+                'error' => $response->successful() ? null : 'HTTP Response: '.$response->status(),
             ];
         } catch (\Exception $e) {
-            Log::warning("Health check failed for $url: " . $e->getMessage());
+            Log::warning("Health check failed for $url: ".$e->getMessage());
+
             return [
                 'online' => false,
                 'code' => null,
@@ -172,8 +173,10 @@ class HealthCheckService
                 $socket = @fsockopen("unix://$path", -1, $errno, $errstr, 5);
                 if ($socket) {
                     fclose($socket);
+
                     return ['online' => true, 'error' => null];
                 }
+
                 return ['online' => false, 'error' => "Socket error: $errstr ($errno)"];
             } catch (\Exception $e) {
                 return ['online' => false, 'error' => $e->getMessage()];
@@ -187,8 +190,10 @@ class HealthCheckService
                 $socket = @fsockopen($host, $port, $errno, $errstr, 5);
                 if ($socket) {
                     fclose($socket);
+
                     return ['online' => true, 'error' => null];
                 }
+
                 return ['online' => false, 'error' => "TCP error: $errstr ($errno)"];
             } catch (\Exception $e) {
                 return ['online' => false, 'error' => $e->getMessage()];

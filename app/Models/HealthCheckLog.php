@@ -15,12 +15,12 @@ class HealthCheckLog extends Model
         'response_code',
         'latency',
         'error_message',
-        'created_at'
+        'created_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
-        'latency'    => 'float',
+        'latency' => 'float',
     ];
 
     public function proxySite(): BelongsTo

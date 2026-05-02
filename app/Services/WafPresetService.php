@@ -16,7 +16,7 @@ class WafPresetService
                     ['type' => 'path', 'pattern' => '(?i)/wp-content/uploads/.*\.php', 'action' => 'block'],
                     ['type' => 'path', 'pattern' => '(?i)/wp-includes/.*\.php', 'action' => 'block'],
                     ['type' => 'query', 'pattern' => '(?i)(author|id)=', 'action' => 'block'],
-                ]
+                ],
             ],
             'laravel' => [
                 'name' => 'Laravel Fortress',
@@ -27,7 +27,7 @@ class WafPresetService
                     ['type' => 'path', 'pattern' => '(?i)(storage/logs|composer\.json|package\.json)', 'action' => 'block'],
                     ['type' => 'path', 'pattern' => '(?i)_ignition/.*', 'action' => 'block'],
                     ['type' => 'path', 'pattern' => '(?i)/vendor/.*', 'action' => 'block'],
-                ]
+                ],
             ],
             'api' => [
                 'name' => 'API Shield',
@@ -37,8 +37,8 @@ class WafPresetService
                     ['type' => 'header', 'header_name' => 'User-Agent', 'pattern' => '(?i)(sqlmap|nikto|nmap|zgrab)', 'action' => 'block'],
                     ['type' => 'query', 'pattern' => '(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|OR\s+1=1)', 'action' => 'block'],
                     ['type' => 'query', 'pattern' => '<script.*?>|javascript:', 'action' => 'block'],
-                ]
-            ]
+                ],
+            ],
         ];
     }
 }

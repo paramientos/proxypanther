@@ -2,13 +2,13 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Attributes\Description;
-use Illuminate\Console\Command;
 use App\Services\LogParserService;
+use Illuminate\Console\Command;
 
 class IngestLogsCommand extends Command
 {
     protected $signature = 'ingest:logs';
+
     protected $description = 'Ingest Caddy logs to update proxy statistics';
 
     /**
