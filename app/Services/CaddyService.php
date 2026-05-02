@@ -43,7 +43,7 @@ class CaddyService
 
     public function renderCaddyfile($sites, $bannedIps): string
     {
-        $out = "{\n    email admin@proxypanther.com\n}\n\n";
+        $out = "{\n    admin 0.0.0.0:2019\n    email admin@proxypanther.com\n}\n\n";
 
         $out .= "(common_security_headers) {\n    header {\n";
         $out .= "        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";

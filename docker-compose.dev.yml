@@ -3,32 +3,143 @@ services:
     build:
       context: .
       dockerfile: docker/caddy/Dockerfile
-    container_name: proxypanther_caddy
+    container_name: proxypanther_caddy_dev
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2019:2019"
+    environment:
+      - CADDY_ADMIN=0.0.0.0:2019
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - caddy_config_dev:/etc/caddy
+      - caddy_data_dev:/data/caddy
+      - caddy_logs_dev:/var/log/caddy
+    networks:
+      - proxypanther_dev
 
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: app
-    container_name: proxypanther_app
+      dockerfile: docker/Dockerfile.dev
+    container_name: proxypanther_app_dev
+    ports:
+      - "3434:8000"
+    env_file:
+      - .env.docker.dev
+    environment:
+      - CONTAINER_ROLE=app
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+      - /var/www/html/public/build
+      - app_storage_dev:/var/www/html/storage
+      - caddy_config_dev:/etc/caddy
+    depends_on:
+      redis:
+        condition: service_healthy
+      caddy:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - proxypanther_dev
 
   horizon:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: app
-    container_name: proxypanther_horizon
+      dockerfile: docker/Dockerfile.dev
+    container_name: proxypanther_horizon_dev
+    env_file:
+      - .env.docker.dev
+    environment:
+      - CONTAINER_ROLE=horizon
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+      - /var/www/html/public/build
+      - app_storage_dev:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - proxypanther_dev
 
   scheduler:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: app
-    container_name: proxypanther_scheduler
+      dockerfile: docker/Dockerfile.dev
+    container_name: proxypanther_scheduler_dev
+    env_file:
+      - .env.docker.dev
+    environment:
+      - CONTAINER_ROLE=scheduler
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+      - /var/www/html/public/build
+      - app_storage_dev:/var/www/html/storage
+      - caddy_config_dev:/etc/caddy
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - proxypanther_dev
 
   reverb:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: app
-    container_name: proxypanther_reverb
+      dockerfile: docker/Dockerfile.dev
+    container_name: proxypanther_reverb_dev
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.docker.dev
+    environment:
+      - CONTAINER_ROLE=reverb
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+      - /var/www/html/public/build
+      - app_storage_dev:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - proxypanther_dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: proxypanther_redis_dev
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - proxypanther_dev
+
+volumes:
+  redis_data_dev:
+  app_storage_dev:
+  caddy_config_dev:
+  caddy_data_dev:
+  caddy_logs_dev:
+
+networks:
+  proxypanther_dev:
+    driver: bridge
