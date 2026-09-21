@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class TeamController extends Controller
@@ -18,7 +16,7 @@ class TeamController extends Controller
         $ownedTeams = $user->ownedTeams()->with('users')->withCount('proxySites')->get();
 
         return Inertia::render('Teams/Index', [
-            'teams'      => $teams,
+            'teams' => $teams,
             'ownedTeams' => $ownedTeams,
         ]);
     }
@@ -28,7 +26,7 @@ class TeamController extends Controller
         $validated = $request->validate(['name' => 'required|string|max:255']);
 
         $team = Team::create([
-            'name'     => $validated['name'],
+            'name' => $validated['name'],
             'owner_id' => auth()->id(),
         ]);
 
@@ -46,7 +44,7 @@ class TeamController extends Controller
 
         $validated = $request->validate([
             'email' => 'required|email',
-            'role'  => 'required|in:admin,member,viewer',
+            'role' => 'required|in:admin,member,viewer',
         ]);
 
         $invitee = User::where('email', $validated['email'])->first();
@@ -56,9 +54,9 @@ class TeamController extends Controller
         if (! $invitee) {
             $newPassword = \Str::password(16, symbols: false);
             $invitee = User::create([
-                'name'              => explode('@', $validated['email'])[0],
-                'email'             => $validated['email'],
-                'password'          => \Hash::make($newPassword),
+                'name' => explode('@', $validated['email'])[0],
+                'email' => $validated['email'],
+                'password' => \Hash::make($newPassword),
                 'email_verified_at' => now(),
             ]);
         }

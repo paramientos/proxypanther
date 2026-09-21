@@ -10,8 +10,11 @@ use Illuminate\Support\Collection;
 class PolicyOptimizerService
 {
     private const THREAT_WINDOW_DAYS = 7;
-    private const IP_BAN_THRESHOLD   = 10;
-    private const COUNTRY_THRESHOLD  = 20;
+
+    private const IP_BAN_THRESHOLD = 10;
+
+    private const COUNTRY_THRESHOLD = 20;
+
     private const RATE_LIMIT_THRESHOLD = 50;
 
     public function analyze(): array
@@ -37,8 +40,8 @@ class PolicyOptimizerService
 
         return [
             'recommendations' => $recommendations,
-            'stats'           => $this->buildStats($events),
-            'analyzed_at'     => now()->toISOString(),
+            'stats' => $this->buildStats($events),
+            'analyzed_at' => now()->toISOString(),
         ];
     }
 
@@ -48,14 +51,14 @@ class PolicyOptimizerService
 
         foreach ($actions as $action) {
             $result = match ($action['type']) {
-                'ban_ip'           => $this->applyBanIp($action),
-                'block_country'    => $this->applyBlockCountry($action),
-                'enable_waf'       => $this->applyEnableWaf($action),
+                'ban_ip' => $this->applyBanIp($action),
+                'block_country' => $this->applyBlockCountry($action),
+                'enable_waf' => $this->applyEnableWaf($action),
                 'increase_rate_limit' => $this->applyRateLimit($action),
                 'enable_bot_fight' => $this->applyBotFight($action),
                 'enable_under_attack' => $this->applyUnderAttack($action),
-                'add_waf_rule'     => $this->applyWafRule($action),
-                default            => null,
+                'add_waf_rule' => $this->applyWafRule($action),
+                default => null,
             };
 
             if ($result) {
@@ -83,14 +86,14 @@ class PolicyOptimizerService
             }
 
             $recommendations[] = [
-                'id'             => 'ban_ip_' . md5($ip),
-                'type'           => 'ban_ip',
-                'severity'       => $count >= 50 ? 'critical' : 'high',
+                'id' => 'ban_ip_'.md5($ip),
+                'type' => 'ban_ip',
+                'severity' => $count >= 50 ? 'critical' : 'high',
                 'severity_score' => min(100, $count * 2),
-                'title'          => "Ban malicious IP: {$ip}",
-                'description'    => "This IP triggered {$count} security events in the last " . self::THREAT_WINDOW_DAYS . " days.",
-                'impact'         => 'Immediately blocks all traffic from this IP across all sites.',
-                'payload'        => ['ip' => $ip, 'reason' => "Auto-banned: {$count} security events in " . self::THREAT_WINDOW_DAYS . " days"],
+                'title' => "Ban malicious IP: {$ip}",
+                'description' => "This IP triggered {$count} security events in the last ".self::THREAT_WINDOW_DAYS.' days.',
+                'impact' => 'Immediately blocks all traffic from this IP across all sites.',
+                'payload' => ['ip' => $ip, 'reason' => "Auto-banned: {$count} security events in ".self::THREAT_WINDOW_DAYS.' days'],
             ];
         }
 
@@ -120,14 +123,14 @@ class PolicyOptimizerService
                 }
 
                 $recommendations[] = [
-                    'id'             => "block_country_{$code}_{$site->id}",
-                    'type'           => 'block_country',
-                    'severity'       => 'high',
+                    'id' => "block_country_{$code}_{$site->id}",
+                    'type' => 'block_country',
+                    'severity' => 'high',
                     'severity_score' => min(90, $data['count']),
-                    'title'          => "Block {$data['name']} ({$code}) on {$site->name}",
-                    'description'    => "{$data['count']} attacks originated from {$data['name']} in the last " . self::THREAT_WINDOW_DAYS . " days.",
-                    'impact'         => "Adds {$code} to the GeoIP denylist for {$site->name}.",
-                    'payload'        => ['site_id' => $site->id, 'country_code' => $code],
+                    'title' => "Block {$data['name']} ({$code}) on {$site->name}",
+                    'description' => "{$data['count']} attacks originated from {$data['name']} in the last ".self::THREAT_WINDOW_DAYS.' days.',
+                    'impact' => "Adds {$code} to the GeoIP denylist for {$site->name}.",
+                    'payload' => ['site_id' => $site->id, 'country_code' => $code],
                 ];
             }
         }
@@ -150,45 +153,45 @@ class PolicyOptimizerService
         foreach ($sites as $site) {
             if (($sqlCount + $xssCount) >= 5 && ! $site->waf_enabled) {
                 $recommendations[] = [
-                    'id'             => "enable_waf_{$site->id}",
-                    'type'           => 'enable_waf',
-                    'severity'       => 'critical',
+                    'id' => "enable_waf_{$site->id}",
+                    'type' => 'enable_waf',
+                    'severity' => 'critical',
                     'severity_score' => 95,
-                    'title'          => "Enable WAF on {$site->name}",
-                    'description'    => "Detected {$sqlCount} SQLi and {$xssCount} XSS attempts. WAF is currently disabled.",
-                    'impact'         => 'Enables Web Application Firewall to filter malicious requests.',
-                    'payload'        => ['site_id' => $site->id],
+                    'title' => "Enable WAF on {$site->name}",
+                    'description' => "Detected {$sqlCount} SQLi and {$xssCount} XSS attempts. WAF is currently disabled.",
+                    'impact' => 'Enables Web Application Firewall to filter malicious requests.',
+                    'payload' => ['site_id' => $site->id],
                 ];
             }
 
             if ($botCount >= 10 && ! $site->bot_fight_mode) {
                 $recommendations[] = [
-                    'id'             => "enable_bot_fight_{$site->id}",
-                    'type'           => 'enable_bot_fight',
-                    'severity'       => 'medium',
+                    'id' => "enable_bot_fight_{$site->id}",
+                    'type' => 'enable_bot_fight',
+                    'severity' => 'medium',
                     'severity_score' => 60,
-                    'title'          => "Enable Bot Fight Mode on {$site->name}",
-                    'description'    => "Detected {$botCount} bot/scanner requests targeting this site.",
-                    'impact'         => 'Challenges and blocks automated bot traffic.',
-                    'payload'        => ['site_id' => $site->id],
+                    'title' => "Enable Bot Fight Mode on {$site->name}",
+                    'description' => "Detected {$botCount} bot/scanner requests targeting this site.",
+                    'impact' => 'Challenges and blocks automated bot traffic.',
+                    'payload' => ['site_id' => $site->id],
                 ];
             }
         }
 
         if ($sqlCount >= 20) {
             $recommendations[] = [
-                'id'             => 'add_waf_rule_sqli_global',
-                'type'           => 'add_waf_rule',
-                'severity'       => 'critical',
+                'id' => 'add_waf_rule_sqli_global',
+                'type' => 'add_waf_rule',
+                'severity' => 'critical',
                 'severity_score' => 98,
-                'title'          => 'Add global SQLi WAF rule',
-                'description'    => "Detected {$sqlCount} SQL injection attempts across all sites.",
-                'impact'         => 'Adds a WAF rule blocking common SQL injection patterns on all active sites.',
-                'payload'        => [
+                'title' => 'Add global SQLi WAF rule',
+                'description' => "Detected {$sqlCount} SQL injection attempts across all sites.",
+                'impact' => 'Adds a WAF rule blocking common SQL injection patterns on all active sites.',
+                'payload' => [
                     'rule' => [
-                        'type'    => 'query',
+                        'type' => 'query',
                         'pattern' => '(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|OR\s+1=1|AND\s+1=1)',
-                        'action'  => 'block',
+                        'action' => 'block',
                     ],
                     'all_sites' => true,
                 ],
@@ -222,14 +225,14 @@ class PolicyOptimizerService
             }
 
             $recommendations[] = [
-                'id'             => "rate_limit_{$siteId}",
-                'type'           => 'increase_rate_limit',
-                'severity'       => 'medium',
+                'id' => "rate_limit_{$siteId}",
+                'type' => 'increase_rate_limit',
+                'severity' => 'medium',
                 'severity_score' => min(75, $count),
-                'title'          => "Tighten rate limit on {$site->name}",
-                'description'    => "{$count} security events detected. Current limit: {$currentRps} req/s.",
-                'impact'         => "Reduces rate limit from {$currentRps} to {$suggestedRps} req/s to throttle attackers.",
-                'payload'        => ['site_id' => $siteId, 'rate_limit_rps' => $suggestedRps],
+                'title' => "Tighten rate limit on {$site->name}",
+                'description' => "{$count} security events detected. Current limit: {$currentRps} req/s.",
+                'impact' => "Reduces rate limit from {$currentRps} to {$suggestedRps} req/s to throttle attackers.",
+                'payload' => ['site_id' => $siteId, 'rate_limit_rps' => $suggestedRps],
             ];
         }
 
@@ -251,19 +254,19 @@ class PolicyOptimizerService
 
             foreach ($sites as $site) {
                 $recommendations[] = [
-                    'id'             => "protect_files_{$site->id}",
-                    'type'           => 'add_waf_rule',
-                    'severity'       => 'high',
+                    'id' => "protect_files_{$site->id}",
+                    'type' => 'add_waf_rule',
+                    'severity' => 'high',
                     'severity_score' => 80,
-                    'title'          => "Protect sensitive files on {$site->name}",
-                    'description'    => "Detected {$pathEvents->count()} probes targeting .env, wp-config, xmlrpc files.",
-                    'impact'         => 'Blocks access to sensitive configuration files.',
-                    'payload'        => [
+                    'title' => "Protect sensitive files on {$site->name}",
+                    'description' => "Detected {$pathEvents->count()} probes targeting .env, wp-config, xmlrpc files.",
+                    'impact' => 'Blocks access to sensitive configuration files.',
+                    'payload' => [
                         'site_id' => $site->id,
-                        'rule'    => [
-                            'type'    => 'path',
+                        'rule' => [
+                            'type' => 'path',
                             'pattern' => '(?i)(\.env|wp-config|xmlrpc|composer\.json|\.git)',
-                            'action'  => 'block',
+                            'action' => 'block',
                         ],
                     ],
                 ];
@@ -276,11 +279,11 @@ class PolicyOptimizerService
     private function buildStats(Collection $events): array
     {
         return [
-            'total_events'    => $events->count(),
-            'unique_ips'      => $events->pluck('ip_address')->filter()->unique()->count(),
+            'total_events' => $events->count(),
+            'unique_ips' => $events->pluck('ip_address')->filter()->unique()->count(),
             'unique_countries' => $events->pluck('country_code')->filter()->unique()->count(),
-            'top_type'        => $events->groupBy('type')->map(fn ($g) => $g->count())->sort(fn ($a, $b) => $b <=> $a)->keys()->first(),
-            'window_days'     => self::THREAT_WINDOW_DAYS,
+            'top_type' => $events->groupBy('type')->map(fn ($g) => $g->count())->sort(fn ($a, $b) => $b <=> $a)->keys()->first(),
+            'window_days' => self::THREAT_WINDOW_DAYS,
         ];
     }
 
@@ -302,7 +305,7 @@ class PolicyOptimizerService
     private function applyBlockCountry(array $action): ?array
     {
         $siteId = $action['payload']['site_id'] ?? null;
-        $code   = $action['payload']['country_code'] ?? null;
+        $code = $action['payload']['country_code'] ?? null;
 
         if (! $siteId || ! $code) {
             return null;
@@ -320,7 +323,7 @@ class PolicyOptimizerService
 
         $site->update([
             'geoip_denylist' => $denylist,
-            'geoip_enabled'  => true,
+            'geoip_enabled' => true,
         ]);
 
         return ['type' => 'block_country', 'site' => $site->name, 'country' => $code];

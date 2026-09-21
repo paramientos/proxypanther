@@ -390,15 +390,22 @@ class ProxySiteController extends Controller
             ->filter(fn ($route) => \is_array($route) && $this->isRenderableAdvancedRoute($route))
             ->map(function ($route) {
                 $matcherType = (string) ($route['matcher_type'] ?? 'path');
+                $matcherType = in_array($matcherType, ['path', 'path_prefix', 'header'], true) ? $matcherType : 'path';
+                $matcherValue = $this->normalizeRouteMatcherValue($matcherType, $route['matcher_value'] ?? '/*');
                 $transport = (string) ($route['transport'] ?? 'http');
                 $action = (string) ($route['action'] ?? 'reverse_proxy');
                 $action = in_array($action, ['reverse_proxy', 'respond'], true) ? $action : 'reverse_proxy';
+                $upstreamUrl = trim((string) ($route['upstream_url'] ?? ''));
+
+                if ($matcherValue === null || ($action === 'reverse_proxy' && ! $this->isSafeCaddyToken($upstreamUrl))) {
+                    return null;
+                }
 
                 $normalized = [
                     'name' => (string) ($route['name'] ?? ''),
                     'priority' => (int) ($route['priority'] ?? 100),
-                    'matcher_type' => in_array($matcherType, ['path', 'path_prefix', 'header'], true) ? $matcherType : 'path',
-                    'matcher_value' => $route['matcher_value'] ?? '/*',
+                    'matcher_type' => $matcherType,
+                    'matcher_value' => $matcherValue,
                     'action' => $action,
                     'is_active' => (bool) ($route['is_active'] ?? true),
                 ];
@@ -412,12 +419,13 @@ class ProxySiteController extends Controller
                 }
 
                 return $normalized + [
-                    'upstream_url' => (string) $route['upstream_url'],
+                    'upstream_url' => $upstreamUrl,
                     'transport' => in_array($transport, ['http', 'https', 'h2c', 'https_skip_verify'], true) ? $transport : 'http',
                     'preserve_host' => (bool) ($route['preserve_host'] ?? false),
-                    'header_up' => \is_array($route['header_up'] ?? null) ? $route['header_up'] : [],
+                    'header_up' => $this->normalizeHeaderPairs($route['header_up'] ?? []),
                 ];
             })
+            ->filter()
             ->sortBy('priority')
             ->values()
             ->all();
@@ -455,5 +463,74 @@ class ProxySiteController extends Controller
         }
 
         return array_values(array_filter(array_map('strval', $value)));
+    }
+
+    private function normalizeRouteMatcherValue(string $matcherType, mixed $value): ?string
+    {
+        if (\is_array($value)) {
+            $value = implode(' ', array_filter($value, fn ($item) => \is_scalar($item)));
+        }
+
+        $value = trim((string) $value);
+
+        if ($matcherType === 'header') {
+            [$header, $expected] = array_pad(explode(':', $value, 2), 2, '*');
+            $header = trim($header);
+
+            if (! $this->isValidHeaderFieldName($header)) {
+                return null;
+            }
+
+            return $header.': '.$this->stripCaddyControlChars(trim($expected));
+        }
+
+        $paths = collect(preg_split('/\s+/', $value, -1, PREG_SPLIT_NO_EMPTY) ?: [])
+            ->map(fn ($path) => trim((string) $path))
+            ->filter(fn ($path) => $path !== '' && ! preg_match('/["{}]/', $path))
+            ->values();
+
+        return $paths->isEmpty() ? '/*' : $paths->implode(' ');
+    }
+
+    private function normalizeHeaderPairs(mixed $headers): array
+    {
+        if (! \is_array($headers)) {
+            return [];
+        }
+
+        $entries = array_is_list($headers)
+            ? collect($headers)
+                ->filter(fn ($header) => \is_array($header))
+                ->map(fn ($header) => [
+                    'name' => ltrim(trim((string) ($header['name'] ?? '')), '-'),
+                    'value' => $this->stripCaddyControlChars((string) ($header['value'] ?? '')),
+                    'action' => (($header['action'] ?? 'set') === 'remove' || str_starts_with(trim((string) ($header['name'] ?? '')), '-')) ? 'remove' : 'set',
+                ])
+            : collect($headers)
+                ->map(fn ($value, $key) => [
+                    'name' => ltrim(trim((string) $key), '-'),
+                    'value' => $this->stripCaddyControlChars((string) $value),
+                    'action' => str_starts_with(trim((string) $key), '-') ? 'remove' : 'set',
+                ]);
+
+        return $entries
+            ->filter(fn ($header) => $this->isValidHeaderFieldName($header['name']))
+            ->values()
+            ->all();
+    }
+
+    private function isSafeCaddyToken(string $value): bool
+    {
+        return $value !== '' && ! preg_match('/[\s"{}]/', $value);
+    }
+
+    private function isValidHeaderFieldName(string $name): bool
+    {
+        return $name !== '' && preg_match('/^[!#$%&\'*+\-.^_`|~0-9A-Za-z]+$/', $name) === 1;
+    }
+
+    private function stripCaddyControlChars(string $value): string
+    {
+        return str_replace(["\r", "\n"], '', trim($value));
     }
 }

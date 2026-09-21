@@ -372,7 +372,11 @@ class CaddyService
         if ($forwardAuth !== null) {
             foreach ($forwardAuth['bypass_routes'] as $idx => $route) {
                 $matcher = "forward_auth_bypass_{$idx}";
-                $out .= $this->renderRouteMatcher($matcher, $route, 2);
+                $matcherBlock = $this->renderRouteMatcher($matcher, $route, 2);
+                if ($matcherBlock === '') {
+                    continue;
+                }
+                $out .= $matcherBlock;
                 $out .= "        handle @{$matcher} {\n";
                 $out .= $this->renderAdvancedRouteAction($route, 3);
                 $out .= "        }\n";
@@ -395,7 +399,11 @@ class CaddyService
         if ($advancedRoutes !== []) {
             foreach ($advancedRoutes as $idx => $route) {
                 $matcher = "advanced_route_{$idx}";
-                $out .= $this->renderRouteMatcher($matcher, $route, 2);
+                $matcherBlock = $this->renderRouteMatcher($matcher, $route, 2);
+                if ($matcherBlock === '') {
+                    continue;
+                }
+                $out .= $matcherBlock;
                 $out .= "        handle @{$matcher} {\n";
                 $out .= $this->renderAdvancedRouteAction($route, 3);
                 $out .= "        }\n";
@@ -485,14 +493,14 @@ class CaddyService
         }
 
         $value = trim((string) $value);
-        if ($value === '') {
+        if ($value === '' && $type !== 'header') {
             $value = '/*';
         }
 
         return match ($type) {
-            'path_prefix' => "{$pad}@{$name} path {$this->pathPrefixMatcher($value)}\n",
+            'path_prefix' => "{$pad}@{$name} path {$this->pathPrefixMatcher($value ?: '/*')}\n",
             'header' => $this->renderHeaderMatcher($name, $value, $indent),
-            default => "{$pad}@{$name} path {$value}\n",
+            default => "{$pad}@{$name} path {$this->pathMatcher($value)}\n",
         };
     }
 
@@ -500,9 +508,13 @@ class CaddyService
     {
         $pad = str_repeat('    ', $indent);
         $inner = str_repeat('    ', $indent + 1);
-        [$header, $expected] = array_pad(explode(':', $value, 2), 2, '*');
+        $matcher = $this->parseHeaderMatcher($value);
+        if ($matcher === null) {
+            return '';
+        }
+        [$header, $expected] = $matcher;
 
-        return "{$pad}@{$name} {\n{$inner}header ".trim($header).' "'.trim($expected)."\"\n{$pad}}\n";
+        return "{$pad}@{$name} {\n{$inner}header {$header} \"{$expected}\"\n{$pad}}\n";
     }
 
     protected function renderAdvancedRouteAction(array $route, int $indent): string
@@ -533,6 +545,10 @@ class CaddyService
         $preserveHost = (bool) ($route['preserve_host'] ?? false);
         $skipVerify = ($route['transport'] ?? 'http') === 'https_skip_verify';
 
+        if ($upstream === null) {
+            return '';
+        }
+
         if (! $preserveHost && $headerUp === [] && ! $skipVerify) {
             return "{$pad}reverse_proxy {$upstream}\n";
         }
@@ -558,13 +574,21 @@ class CaddyService
         return $out;
     }
 
-    protected function routeUpstream(array $route): string
+    protected function routeUpstream(array $route): ?string
     {
         $url = trim((string) ($route['upstream_url'] ?? ''));
         $transport = $route['transport'] ?? 'http';
 
+        if (! $this->isSafeCaddyToken($url)) {
+            return null;
+        }
+
         if ($transport === 'h2c') {
             return 'h2c://'.preg_replace('~^https?://~', '', $url);
+        }
+
+        if ($transport === 'https' && ! str_starts_with($url, 'https://')) {
+            return 'https://'.preg_replace('~^https?://~', '', $url);
         }
 
         if ($transport === 'https_skip_verify' && ! str_starts_with($url, 'https://')) {
@@ -577,7 +601,10 @@ class CaddyService
     protected function activeAdvancedRoutes(ProxySite $site): array
     {
         return collect($site->advanced_routes ?? [])
-            ->filter(fn ($route) => \is_array($route) && ($route['is_active'] ?? true) && $this->isRenderableAdvancedRoute($route))
+            ->filter(fn ($route) => \is_array($route)
+                && ($route['is_active'] ?? true)
+                && $this->routeMatcherIsRenderable($route)
+                && $this->isRenderableAdvancedRoute($route))
             ->sortBy(fn ($route) => (int) ($route['priority'] ?? 100))
             ->values()
             ->all();
@@ -589,7 +616,7 @@ class CaddyService
             return array_key_exists('respond_body', $route) || array_key_exists('respond_status', $route);
         }
 
-        return ! empty($route['upstream_url']);
+        return $this->routeUpstream($route) !== null;
     }
 
     protected function hasCatchAllAdvancedRoute(array $routes): bool
@@ -618,7 +645,7 @@ class CaddyService
         }
 
         $authUpstream = trim((string) ($config['auth_upstream_url'] ?? ''));
-        if ($authUpstream === '') {
+        if (! $this->isSafeCaddyToken($authUpstream)) {
             return null;
         }
 
@@ -628,7 +655,9 @@ class CaddyService
             'copy_headers' => $this->normalizeList($config['copy_headers'] ?? []),
             'trusted_proxies' => $this->normalizeList($config['trusted_proxies'] ?? []),
             'bypass_routes' => collect($config['bypass_routes'] ?? [])
-                ->filter(fn ($route) => \is_array($route) && ! empty($route['upstream_url']))
+                ->filter(fn ($route) => \is_array($route)
+                    && $this->routeUpstream($route) !== null
+                    && $this->routeMatcherIsRenderable($route))
                 ->values()
                 ->all(),
         ];
@@ -641,10 +670,10 @@ class CaddyService
                 ->filter(fn ($header) => \is_array($header) && ! empty($header['name']))
                 ->map(fn ($header) => [
                     'name' => ltrim(trim((string) $header['name']), '-'),
-                    'value' => (string) ($header['value'] ?? ''),
+                    'value' => $this->sanitizeCaddyQuotedValue((string) ($header['value'] ?? '')),
                     'action' => (($header['action'] ?? 'set') === 'remove' || str_starts_with(trim((string) $header['name']), '-')) ? 'remove' : 'set',
                 ])
-                ->filter(fn ($header) => $header['name'] !== '')
+                ->filter(fn ($header) => $this->isValidHeaderFieldName($header['name']))
                 ->values()
                 ->all();
         }
@@ -652,10 +681,10 @@ class CaddyService
         return collect($headers)
             ->map(fn ($value, $key) => [
                 'name' => ltrim(trim((string) $key), '-'),
-                'value' => (string) $value,
+                'value' => $this->sanitizeCaddyQuotedValue((string) $value),
                 'action' => str_starts_with(trim((string) $key), '-') ? 'remove' : 'set',
             ])
-            ->filter(fn ($header) => $header['name'] !== '')
+            ->filter(fn ($header) => $this->isValidHeaderFieldName($header['name']))
             ->values()
             ->all();
     }
@@ -673,11 +702,65 @@ class CaddyService
         return array_values(array_filter(array_map('strval', $value)));
     }
 
+    protected function routeMatcherIsRenderable(array $route): bool
+    {
+        $type = $route['matcher_type'] ?? 'path';
+        $value = $route['matcher_value'] ?? '';
+
+        if ($type !== 'header') {
+            return true;
+        }
+
+        if (\is_array($value)) {
+            $value = implode(' ', array_filter($value));
+        }
+
+        return $this->parseHeaderMatcher((string) $value) !== null;
+    }
+
+    protected function parseHeaderMatcher(string $value): ?array
+    {
+        [$header, $expected] = array_pad(explode(':', $value, 2), 2, '*');
+        $header = trim($header);
+
+        if (! $this->isValidHeaderFieldName($header)) {
+            return null;
+        }
+
+        return [$header, $this->sanitizeCaddyQuotedValue(trim($expected))];
+    }
+
+    protected function isSafeCaddyToken(string $value): bool
+    {
+        return $value !== '' && ! preg_match('/[\s"{}]/', $value);
+    }
+
+    protected function isValidHeaderFieldName(string $name): bool
+    {
+        return $name !== '' && preg_match('/^[!#$%&\'*+\-.^_`|~0-9A-Za-z]+$/', $name) === 1;
+    }
+
+    protected function sanitizeCaddyQuotedValue(string $value): string
+    {
+        $value = str_replace(["\r", "\n"], '', trim($value));
+
+        return str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
+    }
+
+    protected function pathMatcher(string $value): string
+    {
+        $paths = preg_split('/\s+/', $value, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $safePaths = array_filter($paths, fn ($path) => ! preg_match('/["{}]/', (string) $path));
+
+        return $safePaths === [] ? '/*' : implode(' ', $safePaths);
+    }
+
     protected function pathPrefixMatcher(string $value): string
     {
         return collect(preg_split('/\s+/', $value, -1, PREG_SPLIT_NO_EMPTY))
+            ->filter(fn ($path) => ! preg_match('/["{}]/', (string) $path))
             ->map(fn ($path) => str_ends_with($path, '*') ? $path : rtrim($path, '/').'*')
-            ->implode(' ');
+            ->implode(' ') ?: '/*';
     }
 
     /**
