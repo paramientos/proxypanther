@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\ProxySite;
 use App\Models\SecurityEvent;
 use Illuminate\Database\Seeder;

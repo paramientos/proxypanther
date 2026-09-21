@@ -13,9 +13,7 @@ class SecurityEventOccurred implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public SecurityEvent $event)
-    {
-    }
+    public function __construct(public SecurityEvent $event) {}
 
     /**
      * Get the channels the event should broadcast on.

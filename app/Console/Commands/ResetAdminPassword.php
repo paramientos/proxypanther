@@ -21,6 +21,7 @@ class ResetAdminPassword extends Command
 
         if (! $user) {
             $this->error("No user found with email: {$email}");
+
             return self::FAILURE;
         }
 

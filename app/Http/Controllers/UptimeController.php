@@ -16,6 +16,7 @@ class UptimeController extends Controller
         ])->get()->map(function ($site) {
             // uptime_percentage stored as 0-10000 (100.00% = 10000)
             $site->uptime_pct = number_format($site->uptime_percentage / 100, 2);
+
             return $site;
         });
 
@@ -26,7 +27,7 @@ class UptimeController extends Controller
             ->groupBy('proxy_site_id');
 
         return Inertia::render('Uptime/Index', [
-            'sites'  => $sites,
+            'sites' => $sites,
             'events' => $events,
         ]);
     }
