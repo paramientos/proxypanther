@@ -100,6 +100,81 @@ it('renders forward auth after bypass routes and before protected backends', fun
     expect(strpos($caddyfile, 'forward_auth http://authentik:9000'))->toBeLessThan(strpos($caddyfile, 'reverse_proxy http://app:7575'));
 });
 
+it('renders advanced route upstream header removals inside the reverse proxy block', function () {
+    ProxySite::create([
+        'name' => 'Header Removal App',
+        'domain' => 'headers.example.com',
+        'backend_url' => 'http://fallback:8080',
+        'waf_enabled' => false,
+        'protect_sensitive_files' => false,
+        'advanced_routes' => [
+            [
+                'name' => 'Auth Outpost',
+                'priority' => 10,
+                'matcher_type' => 'path',
+                'matcher_value' => '/outpost.goauthentik.io/*',
+                'upstream_url' => 'http://authentik:9000',
+                'transport' => 'http',
+                'header_up' => [
+                    ['name' => 'X-Forwarded-User', 'action' => 'remove'],
+                    ['name' => 'X-ProxyPanther-Route', 'value' => 'auth'],
+                ],
+                'is_active' => true,
+            ],
+        ],
+    ]);
+
+    $caddyfile = app(CaddyService::class)->renderCaddyfile(ProxySite::with('pageRules')->get(), collect());
+
+    expect($caddyfile)->toContain(<<<'CADDY'
+        handle @advanced_route_0 {
+            reverse_proxy http://authentik:9000 {
+                header_up -X-Forwarded-User
+                header_up X-ProxyPanther-Route "auth"
+            }
+        }
+CADDY);
+});
+
+it('renders advanced respond routes without requiring an upstream backend', function () {
+    ProxySite::create([
+        'name' => 'Fallback Respond App',
+        'domain' => 'fallback.example.com',
+        'backend_url' => 'http://backend:8080',
+        'waf_enabled' => false,
+        'protect_sensitive_files' => false,
+        'advanced_routes' => [
+            [
+                'name' => 'Explicit API Backend',
+                'priority' => 10,
+                'matcher_type' => 'path',
+                'matcher_value' => '/api/*',
+                'action' => 'reverse_proxy',
+                'upstream_url' => 'http://api:8080',
+                'transport' => 'http',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Catch-all Not Found',
+                'priority' => 999,
+                'matcher_type' => 'path',
+                'matcher_value' => '/*',
+                'action' => 'respond',
+                'respond_body' => 'Not found',
+                'respond_status' => 404,
+                'is_active' => true,
+            ],
+        ],
+    ]);
+
+    $caddyfile = app(CaddyService::class)->renderCaddyfile(ProxySite::with('pageRules')->get(), collect());
+
+    expect($caddyfile)
+        ->toContain("@advanced_route_1 path /*\n")
+        ->toContain("handle @advanced_route_1 {\n            respond \"Not found\" 404\n        }")
+        ->not->toContain("handle {\n            reverse_proxy http://backend:8080\n        }");
+});
+
 it('sanitizes advanced route caddy inputs before rendering', function () {
     ProxySite::create([
         'name' => 'Secure App',
@@ -183,5 +258,7 @@ it('normalizes advanced route caddy inputs before persistence', function () {
     expect($routes)->toHaveCount(1)
         ->and($routes[0]['upstream_url'])->toBe('app:443')
         ->and($routes[0]['matcher_value'])->toBe('X-Canary: blue')
-        ->and($routes[0]['header_up'])->toBe(['X-Trace' => 'alphabeta']);
+        ->and($routes[0]['header_up'])->toBe([
+            ['name' => 'X-Trace', 'value' => 'alphabeta', 'action' => 'set'],
+        ]);
 });

@@ -1020,7 +1020,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                         />
                     </SectionCard>
 
-                    <SectionCard title="Header Rules" description="Inject or remove HTTP response headers">
+                    <SectionCard title="Header Rules" description="Inject or remove site-level HTTP headers; use Advanced Edge Routing for route-specific upstream header_up rules">
                         <KeyValueEditor
                             label="Headers"
                             value={data.header_rules}
@@ -1030,7 +1030,7 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
                         />
                     </SectionCard>
 
-                    <SectionCard title="Advanced Edge Routing" description="Path, prefix, or header matched routes for complex Caddy edge traffic">
+                    <SectionCard title="Advanced Edge Routing" description="Path, prefix, or header matched routes; action can reverse_proxy or respond for literal Caddy fallbacks">
                         <JsonEditor
                             label="Routes"
                             value={data.advanced_routes}
@@ -1041,10 +1041,24 @@ export default function Show({ auth, analytics, bandwidth, wafPresets, errorTemp
     "priority": 10,
     "matcher_type": "path",
     "matcher_value": "/signalexchange.SignalExchange/* /management.ManagementService/*",
+    "action": "reverse_proxy",
     "upstream_url": "netbird-server:80",
     "transport": "h2c",
     "preserve_host": false,
-    "header_up": {},
+    "header_up": [
+      { "name": "X-Forwarded-User", "action": "remove" },
+      { "name": "X-ProxyPanther-Route", "value": "grpc" }
+    ],
+    "is_active": true
+  },
+  {
+    "name": "Catch-all Not Found",
+    "priority": 999,
+    "matcher_type": "path",
+    "matcher_value": "/*",
+    "action": "respond",
+    "respond_body": "Not found",
+    "respond_status": 404,
     "is_active": true
   }
 ]`}

@@ -387,7 +387,7 @@ class CaddyService
                 }
                 $out .= $matcherBlock;
                 $out .= "        handle @{$matcher} {\n";
-                $out .= $this->renderAdvancedRouteProxy($route, 3);
+                $out .= $this->renderAdvancedRouteAction($route, 3);
                 $out .= "        }\n";
             }
 
@@ -414,13 +414,15 @@ class CaddyService
                 }
                 $out .= $matcherBlock;
                 $out .= "        handle @{$matcher} {\n";
-                $out .= $this->renderAdvancedRouteProxy($route, 3);
+                $out .= $this->renderAdvancedRouteAction($route, 3);
                 $out .= "        }\n";
             }
 
-            $out .= "        handle {\n";
-            $out .= $this->renderBackend($site, 3);
-            $out .= "        }\n";
+            if (! $this->hasCatchAllAdvancedRoute($advancedRoutes)) {
+                $out .= "        handle {\n";
+                $out .= $this->renderBackend($site, 3);
+                $out .= "        }\n";
+            }
         } else {
             $out .= $this->renderBackend($site, 2);
         }
@@ -524,12 +526,31 @@ class CaddyService
         return "{$pad}@{$name} {\n{$inner}header {$header} \"{$expected}\"\n{$pad}}\n";
     }
 
+    protected function renderAdvancedRouteAction(array $route, int $indent): string
+    {
+        if (($route['action'] ?? 'reverse_proxy') === 'respond') {
+            return $this->renderAdvancedRouteRespond($route, $indent);
+        }
+
+        return $this->renderAdvancedRouteProxy($route, $indent);
+    }
+
+    protected function renderAdvancedRouteRespond(array $route, int $indent): string
+    {
+        $pad = str_repeat('    ', $indent);
+        $body = addcslashes((string) ($route['respond_body'] ?? ''), '\\"');
+        $status = (int) ($route['respond_status'] ?? 200);
+        $status = $status >= 100 && $status <= 599 ? $status : 200;
+
+        return "{$pad}respond \"{$body}\" {$status}\n";
+    }
+
     protected function renderAdvancedRouteProxy(array $route, int $indent): string
     {
         $pad = str_repeat('    ', $indent);
         $inner = str_repeat('    ', $indent + 1);
         $upstream = $this->routeUpstream($route);
-        $headerUp = $this->normalizeHeaderPairs($route['header_up'] ?? []);
+        $headerUp = $this->normalizeHeaderRules($route['header_up'] ?? []);
         $preserveHost = (bool) ($route['preserve_host'] ?? false);
         $skipVerify = ($route['transport'] ?? 'http') === 'https_skip_verify';
 
@@ -545,8 +566,12 @@ class CaddyService
         if ($preserveHost) {
             $out .= "{$inner}header_up Host {host}\n";
         }
-        foreach ($headerUp as $name => $value) {
-            $out .= "{$inner}header_up {$name} \"{$value}\"\n";
+        foreach ($headerUp as $header) {
+            if ($header['action'] === 'remove') {
+                $out .= "{$inner}header_up -{$header['name']}\n";
+            } else {
+                $out .= "{$inner}header_up {$header['name']} \"{$header['value']}\"\n";
+            }
         }
         if ($skipVerify) {
             $out .= "{$inner}transport http {\n";
@@ -587,11 +612,38 @@ class CaddyService
         return collect($site->advanced_routes ?? [])
             ->filter(fn ($route) => \is_array($route)
                 && ($route['is_active'] ?? true)
-                && $this->routeUpstream($route) !== null
-                && $this->routeMatcherIsRenderable($route))
+                && $this->routeMatcherIsRenderable($route)
+                && $this->isRenderableAdvancedRoute($route))
             ->sortBy(fn ($route) => (int) ($route['priority'] ?? 100))
             ->values()
             ->all();
+    }
+
+    protected function isRenderableAdvancedRoute(array $route): bool
+    {
+        if (($route['action'] ?? 'reverse_proxy') === 'respond') {
+            return array_key_exists('respond_body', $route) || array_key_exists('respond_status', $route);
+        }
+
+        return $this->routeUpstream($route) !== null;
+    }
+
+    protected function hasCatchAllAdvancedRoute(array $routes): bool
+    {
+        foreach ($routes as $route) {
+            $type = $route['matcher_type'] ?? 'path';
+            $values = preg_split('/\s+/', trim((string) ($route['matcher_value'] ?? '')), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+            if ($type === 'path' && in_array('/*', $values, true)) {
+                return true;
+            }
+
+            if ($type === 'path_prefix' && in_array('/', $values, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function forwardAuthConfig(ProxySite $site): ?array
@@ -620,23 +672,29 @@ class CaddyService
         ];
     }
 
-    protected function normalizeHeaderPairs(array $headers): array
+    protected function normalizeHeaderRules(array $headers): array
     {
         if (array_is_list($headers)) {
             return collect($headers)
                 ->filter(fn ($header) => \is_array($header) && ! empty($header['name']))
-                ->mapWithKeys(fn ($header) => [
-                    trim((string) $header['name']) => $this->sanitizeCaddyQuotedValue((string) ($header['value'] ?? '')),
+                ->map(fn ($header) => [
+                    'name' => ltrim(trim((string) $header['name']), '-'),
+                    'value' => $this->sanitizeCaddyQuotedValue((string) ($header['value'] ?? '')),
+                    'action' => (($header['action'] ?? 'set') === 'remove' || str_starts_with(trim((string) $header['name']), '-')) ? 'remove' : 'set',
                 ])
-                ->filter(fn ($value, $key) => $this->isValidHeaderFieldName((string) $key))
+                ->filter(fn ($header) => $this->isValidHeaderFieldName($header['name']))
+                ->values()
                 ->all();
         }
 
         return collect($headers)
-            ->mapWithKeys(fn ($value, $key) => [
-                trim((string) $key) => $this->sanitizeCaddyQuotedValue((string) $value),
+            ->map(fn ($value, $key) => [
+                'name' => ltrim(trim((string) $key), '-'),
+                'value' => $this->sanitizeCaddyQuotedValue((string) $value),
+                'action' => str_starts_with(trim((string) $key), '-') ? 'remove' : 'set',
             ])
-            ->filter(fn ($value, $key) => $this->isValidHeaderFieldName((string) $key))
+            ->filter(fn ($header) => $this->isValidHeaderFieldName($header['name']))
+            ->values()
             ->all();
     }
 

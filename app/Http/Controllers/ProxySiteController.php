@@ -387,34 +387,57 @@ class ProxySiteController extends Controller
     private function normalizeAdvancedRoutes(array $routes): array
     {
         return collect($routes)
-            ->filter(fn ($route) => \is_array($route))
+            ->filter(fn ($route) => \is_array($route) && $this->isRenderableAdvancedRoute($route))
             ->map(function ($route) {
                 $matcherType = (string) ($route['matcher_type'] ?? 'path');
-                $transport = (string) ($route['transport'] ?? 'http');
-                $upstreamUrl = trim((string) ($route['upstream_url'] ?? ''));
                 $matcherType = in_array($matcherType, ['path', 'path_prefix', 'header'], true) ? $matcherType : 'path';
                 $matcherValue = $this->normalizeRouteMatcherValue($matcherType, $route['matcher_value'] ?? '/*');
+                $transport = (string) ($route['transport'] ?? 'http');
+                $action = (string) ($route['action'] ?? 'reverse_proxy');
+                $action = in_array($action, ['reverse_proxy', 'respond'], true) ? $action : 'reverse_proxy';
+                $upstreamUrl = trim((string) ($route['upstream_url'] ?? ''));
 
-                if (! $this->isSafeCaddyToken($upstreamUrl) || $matcherValue === null) {
+                if ($matcherValue === null || ($action === 'reverse_proxy' && ! $this->isSafeCaddyToken($upstreamUrl))) {
                     return null;
                 }
 
-                return [
+                $normalized = [
                     'name' => (string) ($route['name'] ?? ''),
                     'priority' => (int) ($route['priority'] ?? 100),
                     'matcher_type' => $matcherType,
                     'matcher_value' => $matcherValue,
+                    'action' => $action,
+                    'is_active' => (bool) ($route['is_active'] ?? true),
+                ];
+
+                if ($action === 'respond') {
+                    $status = (int) ($route['respond_status'] ?? 200);
+                    $normalized['respond_body'] = (string) ($route['respond_body'] ?? '');
+                    $normalized['respond_status'] = $status >= 100 && $status <= 599 ? $status : 200;
+
+                    return $normalized;
+                }
+
+                return $normalized + [
                     'upstream_url' => $upstreamUrl,
                     'transport' => in_array($transport, ['http', 'https', 'h2c', 'https_skip_verify'], true) ? $transport : 'http',
                     'preserve_host' => (bool) ($route['preserve_host'] ?? false),
                     'header_up' => $this->normalizeHeaderPairs($route['header_up'] ?? []),
-                    'is_active' => (bool) ($route['is_active'] ?? true),
                 ];
             })
             ->filter()
             ->sortBy('priority')
             ->values()
             ->all();
+    }
+
+    private function isRenderableAdvancedRoute(array $route): bool
+    {
+        if (($route['action'] ?? 'reverse_proxy') === 'respond') {
+            return array_key_exists('respond_body', $route) || array_key_exists('respond_status', $route);
+        }
+
+        return ! empty($route['upstream_url']);
     }
 
     private function normalizeForwardAuth(array $config): array
@@ -475,19 +498,24 @@ class ProxySiteController extends Controller
             return [];
         }
 
-        $pairs = array_is_list($headers)
+        $entries = array_is_list($headers)
             ? collect($headers)
                 ->filter(fn ($header) => \is_array($header))
-                ->mapWithKeys(fn ($header) => [
-                    trim((string) ($header['name'] ?? '')) => $this->stripCaddyControlChars((string) ($header['value'] ?? '')),
+                ->map(fn ($header) => [
+                    'name' => ltrim(trim((string) ($header['name'] ?? '')), '-'),
+                    'value' => $this->stripCaddyControlChars((string) ($header['value'] ?? '')),
+                    'action' => (($header['action'] ?? 'set') === 'remove' || str_starts_with(trim((string) ($header['name'] ?? '')), '-')) ? 'remove' : 'set',
                 ])
             : collect($headers)
-                ->mapWithKeys(fn ($value, $key) => [
-                    trim((string) $key) => $this->stripCaddyControlChars((string) $value),
+                ->map(fn ($value, $key) => [
+                    'name' => ltrim(trim((string) $key), '-'),
+                    'value' => $this->stripCaddyControlChars((string) $value),
+                    'action' => str_starts_with(trim((string) $key), '-') ? 'remove' : 'set',
                 ]);
 
-        return $pairs
-            ->filter(fn ($value, $key) => $this->isValidHeaderFieldName((string) $key))
+        return $entries
+            ->filter(fn ($header) => $this->isValidHeaderFieldName($header['name']))
+            ->values()
             ->all();
     }
 
