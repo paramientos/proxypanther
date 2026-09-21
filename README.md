@@ -57,7 +57,7 @@ Traditional reverse proxy tools like Nginx Proxy Manager handle traffic forwardi
 | Charts | Apache ECharts |
 | Package Manager | Yarn |
 | Runtime | Laravel Octane + RoadRunner |
-| Proxy / SSL | Caddy (xcaddy + GeoIP module) |
+| Proxy / SSL | Caddy (xcaddy + GeoIP and Cloudflare DNS modules) |
 | Queue | Redis + Laravel Horizon |
 | Realtime | Laravel Reverb |
 | Database | PostgreSQL (Docker) / SQLite (local) |
@@ -69,7 +69,7 @@ internet
     │
     ▼
 [caddy] :80 / :443
-    │  xcaddy binary with GeoIP module
+    │  xcaddy binary with GeoIP + Cloudflare DNS modules
     │  /etc/caddy/Caddyfile  ── shared volume ──┐
     │  /etc/caddy/GeoLite2-Country.mmdb          │
     │                                            │
@@ -369,7 +369,11 @@ Add to your `.env`:
 CADDY_ADMIN_API=http://localhost:2019
 CADDYFILE_PATH=/etc/caddy/Caddyfile
 GEOIP_DB_PATH=/etc/caddy/GeoLite2-Country.mmdb
+CADDY_CLOUDFLARE_DNS=false
+CLOUDFLARE_API_TOKEN=
 ```
+
+Set `CADDY_CLOUDFLARE_DNS=true` and provide a Cloudflare API token with Zone:Read + DNS:Edit permissions when your deployment needs Caddy to solve ACME challenges through Cloudflare DNS-01 instead of HTTP-01.
 
 #### 7. Start Caddy
 

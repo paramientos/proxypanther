@@ -9,6 +9,7 @@ RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
 RUN xcaddy build \
     --with github.com/porech/caddy-maxmind-geolocation \
+    --with github.com/caddy-dns/cloudflare \
     --output /usr/local/bin/caddy
 
 FROM alpine:3.20

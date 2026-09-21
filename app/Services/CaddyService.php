@@ -43,7 +43,12 @@ class CaddyService
 
     public function renderCaddyfile($sites, $bannedIps): string
     {
+        $cloudflareDns = (bool) config('services.caddy.cloudflare_dns', false);
         $out = "{\n    admin 0.0.0.0:2019\n    email admin@proxypanther.com\n}\n\n";
+
+        if ($cloudflareDns) {
+            $out .= "(cloudflare_tls) {\n    tls {\n        dns cloudflare {env.CLOUDFLARE_API_TOKEN}\n    }\n}\n\n";
+        }
 
         $out .= "(common_security_headers) {\n    header {\n";
         $out .= "        Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\"\n";
@@ -66,6 +71,10 @@ class CaddyService
         foreach ($sites as $site) {
             $prefix = $site->ssl_enabled ? '' : 'http://';
             $out .= "{$prefix}{$site->domain} {\n";
+
+            if ($site->ssl_enabled && $cloudflareDns) {
+                $out .= "    import cloudflare_tls\n";
+            }
 
             // Infrastructure Debug Headers
             $out .= "    header X-ProxyPanther-Gateway \"Secure-Alpha\"\n";

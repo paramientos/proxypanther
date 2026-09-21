@@ -4,6 +4,26 @@ use App\Http\Controllers\ProxySiteController;
 use App\Models\ProxySite;
 use App\Services\CaddyService;
 
+it('renders Cloudflare DNS challenge when enabled', function () {
+    config(['services.caddy.cloudflare_dns' => true]);
+
+    ProxySite::create([
+        'name' => 'DNS Challenge App',
+        'domain' => 'dns.example.com',
+        'backend_url' => 'http://app:8000',
+        'ssl_enabled' => true,
+        'waf_enabled' => false,
+        'protect_sensitive_files' => false,
+    ]);
+
+    $caddyfile = app(CaddyService::class)->renderCaddyfile(ProxySite::with('pageRules')->get(), collect());
+
+    expect($caddyfile)
+        ->toContain('(cloudflare_tls)')
+        ->toContain('dns cloudflare {env.CLOUDFLARE_API_TOKEN}')
+        ->toContain("dns.example.com {\n    import cloudflare_tls");
+});
+
 it('renders ordered advanced h2c routes before the fallback backend', function () {
     ProxySite::create([
         'name' => 'NetBird',
